@@ -59,10 +59,10 @@ typedef struct pin_desc
 #define	PIN_DESC_26	PIN_DESC(HAL_GPIO_26, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_27)
 #define	PIN_DESC_27	PIN_DESC(HAL_GPIO_27, 8, -1, 9,-1,  7, -1, -1, HAL_PWM_28) // I2C0 CLK
 #define	PIN_DESC_28	PIN_DESC(HAL_GPIO_28, 8, -1, 9,-1,  4, -1, -1, HAL_PWM_29) // I2C0 DATA
-#define	PIN_DESC_29	PIN_DESC(HAL_GPIO_29, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_30)
-#define	PIN_DESC_30	PIN_DESC(HAL_GPIO_30, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_31)
-#define	PIN_DESC_31	PIN_DESC(HAL_GPIO_31, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_32)
-#define	PIN_DESC_32	PIN_DESC(HAL_GPIO_32, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_33)
+#define	PIN_DESC_29	PIN_DESC(HAL_GPIO_29, 8, -1, 9,-1, -1,  7, -1, HAL_PWM_30)
+#define	PIN_DESC_30	PIN_DESC(HAL_GPIO_30, 8, -1, 9,-1, -1,  7, -1, HAL_PWM_31)
+#define	PIN_DESC_31	PIN_DESC(HAL_GPIO_31, 8, -1, 9,-1, -1,  7, -1, HAL_PWM_32)
+#define	PIN_DESC_32	PIN_DESC(HAL_GPIO_32, 8, -1, 9,-1, -1,  8, -1, HAL_PWM_33)
 #define	PIN_DESC_33	PIN_DESC(HAL_GPIO_33, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_34)
 #define	PIN_DESC_34	PIN_DESC(HAL_GPIO_34, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_35)
 #define	PIN_DESC_35	PIN_DESC(HAL_GPIO_35, 8, -1, 9, 7, -1, -1, 19, HAL_PWM_18) // UART DBG TX

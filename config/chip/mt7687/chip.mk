@@ -742,7 +742,7 @@ endif
 ## Relative doc:None
 ##
 ifeq ($(MTK_NVDM_ENABLE),y)
-  CFLAGS += -DMTK_NVDM_ENABLE
+  COM_CFLAGS += -DMTK_NVDM_ENABLE
 endif
 
 

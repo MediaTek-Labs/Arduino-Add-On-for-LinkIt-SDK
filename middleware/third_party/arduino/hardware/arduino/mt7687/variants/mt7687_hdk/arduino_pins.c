@@ -1,5 +1,61 @@
 #include "arduino_pins.h"
 
+#if 1
+/*
+	Left-hand side:
+	P0: GPIO2  		UART0_RX
+	P1: GPIO3 		UART0_TX
+	P2: GPIO0
+	P3: GPIO39
+	P4: GPIO34
+	P5: GPIO33
+
+	Righ-hand side:
+	P6:  GPIO37
+	P7:  GPIO36
+	P8:  GPIO27		I2C1_CLK
+	P9:  GPIO28		I2C1_DATA
+	P10: GPIO32		SPI_CS0
+	P11: GPIO29		SPI_MOSI
+	P12: GPIO30		SPI_MISO
+	P13: GPIO31		SPI_SCK
+	P14: GPIO57		ADC_IN0
+	P15: GPIO58		ADC_IN1
+	P16: GPIO59		ADC_IN2
+	P17: GPIO60		ADC_IN3
+*/
+pin_desc_t *get_arduino_pin_desc(arduino_pin_t pin_no)
+{
+	static pin_desc_t arduino_pin_desc_tab[] = {
+		[GPIO2]		= PIN_DESC_2,		/*  0: RXB */
+		[GPIO3]		= PIN_DESC_3,		/*  1: TXB */
+		[GPIO0]		= PIN_DESC_0, 		/*  2 */
+		[GPIO39]	= PIN_DESC_39, 		/*  3 */
+		[GPIO34]	= PIN_DESC_34, 		/*  4 */
+		[GPIO33]	= PIN_DESC_33,		/*  5 */
+		[GPIO37]	= PIN_DESC_37,		/*  6 */
+		[GPIO36]	= PIN_DESC_36,		/*  7 */
+
+		[GPIO27]	= PIN_DESC_27,		/*  8 */
+		[GPIO28]	= PIN_DESC_28,		/*  9 */
+		[GPIO32]	= PIN_DESC_32,		/* 10: SS   */
+		[GPIO29]	= PIN_DESC_29,		/* 11: MOSI */
+		[GPIO30]	= PIN_DESC_30,		/* 12: MISO */
+		[GPIO31]	= PIN_DESC_31,		/* 13: SCK  */
+
+		[A0]		= PIN_DESC_57,		/* 16: ADC_IN0  */
+		[A1]		= PIN_DESC_58,		/* 17: ADC_IN1  */
+		[A2]		= PIN_DESC_59,		/* 18: ADC_IN2  */
+		[A3]		= PIN_DESC_60,		/* 19: ADC_IN3  */
+	};
+
+	if (pin_no >= sizeof(arduino_pin_desc_tab)/sizeof(pin_desc_t))
+		return NULL;
+
+	return &arduino_pin_desc_tab[pin_no];
+}
+
+#else
 /*
  *   GPIO2: GPIO4     SPI_D0_EXT   | 20
  *   GPIO5: GPIO5     SPI_D1_EXT   | 21
@@ -74,3 +130,5 @@ pin_desc_t *get_arduino_pin_desc(arduino_pin_t pin_no)
 
 	return &arduino_pin_desc_tab[pin_no];
 }
+#endif
+

@@ -7,12 +7,14 @@ void pin_change(void)
 {
 	digitalWrite(led, val);
 	val = !val;
+    Serial.println("high");
 }
 
 
 void setup() {
 	pinMode(led, OUTPUT);
-	attachInterrupt(4, pin_change, CHANGE);
+	attachInterrupt(6, pin_change, RISING);
+    Serial.begin(115200);
 }
 
 void loop() {

@@ -11,12 +11,20 @@ S-FILES      = $(wildcard $(ARDUINO_VARS)/*.s)
 C-FILES      = $(wildcard $(ARDUINO_CORE)/*.c)
 C-FILES     += $(wildcard $(ARDUINO_VARS)/*.c)
 C-FILES     += $(wildcard $(ARDUINO_LIBS)/Wire/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/MCS/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/LTimer/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/LFlash/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/SPI/src/*.c)
 C-FILES     += $(wildcard $(ARDUINO_LIBS)/WiFi/src/*.c)
 C-FILES     += $(wildcard $(ARDUINO_LIBS)/WiFi/src/utility/*.c)
 
 CXX-FILES    = $(wildcard $(ARDUINO_CORE)/*.cpp)
 CXX-FILES   += $(wildcard $(ARDUINO_VARS)/*.cpp)
 CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/Wire/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/MCS/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/LTimer/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/LFlash/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/SPI/src/*.cpp)
 CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/WiFi/src/*.cpp)
 CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/WiFi/src/utility/*.cpp)
 
@@ -28,8 +36,15 @@ CXX_FILES    = $(addprefix middleware/third_party/arduino/,$(CXX-FILES))
 # include path
 INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_CORE)
 INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_VARS)
+INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_LIBS)/MCS/src
+INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_LIBS)/LTimer/src
+INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_LIBS)/LFlash/src
+INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_LIBS)/SPI/src
 INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_LIBS)/Wire/src
 INC_FLAGS += -I$(SOURCE_DIR)/$(ARDUINO_SRC)/$(ARDUINO_LIBS)/WiFi/src
+INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/fota/inc
+INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/fota/inc/76x7
+INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/nvdm/inc
 
 CFLAGS    += $(INC_FLAGS)
 CPPFLAGS  += $(INC_FLAGS)

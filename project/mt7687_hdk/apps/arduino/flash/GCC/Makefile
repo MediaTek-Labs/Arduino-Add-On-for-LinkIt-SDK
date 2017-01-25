@@ -68,6 +68,7 @@ OUTPATH    = $(PWD)/Build
 ARDUINO_REL_PATH      =middleware/third_party/arduino
 ARDUINO_CORE_REL_PATH =$(ARDUINO_REL_PATH)/hardware/arduino/$(IC_CONFIG)/cores/arduino
 ARDUINO_VARS_REL_PATH =$(ARDUINO_REL_PATH)/hardware/arduino/$(IC_CONFIG)/variants/$(BOARD_CONFIG)
+ARDUINO_LIBS_REL_PATH =$(ARDUINO_REL_PATH)/hardware/arduino/$(IC_CONFIG)/libraries
 
 # Some relative path related with arduino app project
 # PROJ_ABS_PATH : such as '/xxx/.../project/mtxxxx_hdk/apps/arduino/xxxxx/GCC'
@@ -94,6 +95,7 @@ CXX_FILES = $(foreach src,$(wildcard $(PROJ_ABS_PATH)/../src/*.cpp), $(PROJ_SRC_
 __FLAGS  = -DMTK_FW_VERSION=\"$(MTK_FW_VERSION)\"
 __FLAGS  += -I$(SOURCE_DIR)/$(ARDUINO_CORE_REL_PATH)
 __FLAGS  += -I$(SOURCE_DIR)/$(ARDUINO_VARS_REL_PATH)
+__FLAGS  += -I$(SOURCE_DIR)/$(ARDUINO_LIBS_REL_PATH)/LFlash/src
 
 ifeq ($(DEBUG), 1)
 	__FLAGS += -DDEBUG_IO
@@ -137,18 +139,19 @@ CXX_OBJS = $(CXX_FILES:%.cpp=$(BUILD_DIR)/%.o)
 # Unnecessary:	libhal_core.a	efuse operation
 # Unnecessary:	libhal_sec.a	crypt operation
 LIBS += $(OUTPATH)/libhal.a
-LIBS += $(SOURCE_DIR)/driver/chip/mt7687/lib/libhal_core_CM4_GCC.a
 # For FreeRTOS
 LIBS += $(OUTPATH)/librtos.a
 LIBS += $(OUTPATH)/libarduino.o
 LIBS += $(OUTPATH)/libservice.a
 #LIBS += $(OUTPATH)/libbsp.a
+LIBS += $(OUTPATH)/libnvdm_CM4_GCC.a
 
 MODULE_PATH += $(DRV_CHIP_PATH)
 MODULE_PATH += $(KRL_OS_PATH)
 MODULE_PATH += $(MID_ARDUINO_PATH)
 MODULE_PATH += $(KRL_SRV_PATH)
 #MODULE_PATH += $(DRV_BSP_PATH)
+MODULE_PATH += $(MID_NVDM_PATH)
 
 ################################################################################
 # Rules

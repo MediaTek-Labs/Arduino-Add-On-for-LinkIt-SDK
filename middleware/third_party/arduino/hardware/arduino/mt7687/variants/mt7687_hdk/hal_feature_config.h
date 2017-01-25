@@ -66,7 +66,7 @@ extern "C" {
 #define HAL_TRNG_MODULE_ENABLED
 #define HAL_UART_MODULE_ENABLED
 #define HAL_WDT_MODULE_ENABLED
-#define HAL_SLEEP_MANAGER_ENABLED
+//#define HAL_SLEEP_MANAGER_ENABLED
 
 /*****************************************************************************
 * customization module feature option

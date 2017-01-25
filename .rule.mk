@@ -4,10 +4,18 @@ ifneq ($(filter MINGW%,$(OS_VERSION)),)
   $(MID_MBEDTLS_PATH)_EXTRA := -j1
 endif
 
+ifeq ($(MAKELEVEL),0)
+M :=
+else
+M := -
+endif
+
+include $(SOURCE_DIR)/middleware/MTK/verno/module.mk
+
 .PHONY: merge_lib copy_lib cleanlog
 
 cleanlog:
-ifeq ($(OUTPATH),$(PWD)/Build)
+ifeq ($(TARGET_PATH),)
 	rm -f $(OUTPATH)/*.log
 else
 	@echo "trigger by build.sh, skip cleanlog"
@@ -48,15 +56,16 @@ merge_lib:
 			rm -r $(OUTPATH)/merge_$(TARGET_LIB); \
 		fi
 
-$(TARGET_LIB).a: $(CXX_OBJS) $(C_OBJS) $(S_OBJS)
+$(TARGET_LIB).a: $(C_OBJS) $(CXX_OBJS) $(S_OBJS)
 	@echo Gen $(TARGET_LIB).a
 	@echo Gen $(TARGET_LIB).a >>$(BUILD_LOG)
 	$(Q)if [ -e "$(OUTPATH)/$@" ]; then rm -f "$(OUTPATH)/$@"; fi
 	$(Q)if [ -e "$(OUTPATH)/lib/$@" ]; then rm -f "$(OUTPATH)/lib/$@"; fi
-	$(Q)-$(AR) -r $(OUTPATH)/$@ $(CXX_OBJS) $(C_OBJS) $(S_OBJS) >>$(BUILD_LOG) 2>>$(ERR_LOG); \
+	$(Q)$(M)$(AR) -r $(OUTPATH)/$@ $(C_OBJS) $(CXX_OBJS) $(S_OBJS) >>$(BUILD_LOG) 2>>$(ERR_LOG); \
 	if [ "$$?" != "0" ]; then \
 		echo "MODULE BUILD $@ FAIL"; \
 		echo "MODULE BUILD $@ FAIL" >> $(BUILD_LOG); \
+		exit 1;\
 	else \
 		echo "MODULE BUILD $@ PASS"; \
 		echo "MODULE BUILD $@ PASS" >> $(BUILD_LOG); \

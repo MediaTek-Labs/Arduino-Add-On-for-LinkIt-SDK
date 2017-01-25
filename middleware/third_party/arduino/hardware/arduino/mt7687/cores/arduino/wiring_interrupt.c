@@ -8,7 +8,7 @@
 
 static void default_hal_eint_callback(void *arduino_callback)
 {
-	digitalWrite(5, 1);
+	//digitalWrite(5, 1);
 	voidFuncPtr callback = arduino_callback;
 
 	if (callback != NULL)
@@ -41,7 +41,7 @@ void attachInterrupt(uint32_t pin, voidFuncPtr callback, uint32_t mode)
 		goto FAIL;
 
 	eint_config.trigger_mode  = mode_to_eint_trigger[mode];
-	eint_config.debounce_time = 100; // debounce time unit: ms
+	eint_config.debounce_time = 50; // debounce time unit: ms
 
 
 	ret = hal_eint_init(pin_get_eint_num(pin_desc), &eint_config);

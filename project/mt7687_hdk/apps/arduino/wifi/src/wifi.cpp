@@ -1,5 +1,5 @@
 #include "Arduino.h"
-#include "WiFi.h"
+#include "ard_WiFi.h"
 #include "WiFiServer.h"
 #include "WiFiClient.h"
 #include "WiFiUdp.h"

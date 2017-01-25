@@ -120,4 +120,6 @@ void init_system(void)
 
 	/* Init the UART for stdio */
 	init_stdio();
+
+    hal_flash_init();
 }

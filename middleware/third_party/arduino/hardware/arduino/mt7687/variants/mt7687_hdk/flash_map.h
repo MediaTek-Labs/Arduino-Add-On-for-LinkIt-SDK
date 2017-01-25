@@ -35,12 +35,13 @@
 #ifndef __FLASH_MAP_H__
 #define __FLASH_MAP_H__
 
-#define FLASH_LOADER_SIZE           0x8000        /*  32KB */
-#define FLASH_RESERVED_SIZE         0x8000        /*  32KB */
-#define FLASH_N9_RAM_CODE_SIZE      0x69000       /* 420KB */
-#define FLASH_CM4_XIP_CODE_SIZE     0xBF000       /* 764KB */
-#define FLASH_TMP_SIZE              0xBF000       /* 764KB */
-#define FLASH_USR_CONF_SIZE         0x9000        /*  36KB */
+#define FLASH_LOADER_SIZE           0x8000          /*  32KB */
+#define FLASH_RESERVED_SIZE         0x8000          /*  32KB */
+#define FLASH_N9_RAM_CODE_SIZE      0x69000         /* 420KB */
+#define FLASH_CM4_XIP_CODE_SIZE     0x1ED000        /* 1972KB */
+#define FLASH_TMP_SIZE              0x18A000        /* 1576KB */
+#define FLASH_USR_CONF_SIZE         0x10000         /*  64KB */
+#define NVDM_LENGTH                 (FLASH_USR_CONF_SIZE)
 
 #define CM4_FLASH_LOADER_ADDR       0x0
 #define CM4_FLASH_RESERVED_ADDR     (CM4_FLASH_LOADER_ADDR     + FLASH_LOADER_SIZE)
@@ -48,6 +49,9 @@
 #define CM4_FLASH_CM4_ADDR          (CM4_FLASH_N9_RAMCODE_ADDR + FLASH_N9_RAM_CODE_SIZE)
 #define CM4_FLASH_TMP_ADDR          (CM4_FLASH_CM4_ADDR        + FLASH_CM4_XIP_CODE_SIZE)
 #define CM4_FLASH_USR_CONF_ADDR     (CM4_FLASH_TMP_ADDR        + FLASH_TMP_SIZE)
+
+#define N9_RAMCODE_BASE             (CM4_FLASH_N9_RAMCODE_ADDR)
+#define NVDM_BASE                   (CM4_FLASH_USR_CONF_ADDR)
 
 #define CM4_FLASH_CM4_BASE		    0x10000000
 

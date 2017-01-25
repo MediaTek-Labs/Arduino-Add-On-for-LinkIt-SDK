@@ -49,6 +49,9 @@ include $(FEATURE)
 # Minisupp Config
 -include $(SOURCE_DIR)/middleware/MTK/minisupp/module.mk
 
+-include $(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/module.mk
+
+
 RAM_BOOTING =0
 DEBUG       =0
 FLOAT_TYPE  =hard
@@ -152,15 +155,16 @@ LIBS += $(OUTPATH)/libhal.a
 LIBS += $(OUTPATH)/librtos.a
 LIBS += $(OUTPATH)/libarduino.o
 LIBS += $(OUTPATH)/libservice.a
-LIBS += $(OUTPATH)/libbsp.a
+#LIBS += $(OUTPATH)/libbsp.a
 LIBS += $(OUTPATH)/liblwip.a
 LIBS += $(OUTPATH)/libnvdm_CM4_GCC.a
+LIBS += $(SOURCE_DIR)/driver/chip/mt7687/lib/libhal_core_CM4_GCC.a
 
 MODULE_PATH += $(DRV_CHIP_PATH)
 MODULE_PATH += $(KRL_OS_PATH)
 MODULE_PATH += $(MID_ARDUINO_PATH)
 MODULE_PATH += $(KRL_SRV_PATH)
-MODULE_PATH += $(DRV_BSP_PATH)
+#MODULE_PATH += $(DRV_BSP_PATH)
 MODULE_PATH += $(MID_LWIP_PATH)
 MODULE_PATH += $(MID_NVDM_PATH)
 
