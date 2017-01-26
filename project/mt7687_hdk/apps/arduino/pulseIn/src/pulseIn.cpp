@@ -2,6 +2,8 @@
 
 int led = 7;
 int val = 0;
+int tone_pin = 8;
+int pulse_pin = 6;
 
 int key;
 unsigned int analog_val = 350;
@@ -15,9 +17,9 @@ void setup() {
 	Serial.begin(115200);
 	pinMode(led, OUTPUT);
 
-	tone(8, analog_val);
+	tone(tone_pin, analog_val);
 
-	pinMode(4, INPUT);
+	pinMode(pulse_pin, INPUT);
 
 	Serial.println("finished setup!");
 }
@@ -42,13 +44,13 @@ void loop() {
 			analog_val -= 100;
 		}
 
-		tone(8, analog_val);
+		tone(tone_pin, analog_val);
 	}
 
 	Serial.print("analog_val: ");
 	Serial.println(analog_val);
 
-	time = pulseIn(4, HIGH);
+	time = pulseIn(pulse_pin, HIGH);
 	Serial.println(time, 10);
 
 	digitalWrite(led, val&0x1);
