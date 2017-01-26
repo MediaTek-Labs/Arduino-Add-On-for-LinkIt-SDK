@@ -57,7 +57,7 @@ typedef struct pin_desc
 #define	PIN_DESC_24	PIN_DESC(HAL_GPIO_24, 8, -1, 9,-1,  4, -1, -1, HAL_PWM_25) // I2C1 CLK
 #define	PIN_DESC_25	PIN_DESC(HAL_GPIO_25, 8, -1, 9,-1,  4, -1, -1, HAL_PWM_26) // I2C1 DATA
 #define	PIN_DESC_26	PIN_DESC(HAL_GPIO_26, 8, -1, 9,-1, -1, -1, -1, HAL_PWM_27)
-#define	PIN_DESC_27	PIN_DESC(HAL_GPIO_27, 8, -1, 9,-1,  7, -1, -1, HAL_PWM_28) // I2C0 CLK
+#define	PIN_DESC_27	PIN_DESC(HAL_GPIO_27, 8, -1, 9,-1,  4, -1, -1, HAL_PWM_28) // I2C0 CLK
 #define	PIN_DESC_28	PIN_DESC(HAL_GPIO_28, 8, -1, 9,-1,  4, -1, -1, HAL_PWM_29) // I2C0 DATA
 #define	PIN_DESC_29	PIN_DESC(HAL_GPIO_29, 8, -1, 9,-1, -1,  7, -1, HAL_PWM_30)
 #define	PIN_DESC_30	PIN_DESC(HAL_GPIO_30, 8, -1, 9,-1, -1,  7, -1, HAL_PWM_31)

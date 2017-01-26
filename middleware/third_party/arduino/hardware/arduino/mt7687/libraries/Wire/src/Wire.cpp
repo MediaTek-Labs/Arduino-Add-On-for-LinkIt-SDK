@@ -30,18 +30,18 @@ extern "C" {
 
 #include "Wire.h"
 
-#define I2C_PORT_IDEL				0x5555
+#define I2C_PORT_IDLE				0x5555
 #define I2C_PORT_BUSY				0xAAAA
 
-static volatile uint32_t i2c_port0_state = I2C_PORT_IDEL;
+static volatile uint32_t i2c_port0_state = I2C_PORT_IDLE;
 static void i2c_port0_irq_hanlder(uint8_t slave_address, hal_i2c_callback_event_t event, void *user_data)
 {
-	i2c_port0_state = I2C_PORT_IDEL;
+	i2c_port0_state = I2C_PORT_IDLE;
 }
 
 static void i2c_port0_wait_idel(void)
 {
-	while (i2c_port0_state != I2C_PORT_IDEL) {
+	while (i2c_port0_state != I2C_PORT_IDLE) {
 		;
 	}
 }
