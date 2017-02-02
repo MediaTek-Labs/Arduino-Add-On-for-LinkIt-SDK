@@ -1,0 +1,74 @@
+/*###ICF### Section handled by ICF editor, don't touch! ****/
+/*-Editor annotation file-*/
+/* IcfEditorFile="$TOOLKIT_DIR$\config\ide\IcfEditor\cortex_v1_0.xml" */
+/*-Specials-*/
+define symbol __ICFEDIT_intvec_start__ = 0x20000000;
+/*-Memory Regions-*/
+define symbol __ICFEDIT_region_BL_start__       = 0x10000000;
+define symbol __ICFEDIT_region_BL_end__         = 0x10008000;
+define symbol __ICFEDIT_region_N9_ROM_start__   = 0x10010000;
+define symbol __ICFEDIT_region_N9_ROM_end__     = 0x10078FFF;
+define symbol __ICFEDIT_region_ROM_RST_start__  = 0x10079000;
+define symbol __ICFEDIT_region_ROM_RST_end__    = 0x100790FF;
+define symbol __ICFEDIT_region_ROM_start__      = 0x10079100;
+define symbol __ICFEDIT_region_ROM_end__        = 0x10138000;
+define symbol __ICFEDIT_region_RAM_NVIC_start__ = 0x20000000;
+define symbol __ICFEDIT_region_RAM_NVIC_end__   = 0x200003FF;
+define symbol __ICFEDIT_region_RAM_start__      = 0x20000400;
+define symbol __ICFEDIT_region_RAM_end__        = 0x20040000;
+define symbol __ICFEDIT_region_TCM_start__      = 0x00100000;
+define symbol __ICFEDIT_region_TCM_end__        = 0x00110000;
+/*-Sizes-*/
+define symbol __ICFEDIT_size_cstack__ = 0xC00;
+define symbol __ICFEDIT_size_heap__   = 0x800;
+/**** End of ICF editor section. ###ICF###*/
+
+define memory mem with size = 4G;
+define region BL_region       = mem:[from __ICFEDIT_region_BL_start__    to __ICFEDIT_region_BL_end__];
+define region N9_ROM_region   = mem:[from __ICFEDIT_region_N9_ROM_start__   to __ICFEDIT_region_N9_ROM_end__];
+define region ROM_RST_region  = mem:[from __ICFEDIT_region_ROM_RST_start__   to __ICFEDIT_region_ROM_RST_end__];
+define region ROM_region      = mem:[from __ICFEDIT_region_ROM_start__   to __ICFEDIT_region_ROM_end__];
+define region RAM_NVIC_region = mem:[from __ICFEDIT_region_RAM_NVIC_start__ to __ICFEDIT_region_RAM_NVIC_end__];
+define region RAM_region      = mem:[from __ICFEDIT_region_RAM_start__   to __ICFEDIT_region_RAM_end__];
+define region TCM_region      = mem:[from __ICFEDIT_region_TCM_start__   to __ICFEDIT_region_TCM_end__];
+
+define block CSTACK    with alignment = 8, size = __ICFEDIT_size_cstack__   { };
+define block HEAP      with alignment = 8, size = __ICFEDIT_size_heap__     { };
+
+define block TCM_BLOCK with fixed order { section .ramTEXT,
+                                          section .tcmBSS
+                                        };
+
+define block RAM_BLOCK with fixed order {
+                                          readwrite
+                                        };
+
+
+define block N9_BIN_BLOCK with fixed order {
+                              section .n9fw
+                          };
+define block ROM_BLOCK with fixed order{
+                              section .intvec,
+                              readonly
+                          };
+keep {section .n9fw};
+
+initialize by copy { section .ramTEXT };
+//initialize by copy { section .intvec }; 
+initialize by copy { readwrite };
+
+do not initialize  { section .noinit };
+
+place in BL_region             { section .bootloader };
+place at start of N9_ROM_region  { block N9_BIN_BLOCK };
+
+place at start of ROM_RST_region { section .reset_handler };
+place at start of ROM_region     { block ROM_BLOCK };
+//place at start of ROM_region   { section .reset_handler };
+//place in ROM_region            { readonly };
+
+place in TCM_region            { block TCM_BLOCK };
+
+place at start of RAM_region   { block RAM_BLOCK };
+place in RAM_region            { block HEAP };
+place at end of RAM_region     { block CSTACK };

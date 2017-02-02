@@ -1,0 +1,63 @@
+#! armcc -E
+
+;******************************************************************************************
+;TCMRAM definition:
+;    - TCMRAM_BASE:
+;    - TCMRAM_SIZE:  64K
+;******************************************************************************************
+#define TCMRAM_BASE 0x00100000
+#define TCMRAM_SIZE 0x00010000
+
+;******************************************************************************************
+;XIP_LOADER_CODE definition:
+;    - FLASH_BASE:
+;    - FLASH_SIZE:  32K
+;******************************************************************************************
+#define FLASH_BASE 0x10000000
+#define FLASH_SIZE 0x00008000
+
+;******************************************************************************************
+;SYSRAM definition:
+;    - FLASH_BASE:
+;    - FLASH_SIZE:  256K
+;******************************************************************************************
+#define SYSRAM_BASE 0x20000000
+#define SYSRAM_SIZE 0x00040000
+
+;******************************************************************************************
+;STACK definition: 3KB stack size
+;    - STACK_SIZE:   Stack size. The stack is located at the end of SYSRAM.
+;******************************************************************************************
+#define STACK_SIZE -0xC00
+
+TOTAL FLASH_BASE FLASH_SIZE
+{
+  ROM FLASH_BASE
+  {
+     *(.isr_vector, +First)
+     *(InRoot$$Sections)
+     .ANY (+RO)
+  }
+
+  RAM SYSRAM_BASE
+  {
+     .ANY (+RW +ZI)
+     *(.ramTEXT)
+  }
+
+  TCM TCMRAM_BASE
+  {
+     *(.tcmBSS)
+  }
+
+  HEAP +0x0
+  {
+     *(HEAP)
+  }
+
+  STACK (SYSRAM_BASE+SYSRAM_SIZE) STACK_SIZE
+  {
+     ;*(STACK)
+  }
+}
+

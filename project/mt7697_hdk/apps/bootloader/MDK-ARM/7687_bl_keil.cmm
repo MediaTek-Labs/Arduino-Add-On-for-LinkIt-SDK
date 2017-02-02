@@ -1,0 +1,36 @@
+
+;
+; This CMM is for lakrpsur development on 7687 E2 EVB. 
+;
+;
+;
+
+
+SYStem.RESet
+SYStem.JtagClock 5MHz
+SYStem.cpu CortexM4
+SYStem.CONFIG SWDP ON
+SYStem.Attach
+
+break
+
+; === Flash Range Setup ===
+
+CFlash.Base 0x10000000
+CFlash.Size 0x00200000
+
+; unlock SWD
+D.S D:0x8300F050 %LE %LONG 0x76371688
+D.S D:0x8300F050 %LE %LONG 0x76371688
+D.S D:0x8300F050 %LE %LONG 0x76371688
+
+; === Load symbol, does not download to RAM ===
+;DATA.LOAD.ELF .\Objects\bootloader.axf /nocode 
+DATA.LOAD.ELF .\..\..\..\..\..\out_keil\mt7697_hdk\iot_bl\Objects\bootloader.axf /nocode 
+
+y.spath .\..\..\..\..\..\driver\board\mt76x7_hdk\bootloader\src\mt7687
+y.spath .\..\..\..\..\..\project\mt7697_hdk\apps\bootloader\MDK-ARM
+y.spath .\..\src
+
+d.l
+
