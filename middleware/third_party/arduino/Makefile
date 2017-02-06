@@ -52,11 +52,13 @@ FEATURE ?= feature.mk
 include $(PROJ_PATH)/$(FEATURE)
 
 # Gloabl Config
--include $(SOURCE_DIR)/.config
+include $(SOURCE_DIR)/.config
 # IC Config
--include $(SOURCE_DIR)/config/chip/$(IC_CONFIG)/chip.mk
+include $(SOURCE_DIR)/config/chip/$(IC_CONFIG)/chip.mk
 # Board Config
--include $(SOURCE_DIR)/config/board/$(BOARD_CONFIG)/board.mk
+include $(SOURCE_DIR)/config/board/$(BOARD_CONFIG)/board.mk
+# HAL driver files
+include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
 
 CPPFLAGS += -fno-rtti
 

@@ -21,6 +21,7 @@ MTK_FW_DW_BY_CM4                            ?= n
 
 AR      = $(BINPATH)/arm-none-eabi-ar
 CC      = $(BINPATH)/arm-none-eabi-gcc
+LD      = $(BINPATH)/arm-none-eabi-ld
 CXX     = $(BINPATH)/arm-none-eabi-g++
 OBJCOPY = $(BINPATH)/arm-none-eabi-objcopy
 SIZE    = $(BINPATH)/arm-none-eabi-size
@@ -32,7 +33,7 @@ FPUFLAGS    = -fsingle-precision-constant -Wdouble-promotion -mfpu=fpv4-sp-d16 -
 
 COM_CFLAGS += $(ALLFLAGS) $(FPUFLAGS) -ffunction-sections -fdata-sections -fno-builtin
 COM_CFLAGS += -gdwarf-2 -Os -fno-strict-aliasing -fno-common
-COM_CFLAGS += -Wall -Wimplicit-function-declaration -Werror=uninitialized -Wno-error=maybe-uninitialized -Werror=return-type -Wno-switch
+COM_CFLAGS += -Wall -Werror=uninitialized -Wno-error=maybe-uninitialized -Werror=return-type -Wno-switch
 COM_CFLAGS += -DPCFG_OS=2 -D_REENT_SMALL
 COM_CFLAGS += -DPRODUCT_VERSION=$(PRODUCT_VERSION)
 
@@ -743,9 +744,9 @@ endif
 ## MTK_WIFI_PRIVILEGE_ENABLE
 ## Brief:     This option is used to enable/disable Wi-Fi Privilege feature.
 ## Usage:     If the value is "y", the MTK_WIFI_PRIVILEGE_ENABLE will be defined
-## Path:      
+## Path:
 ## Dependency:  libwifi.
-## Notice:      It should only be set "y" when both WiFi and BLE are enabled. 
+## Notice:      It should only be set "y" when both WiFi and BLE are enabled.
 ## Realted doc: None
 ##
 ifeq ($(MTK_WIFI_PRIVILEGE_ENABLE),y)
@@ -763,7 +764,7 @@ endif
 ## Relative doc:None
 ##
 ifeq ($(MTK_NVDM_ENABLE),y)
-  CFLAGS += -DMTK_NVDM_ENABLE
+  COM_CFLAGS += -DMTK_NVDM_ENABLE
 endif
 
 #Incldue Path
@@ -780,8 +781,18 @@ COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/nghttp2/lib/includes/nghttp
 COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/xml/inc
 COM_CFLAGS += -I$(SOURCE_DIR)/kernel/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F
 COM_CFLAGS += -I$(SOURCE_DIR)/kernel/service/inc
-CFLAGS     += -std=gnu99 $(COM_CFLAGS)
-CXXFLAGS   += -std=c++11 $(COM_CFLAGS)
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/lwip/ports/include
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/lwip/src/include
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/lwip/src/include/lwip
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/httpclient/inc
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/mbedtls/include
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/mbedtls/configs
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/mqtt/MQTTClient-C/src/mediatek
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/mqtt/MQTTClient-C/src
+COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/mqtt/MQTTPacket/src
+
+CFLAGS     += -std=gnu99 $(COM_CFLAGS) -Wimplicit-function-declaration
+CPPFLAGS   += -std=c++11 $(COM_CFLAGS)
 
 #Middleware Module Path
 MID_TFTP_PATH 		= $(SOURCE_DIR)/middleware/MTK/tftp
@@ -826,3 +837,4 @@ MID_CURVE25519_PATH        =  $(SOURCE_DIR)/middleware/third_party/curve25519
 MID_ED25519_PATH        =  $(SOURCE_DIR)/middleware/third_party/ed25519
 MID_CHACHA20POLY1305_PATH        =  $(SOURCE_DIR)/middleware/third_party/chacha20poly1305
 MID_SRP_PATH        =  $(SOURCE_DIR)/middleware/third_party/srp
+MID_ARDUINO_PATH        =  $(SOURCE_DIR)/middleware/third_party/arduino
