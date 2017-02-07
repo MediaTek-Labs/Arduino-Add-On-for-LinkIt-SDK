@@ -35,7 +35,7 @@ extern "C"{
 #define F_CPU					MCU_FREQUENCY_192MHZ	// The main clock of MCU work
 #endif
 
-#define LED_BUILTIN				13
+#define LED_BUILTIN				7
 
 extern void init(void);
 extern void post_init(void);
