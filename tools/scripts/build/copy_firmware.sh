@@ -159,7 +159,7 @@ elif [ "$BOARD_CONFIG" == "mt2523s_headset" ]; then
     if [ "$WITH_BOOTLOADER" != "n" ]; then
         combine_bl_cm4 $OUTPUT $BIN_FILENAME ${IC_CONFIG}_bootloader.bin $FLASHBIN_NAME
     fi
-elif [ "$BOARD_CONFIG" == "mt7697_hdk" ]; then
+elif [ "$BOARD_CONFIG" == "mt7697_hdk" ] || [ "$BOARD_CONFIG" == "linkit_7697" ]; then
 
     echo "bin filename is ${BIN_FILENAME}"
     if [ "$BIN_FILENAME" == 'iot_sdk_lite.bin' ]; then
