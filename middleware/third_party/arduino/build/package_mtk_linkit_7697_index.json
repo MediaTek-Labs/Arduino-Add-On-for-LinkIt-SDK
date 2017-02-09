@@ -1,0 +1,102 @@
+{
+  "packages": [
+    {
+      "name": "LinkIt",
+      "maintainer": "MediaTek Labs",
+      "websiteURL": "http://labs.mediatek.com/",
+      "email": "pablo.sun@mediatek.com",
+      "help": {
+        "online": "https://docs.labs.mediatek.com/resource/mt7687-mt7697/"
+      },
+      "platforms": [
+         {
+          "name": "LinkIt 7697",
+          "architecture": "linkit-rtos",
+          "version": "1.0.0",
+          "category": "Contributed",
+          "url": "http://localhost:8080/mediatek_linkit_7697-1.0.0.tar.bz2",
+          "archiveFileName": "mediatek_linkit_7697-1.0.0.tar.bz2",
+          "boards": [
+            {
+              "name": "LinkIt 7697"
+            }
+          ],
+          "toolsDependencies": [
+            {
+              "packager": "arduino",
+              "name": "arm-none-eabi-gcc",
+              "version": "4.8.3-2014q1"
+            },
+    		    {
+      			  "packager": "LinkIt",
+      		      "name": "flash_tool",
+      			  "version": "1.0.0"
+    			  }
+	      ]
+        }
+      ],
+      "tools": [
+        {
+          "name": "arm-none-eabi-gcc",
+          "version": "4.8.3-2014q1",
+          "systems": [
+            {
+              "host": "i686-mingw32",
+              "archiveFileName": "gcc-arm-none-eabi-4.8.3-2014q1-windows.tar.gz",
+              "url": "http://downloads.arduino.cc/gcc-arm-none-eabi-4.8.3-2014q1-windows.tar.gz",
+              "checksum": "SHA-256:fd8c111c861144f932728e00abd3f7d1107e186eb9cd6083a54c7236ea78b7c2",
+              "size": "84537449"
+            },
+            {
+              "host": "x86_64-apple-darwin",
+              "url": "http://downloads.arduino.cc/gcc-arm-none-eabi-4.8.3-2014q1-mac.tar.gz",
+              "archiveFileName": "gcc-arm-none-eabi-4.8.3-2014q1-mac.tar.gz",
+              "checksum": "SHA-256:3598acf21600f17a8e4a4e8e193dc422b894dc09384759b270b2ece5facb59c2",
+              "size": "52518522"
+            },
+            {
+              "host": "x86_64-pc-linux-gnu",
+              "url": "http://downloads.arduino.cc/gcc-arm-none-eabi-4.8.3-2014q1-linux64.tar.gz",
+              "archiveFileName": "gcc-arm-none-eabi-4.8.3-2014q1-linux64.tar.gz",
+              "checksum": "SHA-256:d23f6626148396d6ec42a5b4d928955a703e0757829195fa71a939e5b86eecf6",
+              "size": "51395093"
+            },
+            {
+              "host": "i686-pc-linux-gnu",
+              "url": "http://downloads.arduino.cc/gcc-arm-none-eabi-4.8.3-2014q1-linux32.tar.gz",
+              "archiveFileName": "gcc-arm-none-eabi-4.8.3-2014q1-linux32.tar.gz",
+              "checksum": "SHA-256:ba1994235f69c526c564f65343f22ddbc9822b2ea8c5ee07dd79d89f6ace2498",
+              "size": "51029223"
+            }
+          ]
+        },
+	    {
+		  "name": "flash_tool",
+		  "version": "1.0.0",
+		  "systems": [
+			{
+              "host": "i686-mingw32",
+			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+            },
+            {
+              "host": "i386-apple-darwin11",
+			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+            },
+            {
+              "host": "i686-linux-gnu",
+			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+            },
+            {
+              "host": "x86_64-linux-gnu",
+			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+            }
+		  ]
+		}
+      ]
+    }
+  ]
+}
