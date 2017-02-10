@@ -76,23 +76,23 @@
 		  "systems": [
 			{
               "host": "i686-mingw32",
-			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
-              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+			        "url": "http://localhost:8080/mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2"
             },
             {
               "host": "i386-apple-darwin11",
-			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
-              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+			        "url": "http://localhost:8080/mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2"
             },
             {
               "host": "i686-linux-gnu",
-			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
-              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+			        "url": "http://localhost:8080/mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2"
             },
             {
               "host": "x86_64-linux-gnu",
-			        "url": "http://localhost:8080/flash_tool-1.0.0.tar.bz2",
-              "archiveFileName": "flash_tool-1.0.0.tar.bz2"
+			        "url": "http://localhost:8080/mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2",
+              "archiveFileName": "mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2"
             }
 		  ]
 		}
