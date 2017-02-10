@@ -1,30 +1,36 @@
 /*
-  WiFi UDP Send and Receive String
+  Chat  Server
 
-  This sketch wait an UDP packet on localPort using a WiFi shield.
-  When a packet is received an Acknowledge packet is sent to the client on port remotePort
+  A simple server that distributes any incoming messages to all
+  connected clients.  To use telnet to  your device's IP address and type.
+  You can see the client's input in the serial monitor as well.
+
+  This example is written for a network using WPA encryption. For
+  WEP or WPA, change the Wifi.begin() call accordingly.
+
 
   Circuit:
   * WiFi shield attached
 
-  created 30 December 2012
-  by dlf (Metodo2 srl)
+  created 18 Dec 2009
+  by David A. Mellis
+  modified 31 May 2012
+  by Tom Igoe
+
 */
 
-#include <WiFi.h>
-#include <WiFiUdp.h>
+#include <LWiFi.h>
 
-int status = WL_IDLE_STATUS;
 char ssid[] = "yourNetwork"; //  your network SSID (name)
 char pass[] = "secretPassword";    // your network password (use for WPA, or use as key for WEP)
+
 int keyIndex = 0;            // your network key Index number (needed only for WEP)
 
-unsigned int localPort = 2390;      // local port to listen on
+int status = WL_IDLE_STATUS;
 
-char packetBuffer[255]; //buffer to hold incoming packet
-char  ReplyBuffer[] = "acknowledged";       // a string to send back
+WiFiServer server(23);
 
-WiFiUDP Udp;
+boolean alreadyConnected = false; // whether or not the client was connected previously
 
 void setup() {
 	//Initialize serial and wait for port to open:
@@ -55,39 +61,37 @@ void setup() {
 		// wait 10 seconds for connection:
 		delay(10000);
 	}
-	Serial.println("Connected to wifi");
-	printWifiStatus();
 
-	Serial.println("\nStarting connection to server...");
-	// if you get a connection, report back via serial:
-	Udp.begin(localPort);
+	// start the server:
+	server.begin();
+	// you're connected now, so print out the status:
+	printWifiStatus();
 }
 
+
 void loop() {
+	// wait for a new client:
+	WiFiClient client = server.available();
 
-	// if there's data available, read a packet
-	int packetSize = Udp.parsePacket();
-	if (packetSize) {
-		Serial.print("Received packet of size ");
-		Serial.println(packetSize);
-		Serial.print("From ");
-		IPAddress remoteIp = Udp.remoteIP();
-		Serial.print(remoteIp);
-		Serial.print(", port ");
-		Serial.println(Udp.remotePort());
 
-		// read the packet into packetBufffer
-		int len = Udp.read(packetBuffer, 255);
-		if (len > 0) {
-			packetBuffer[len] = 0;
+	// when the client sends the first byte, say hello:
+	if (client) {
+		if (!alreadyConnected) {
+			// clead out the input buffer:
+			client.flush();
+			Serial.println("We have a new client");
+			client.println("Hello, client!");
+			alreadyConnected = true;
 		}
-		Serial.println("Contents:");
-		Serial.println(packetBuffer);
 
-		// send a reply, to the IP address and port that sent us the packet we received
-		Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-		Udp.write(ReplyBuffer);
-		Udp.endPacket();
+		if (client.available() > 0) {
+			// read the bytes incoming from the client:
+			char thisChar = client.read();
+			// echo the bytes back to the client:
+			server.write(thisChar);
+			// echo the bytes to the server as well:
+			Serial.write(thisChar);
+		}
 	}
 }
 

@@ -1,36 +1,40 @@
 /*
-  Chat  Server
+  Web client
 
-  A simple server that distributes any incoming messages to all
-  connected clients.  To use telnet to  your device's IP address and type.
-  You can see the client's input in the serial monitor as well.
+  This sketch connects to a website (http://www.google.com)
+  using a WiFi shield.
 
   This example is written for a network using WPA encryption. For
   WEP or WPA, change the Wifi.begin() call accordingly.
 
+  This example is written for a network using WPA encryption. For
+  WEP or WPA, change the Wifi.begin() call accordingly.
 
   Circuit:
   * WiFi shield attached
 
-  created 18 Dec 2009
-  by David A. Mellis
+  created 13 July 2010
+  by dlf (Metodo2 srl)
   modified 31 May 2012
   by Tom Igoe
-
 */
 
-#include <WiFi.h>
+#include <LWiFi.h>
 
 char ssid[] = "yourNetwork"; //  your network SSID (name)
 char pass[] = "secretPassword";    // your network password (use for WPA, or use as key for WEP)
-
 int keyIndex = 0;            // your network key Index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
+// if you don't want to use DNS (and reduce your sketch size)
+// use the numeric IP instead of the name for the server:
+//IPAddress server(117,185,24,248);  //
+char server[] = "apis.map.qq.com";   //
 
-WiFiServer server(23);
-
-boolean alreadyConnected = false; // whether or not the client was connected previously
+// Initialize the Ethernet client library
+// with the IP address and port of the server
+// that you want to connect to (port 80 is default for HTTP):
+WiFiClient client;
 
 void setup() {
 	//Initialize serial and wait for port to open:
@@ -61,37 +65,36 @@ void setup() {
 		// wait 10 seconds for connection:
 		delay(10000);
 	}
-
-	// start the server:
-	server.begin();
-	// you're connected now, so print out the status:
+	Serial.println("Connected to wifi");
 	printWifiStatus();
+
+	Serial.println("\nStarting connection to server...");
+	// if you get a connection, report back via serial:
+	if (client.connect(server, 80)) {
+		Serial.println("connected to server (GET)");
+		// Make a HTTP request:
+		client.println("GET /ws/location/v1/ip?ip=61.135.17.68&key=6MABZ-VFKAF-DITJ6-JRPZN-OUOFJ-ULBWQ HTTP/1.1");
+		client.println("Host: apis.map.qq.com");
+		client.println();
+	}
 }
 
-
 void loop() {
-	// wait for a new client:
-	WiFiClient client = server.available();
+	// if there are incoming bytes available
+	// from the server, read them and print them:
+	while (client.available()) {
+		char c = client.read();
+		Serial.write(c);
+	}
 
+	// if the server's disconnected, stop the client:
+	if (!client.connected()) {
+		Serial.println();
+		Serial.println("disconnecting from server.");
+		client.stop();
 
-	// when the client sends the first byte, say hello:
-	if (client) {
-		if (!alreadyConnected) {
-			// clead out the input buffer:
-			client.flush();
-			Serial.println("We have a new client");
-			client.println("Hello, client!");
-			alreadyConnected = true;
-		}
-
-		if (client.available() > 0) {
-			// read the bytes incoming from the client:
-			char thisChar = client.read();
-			// echo the bytes back to the client:
-			server.write(thisChar);
-			// echo the bytes to the server as well:
-			Serial.write(thisChar);
-		}
+		// do nothing forevermore:
+		while (true);
 	}
 }
 

@@ -17,7 +17,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "ard_WiFi.h"
+#include "LWiFi.h"
 #include "WiFiUdp.h"
 #include "WiFiClient.h"
 #include "WiFiServer.h"

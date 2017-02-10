@@ -1,40 +1,30 @@
 /*
-  Web client
+  WiFi UDP Send and Receive String
 
-  This sketch connects to a website (http://www.google.com)
-  using a WiFi shield.
-
-  This example is written for a network using WPA encryption. For
-  WEP or WPA, change the Wifi.begin() call accordingly.
-
-  This example is written for a network using WPA encryption. For
-  WEP or WPA, change the Wifi.begin() call accordingly.
+  This sketch wait an UDP packet on localPort using a WiFi shield.
+  When a packet is received an Acknowledge packet is sent to the client on port remotePort
 
   Circuit:
   * WiFi shield attached
 
-  created 13 July 2010
+  created 30 December 2012
   by dlf (Metodo2 srl)
-  modified 31 May 2012
-  by Tom Igoe
 */
 
-#include <WiFi.h>
+#include <LWiFi.h>
+#include <WiFiUdp.h>
 
+int status = WL_IDLE_STATUS;
 char ssid[] = "yourNetwork"; //  your network SSID (name)
 char pass[] = "secretPassword";    // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;            // your network key Index number (needed only for WEP)
 
-int status = WL_IDLE_STATUS;
-// if you don't want to use DNS (and reduce your sketch size)
-// use the numeric IP instead of the name for the server:
-//IPAddress server(117,185,24,248);  //
-char server[] = "apis.map.qq.com";   //
+unsigned int localPort = 2390;      // local port to listen on
 
-// Initialize the Ethernet client library
-// with the IP address and port of the server
-// that you want to connect to (port 80 is default for HTTP):
-WiFiClient client;
+char packetBuffer[255]; //buffer to hold incoming packet
+char  ReplyBuffer[] = "acknowledged";       // a string to send back
+
+WiFiUDP Udp;
 
 void setup() {
 	//Initialize serial and wait for port to open:
@@ -70,31 +60,34 @@ void setup() {
 
 	Serial.println("\nStarting connection to server...");
 	// if you get a connection, report back via serial:
-	if (client.connect(server, 80)) {
-		Serial.println("connected to server (GET)");
-		// Make a HTTP request:
-		client.println("GET /ws/location/v1/ip?ip=61.135.17.68&key=6MABZ-VFKAF-DITJ6-JRPZN-OUOFJ-ULBWQ HTTP/1.1");
-		client.println("Host: apis.map.qq.com");
-		client.println();
-	}
+	Udp.begin(localPort);
 }
 
 void loop() {
-	// if there are incoming bytes available
-	// from the server, read them and print them:
-	while (client.available()) {
-		char c = client.read();
-		Serial.write(c);
-	}
 
-	// if the server's disconnected, stop the client:
-	if (!client.connected()) {
-		Serial.println();
-		Serial.println("disconnecting from server.");
-		client.stop();
+	// if there's data available, read a packet
+	int packetSize = Udp.parsePacket();
+	if (packetSize) {
+		Serial.print("Received packet of size ");
+		Serial.println(packetSize);
+		Serial.print("From ");
+		IPAddress remoteIp = Udp.remoteIP();
+		Serial.print(remoteIp);
+		Serial.print(", port ");
+		Serial.println(Udp.remotePort());
 
-		// do nothing forevermore:
-		while (true);
+		// read the packet into packetBufffer
+		int len = Udp.read(packetBuffer, 255);
+		if (len > 0) {
+			packetBuffer[len] = 0;
+		}
+		Serial.println("Contents:");
+		Serial.println(packetBuffer);
+
+		// send a reply, to the IP address and port that sent us the packet we received
+		Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+		Udp.write(ReplyBuffer);
+		Udp.endPacket();
 	}
 }
 

@@ -13,7 +13,7 @@
   by Tom Igoe and Jaymes Dec
 */
 
-#include <WiFi.h>
+#include <LWiFi.h>
 
 void setup() {
 	//Initialize serial and wait for port to open:

@@ -14,7 +14,7 @@
   This code is in the public domain.
 */
 
-#include <WiFi.h>
+#include <LWiFi.h>
 #include <WiFiUdp.h>
 
 int status = WL_IDLE_STATUS;

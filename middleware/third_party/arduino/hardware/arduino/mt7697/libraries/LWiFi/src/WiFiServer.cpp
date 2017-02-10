@@ -20,7 +20,7 @@
 #include <string.h>
 #include "utility/server_drv.h"
 
-#include "ard_WiFi.h"
+#include "LWiFi.h"
 #include "WiFiClient.h"
 #include "WiFiServer.h"
 

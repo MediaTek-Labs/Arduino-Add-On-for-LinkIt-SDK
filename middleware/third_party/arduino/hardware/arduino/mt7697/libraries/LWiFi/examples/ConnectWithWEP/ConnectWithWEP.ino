@@ -1,7 +1,17 @@
 /*
-  This example connects to an unencrypted Wifi network.
+  This example connects to a WEP-encrypted Wifi network.
   Then it prints the  MAC address of the Wifi shield,
   the IP address obtained, and other network details.
+
+  If you use 40-bit WEP, you need a key that is 10 characters long,
+  and the characters must be hexadecimal (0-9 or A-F).
+  e.g.  for 40-bit, ABBADEAF01 will work, but ABBADEAF won't work
+  (too short) and ABBAISDEAF won't work (I and S are not
+  hexadecimal characters).
+
+  For 128-bit, you need a string that is 26 characters long.
+  D0D0DEADF00DABBADEAFBEADED will work because it's 26 characters,
+  all in the 0-9, A-F range.
 
   Circuit:
   * WiFi shield attached
@@ -11,11 +21,12 @@
   modified 31 May 2012
   by Tom Igoe
 */
-#include <WiFi.h>
+#include <LWiFi.h>
 
-char ssid[] = "yourNetwork";     //  your network SSID (name)
-char pass[] = "secretPassword";  // your network password
-int status = WL_IDLE_STATUS;     // the Wifi radio's status
+char ssid[] = "yourNetwork";                     // your network SSID (name)
+char key[] = "D0D0DEADF00DABBADEAFBEADED";       // your network key
+int keyIndex = 0;                                // your network key Index number
+int status = WL_IDLE_STATUS;                     // the Wifi radio's status
 
 void setup() {
 	//Initialize serial and wait for port to open:
@@ -38,20 +49,18 @@ void setup() {
 
 	// attempt to connect to Wifi network:
 	while (status != WL_CONNECTED) {
-		Serial.print("Attempting to connect to WPA SSID: ");
+		Serial.print("Attempting to connect to WEP network, SSID: ");
 		Serial.println(ssid);
-		// Connect to WPA/WPA2 network:
-		status = WiFi.begin(ssid, pass);
+		status = WiFi.begin(ssid, keyIndex, key);
 
 		// wait 10 seconds for connection:
 		delay(10000);
 	}
 
-	// you're connected now, so print out the data:
+	// once you are connected :
 	Serial.print("You're connected to the network");
 	printCurrentNet();
 	printWifiData();
-
 }
 
 void loop() {
@@ -82,7 +91,6 @@ void printWifiData() {
 	Serial.print(mac[1], HEX);
 	Serial.print(":");
 	Serial.println(mac[0], HEX);
-
 }
 
 void printCurrentNet() {
