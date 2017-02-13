@@ -34,10 +34,10 @@ import select
 import struct
 import sys
 import termios
+import time
 
 import serial
-from serial.serialutil import SerialBase, SerialException, to_bytes, \
-    portNotOpenError, writeTimeoutError, Timeout
+from serial.serialutil import SerialBase, SerialException, to_bytes, portNotOpenError, writeTimeoutError
 
 
 class PlatformSpecificBase(object):
@@ -49,11 +49,6 @@ class PlatformSpecificBase(object):
     def _set_rs485_mode(self, rs485_settings):
         raise NotImplementedError('RS485 not supported on this platform')
 
-
-# some systems support an extra flag to enable the two in POSIX unsupported
-# paritiy settings for MARK and SPACE
-CMSPAR = 0  # default, for unsupported platforms, override below
-
 # try to detect the OS so that a device can be selected...
 # this code block should supply a device() and set_special_baudrate() function
 # for the platform
@@ -61,9 +56,6 @@ plat = sys.platform.lower()
 
 if plat[:5] == 'linux':    # Linux (confirmed)  # noqa
     import array
-
-    # extra termios flags
-    CMSPAR = 0o10000000000  # Use "stick" (mark/space) parity
 
     # baudrate ioctls
     TCGETS2 = 0x802C542A
@@ -189,21 +181,6 @@ elif plat[:6] == 'darwin':   # OS X
                 buf = array.array('i', [baudrate])
                 fcntl.ioctl(self.fd, IOSSIOSPEED, buf, 1)
 
-elif plat[:3] == 'bsd' or \
-     plat[:7] == 'freebsd' or \
-     plat[:6] == 'netbsd' or \
-     plat[:7] == 'openbsd':
-
-    class ReturnBaudrate(object):
-        def __getitem__(self, key):
-            return key
-
-    class PlatformSpecific(PlatformSpecificBase):
-        # Only tested on FreeBSD:
-        # The baud rate may be passed in as
-        # a literal value.
-        BAUDRATE_CONSTANTS = ReturnBaudrate()
-
 else:
     class PlatformSpecific(PlatformSpecificBase):
         pass
@@ -242,6 +219,8 @@ TIOCM_DTR_str = struct.pack('I', TIOCM_DTR)
 
 TIOCSBRK = getattr(termios, 'TIOCSBRK', 0x5427)
 TIOCCBRK = getattr(termios, 'TIOCCBRK', 0x5428)
+
+CMSPAR = 0o10000000000  # Use "stick" (mark/space) parity
 
 
 class Serial(SerialBase, PlatformSpecific):
@@ -287,8 +266,7 @@ class Serial(SerialBase, PlatformSpecific):
             if not self._rtscts:
                 self._update_rts_state()
         except IOError as e:
-            if e.errno in (errno.EINVAL, errno.ENOTTY):
-                # ignore Invalid argument and Inappropriate ioctl
+            if e.errno == 22:  # ignore Invalid argument
                 pass
             else:
                 raise
@@ -371,16 +349,15 @@ class Serial(SerialBase, PlatformSpecific):
         # setup parity
         iflag &= ~(termios.INPCK | termios.ISTRIP)
         if self._parity == serial.PARITY_NONE:
-            cflag &= ~(termios.PARENB | termios.PARODD | CMSPAR)
+            cflag &= ~(termios.PARENB | termios.PARODD)
         elif self._parity == serial.PARITY_EVEN:
-            cflag &= ~(termios.PARODD | CMSPAR)
+            cflag &= ~(termios.PARODD)
             cflag |= (termios.PARENB)
         elif self._parity == serial.PARITY_ODD:
-            cflag &= ~CMSPAR
             cflag |= (termios.PARENB | termios.PARODD)
-        elif self._parity == serial.PARITY_MARK and CMSPAR:
+        elif self._parity == serial.PARITY_MARK and plat[:5] == 'linux':
             cflag |= (termios.PARENB | CMSPAR | termios.PARODD)
-        elif self._parity == serial.PARITY_SPACE and CMSPAR:
+        elif self._parity == serial.PARITY_SPACE and plat[:5] == 'linux':
             cflag |= (termios.PARENB | CMSPAR)
             cflag &= ~(termios.PARODD)
         else:
@@ -466,10 +443,11 @@ class Serial(SerialBase, PlatformSpecific):
         if not self.is_open:
             raise portNotOpenError
         read = bytearray()
-        timeout = Timeout(self._timeout)
+        timeout = self._timeout
         while len(read) < size:
             try:
-                ready, _, _ = select.select([self.fd, self.pipe_abort_read_r], [], [], timeout.time_left())
+                start_time = time.time()
+                ready, _, _ = select.select([self.fd, self.pipe_abort_read_r], [], [], timeout)
                 if self.pipe_abort_read_r in ready:
                     os.read(self.pipe_abort_read_r, 1000)
                     break
@@ -501,8 +479,10 @@ class Serial(SerialBase, PlatformSpecific):
                 # see also http://www.python.org/dev/peps/pep-3151/#select
                 if e[0] != errno.EAGAIN:
                     raise SerialException('read failed: {}'.format(e))
-            if timeout.expired():
-                break
+            if timeout is not None:
+                timeout -= time.time() - start_time
+                if timeout <= 0:
+                    break
         return bytes(read)
 
     def cancel_read(self):
@@ -516,28 +496,31 @@ class Serial(SerialBase, PlatformSpecific):
         if not self.is_open:
             raise portNotOpenError
         d = to_bytes(data)
-        tx_len = length = len(d)
-        timeout = Timeout(self._write_timeout)
+        tx_len = len(d)
+        timeout = self._write_timeout
+        if timeout and timeout > 0:   # Avoid comparing None with zero
+            timeout += time.time()
         while tx_len > 0:
             try:
                 n = os.write(self.fd, d)
-                if timeout.is_non_blocking:
+                if timeout == 0:
                     # Zero timeout indicates non-blocking - simply return the
                     # number of bytes of data actually written
                     return n
-                elif not timeout.is_infinite:
+                elif timeout and timeout > 0:  # Avoid comparing None with zero
                     # when timeout is set, use select to wait for being ready
                     # with the time left as timeout
-                    if timeout.expired():
+                    timeleft = timeout - time.time()
+                    if timeleft < 0:
                         raise writeTimeoutError
-                    abort, ready, _ = select.select([self.pipe_abort_write_r], [self.fd], [], timeout.time_left())
+                    abort, ready, _ = select.select([self.pipe_abort_write_r], [self.fd], [], timeleft)
                     if abort:
                         os.read(self.pipe_abort_write_r, 1000)
                         break
                     if not ready:
                         raise writeTimeoutError
                 else:
-                    assert timeout.time_left() is None
+                    assert timeout is None
                     # wait for write operation
                     abort, ready, _ = select.select([self.pipe_abort_write_r], [self.fd], [], None)
                     if abort:
@@ -553,9 +536,9 @@ class Serial(SerialBase, PlatformSpecific):
                 if v.errno != errno.EAGAIN:
                     raise SerialException('write failed: {}'.format(v))
                 # still calculate and check timeout
-                if timeout.expired():
+                if timeout and timeout - time.time() < 0:
                     raise writeTimeoutError
-        return length - len(d)
+        return len(data)
 
     def flush(self):
         """\
@@ -747,9 +730,6 @@ class VTIMESerial(Serial):
         if self._inter_byte_timeout is not None:
             vmin = 1
             vtime = int(self._inter_byte_timeout * 10)
-        elif self._timeout is None:
-            vmin = 1
-            vtime = 0
         else:
             vmin = 0
             vtime = int(self._timeout * 10)
@@ -784,6 +764,3 @@ class VTIMESerial(Serial):
                 break
             read.extend(buf)
         return bytes(read)
-
-    # hack to make hasattr return false
-    cancel_read = property()

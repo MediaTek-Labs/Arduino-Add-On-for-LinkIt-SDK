@@ -135,12 +135,15 @@ if os.name == 'nt':  # noqa
 elif os.name == 'posix':
     import atexit
     import termios
-    import fcntl
+    import select
 
     class Console(ConsoleBase):
         def __init__(self):
             super(Console, self).__init__()
             self.fd = sys.stdin.fileno()
+            # an additional pipe is used in getkey, so that the cancel method
+            # can abort the waiting getkey method
+            self.pipe_r, self.pipe_w = os.pipe()
             self.old = termios.tcgetattr(self.fd)
             atexit.register(self.cleanup)
             if sys.version_info < (3, 0):
@@ -156,13 +159,17 @@ elif os.name == 'posix':
             termios.tcsetattr(self.fd, termios.TCSANOW, new)
 
         def getkey(self):
+            ready, _, _ = select.select([self.enc_stdin, self.pipe_r], [], [], None)
+            if self.pipe_r in ready:
+                os.read(self.pipe_r, 1)
+                return
             c = self.enc_stdin.read(1)
             if c == unichr(0x7f):
                 c = unichr(8)    # map the BS key (which yields DEL) to backspace
             return c
 
         def cancel(self):
-            fcntl.ioctl(self.fd, termios.TIOCSTI, b'\0')
+            os.write(self.pipe_w, "x")
 
         def cleanup(self):
             termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old)
@@ -546,7 +553,7 @@ class Miniterm(object):
             if new_filters:
                 for f in new_filters:
                     if f not in TRANSFORMATIONS:
-                        sys.stderr.write('--- unknown filter: {}\n'.format(repr(f)))
+                        sys.stderr.write('--- unknown filter: {}'.format(repr(f)))
                         break
                 else:
                     self.filters = new_filters

@@ -3,7 +3,7 @@
 # Base class and support functions used by various backends.
 #
 # This file is part of pySerial. https://github.com/pyserial/pyserial
-# (C) 2001-2016 Chris Liechti <cliechti@gmx.net>
+# (C) 2001-2015 Chris Liechti <cliechti@gmx.net>
 #
 # SPDX-License-Identifier:    BSD-3-Clause
 
@@ -62,9 +62,14 @@ def to_bytes(seq):
     elif isinstance(seq, unicode):
         raise TypeError('unicode strings are not supported, please encode to bytes: {!r}'.format(seq))
     else:
-        # handle list of integers and bytes (one or more items) for Python 2 and 3
-        return bytes(bytearray(seq))
-
+        b = bytearray()
+        for item in seq:
+            # this one handles int and bytes in Python 2.7
+            # add conversion in case of Python 3.x
+            if isinstance(item, bytes):
+                item = ord(item)
+            b.append(item)
+        return bytes(b)
 
 # create control bytes
 XON = to_bytes([17])
@@ -97,65 +102,6 @@ class SerialTimeoutException(SerialException):
 
 writeTimeoutError = SerialTimeoutException('Write timeout')
 portNotOpenError = SerialException('Attempting to use a port that is not open')
-
-
-class Timeout(object):
-    """\
-    Abstraction for timeout operations. Using time.monotonic() if available
-    or time.time() in all other cases.
-
-    The class can also be initialized with 0 or None, in order to support
-    non-blocking and fully blocking I/O operations. The attributes
-    is_non_blocking and is_infinite are set accordingly.
-    """
-    if hasattr(time, 'monotonic'):
-        # Timeout implementation with time.monotonic(). This function is only
-        # supported by Python 3.3 and above. It returns a time in seconds
-        # (float) just as time.time(), but is not affected by system clock
-        # adjustments.
-        TIME = time.monotonic
-    else:
-        # Timeout implementation with time.time(). This is compatible with all
-        # Python versions but has issues if the clock is adjusted while the
-        # timeout is running.
-        TIME = time.time
-
-    def __init__(self, duration):
-        """Initialize a timeout with given duration"""
-        self.is_infinite = (duration is None)
-        self.is_non_blocking = (duration == 0)
-        self.duration = duration
-        if duration is not None:
-            self.target_time = self.TIME() + duration
-        else:
-            self.target_time = None
-
-    def expired(self):
-        """Return a boolean, telling if the timeout has expired"""
-        return self.target_time is not None and self.time_left() <= 0
-
-    def time_left(self):
-        """Return how many seconds are left until the timeout expires"""
-        if self.is_non_blocking:
-            return 0
-        elif self.is_infinite:
-            return None
-        else:
-            delta = self.target_time - self.TIME()
-            if delta > self.duration:
-                # clock jumped, recalculate
-                self.target_time = self.TIME() + self.duration
-                return self.duration
-            else:
-                return max(0, delta)
-
-    def restart(self, duration):
-        """\
-        Restart a timeout, only supported if a timeout was already set up
-        before.
-        """
-        self.duration = duration
-        self.target_time = self.TIME() + duration
 
 
 class SerialBase(io.RawIOBase):
@@ -636,7 +582,6 @@ class SerialBase(io.RawIOBase):
         """
         lenterm = len(terminator)
         line = bytearray()
-        timeout = Timeout(self._timeout)
         while True:
             c = self.read(1)
             if c:
@@ -646,8 +591,6 @@ class SerialBase(io.RawIOBase):
                 if size is not None and len(line) >= size:
                     break
             else:
-                break
-            if timeout.expired():
                 break
         return bytes(line)
 

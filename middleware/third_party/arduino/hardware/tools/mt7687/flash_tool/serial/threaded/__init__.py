@@ -3,7 +3,7 @@
 # Working with threading and pySerial
 #
 # This file is part of pySerial. https://github.com/pyserial/pyserial
-# (C) 2015-2016 Chris Liechti <cliechti@gmx.net>
+# (C) 2015 Chris Liechti <cliechti@gmx.net>
 #
 # SPDX-License-Identifier:    BSD-3-Clause
 """\
@@ -102,10 +102,10 @@ class FramedPacket(Protocol):
                 self.in_packet = True
             elif byte == self.STOP:
                 self.in_packet = False
-                self.handle_packet(bytes(self.packet)) # make read-only copy
+                self.handle_packet(self.packet)
                 del self.packet[:]
             elif self.in_packet:
-                self.packet.extend(byte)
+                self.packet.append(byte)
             else:
                 self.handle_out_of_packet_data(byte)
 
@@ -273,7 +273,7 @@ if __name__ == '__main__':
             self.write_line('hello world')
 
         def handle_line(self, data):
-            sys.stdout.write('line received: {!r}\n'.format(data))
+            sys.stdout.write('line received: {}\n'.format(repr(data)))
 
         def connection_lost(self, exc):
             if exc:

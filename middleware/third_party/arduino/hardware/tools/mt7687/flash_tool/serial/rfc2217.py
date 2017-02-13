@@ -73,8 +73,7 @@ except ImportError:
     import queue as Queue
 
 import serial
-from serial.serialutil import SerialBase, SerialException, to_bytes, \
-    iterbytes, portNotOpenError, Timeout
+from serial.serialutil import SerialBase, SerialException, to_bytes, iterbytes, portNotOpenError
 
 # port string is expected to be something like this:
 # rfc2217://host:port
@@ -351,8 +350,8 @@ class TelnetSubnegotiation(object):
         can also throw a value error when the answer from the server does not
         match the value sent.
         """
-        timeout_timer = Timeout(timeout)
-        while not timeout_timer.expired():
+        timeout_time = time.time() + timeout
+        while time.time() < timeout_time:
             time.sleep(0.05)    # prevent 100% CPU load
             if self.is_ready():
                 break
@@ -380,11 +379,12 @@ class Serial(SerialBase):
                  9600, 19200, 38400, 57600, 115200)
 
     def __init__(self, *args, **kwargs):
+        super(Serial, self).__init__(*args, **kwargs)
         self._thread = None
         self._socket = None
         self._linestate = 0
         self._modemstate = None
-        self._modemstate_timeout = Timeout(-1)
+        self._modemstate_expires = 0
         self._remote_suspend_flow = False
         self._write_lock = None
         self.logger = None
@@ -395,7 +395,6 @@ class Serial(SerialBase):
         self._rfc2217_port_settings = None
         self._rfc2217_options = None
         self._read_buffer = None
-        super(Serial, self).__init__(*args, **kwargs)  # must be last call in case of auto-open
 
     def open(self):
         """\
@@ -454,7 +453,7 @@ class Serial(SerialBase):
         # cache for line and modem states that the server sends to us
         self._linestate = 0
         self._modemstate = None
-        self._modemstate_timeout = Timeout(-1)
+        self._modemstate_expires = 0
         # RFC 2217 flow control between server and client
         self._remote_suspend_flow = False
 
@@ -470,8 +469,8 @@ class Serial(SerialBase):
                 if option.state is REQUESTED:
                     self.telnet_send_option(option.send_yes, option.option)
             # now wait until important options are negotiated
-            timeout = Timeout(self._network_timeout)
-            while not timeout.expired():
+            timeout_time = time.time() + self._network_timeout
+            while time.time() < timeout_time:
                 time.sleep(0.05)    # prevent 100% CPU load
                 if sum(o.active for o in mandadory_options) == sum(o.state != INACTIVE for o in mandadory_options):
                     break
@@ -519,8 +518,8 @@ class Serial(SerialBase):
         items = self._rfc2217_port_settings.values()
         if self.logger:
             self.logger.debug("Negotiating settings: {}".format(items))
-        timeout = Timeout(self._network_timeout)
-        while not timeout.expired():
+        timeout_time = time.time() + self._network_timeout
+        while time.time() < timeout_time:
             time.sleep(0.05)    # prevent 100% CPU load
             if sum(o.active for o in items) == len(items):
                 break
@@ -609,13 +608,10 @@ class Serial(SerialBase):
             raise portNotOpenError
         data = bytearray()
         try:
-            timeout = Timeout(self._timeout)
             while len(data) < size:
                 if self._thread is None:
                     raise SerialException('connection failed (reader thread died)')
-                data += self._read_buffer.get(True, timeout.time_left())
-                if timeout.expired():
-                    break
+                data += self._read_buffer.get(True, self._timeout)
         except Queue.Empty:  # -> timeout
             pass
         return bytes(data)
@@ -826,7 +822,7 @@ class Serial(SerialBase):
                 if self.logger:
                     self.logger.info("NOTIFY_MODEMSTATE: {}".format(self._modemstate))
                 # update time when we think that a poll would make sense
-                self._modemstate_timeout.restart(0.3)
+                self._modemstate_expires = time.time() + 0.3
             elif suboption[1:2] == FLOWCONTROL_SUSPEND:
                 self._remote_suspend_flow = True
             elif suboption[1:2] == FLOWCONTROL_RESUME:
@@ -853,12 +849,12 @@ class Serial(SerialBase):
 
     def telnet_send_option(self, action, option):
         """Send DO, DONT, WILL, WONT."""
-        self._internal_raw_write(IAC + action + option)
+        self._internal_raw_write(to_bytes([IAC, action, option]))
 
     def rfc2217_send_subnegotiation(self, option, value=b''):
         """Subnegotiation of RFC2217 parameters."""
         value = value.replace(IAC, IAC_DOUBLED)
-        self._internal_raw_write(IAC + SB + COM_PORT_OPTION + option + value + IAC + SE)
+        self._internal_raw_write(to_bytes([IAC, SB, COM_PORT_OPTION, option] + list(value) + [IAC, SE]))
 
     def rfc2217_send_purge(self, value):
         """\
@@ -897,17 +893,17 @@ class Serial(SerialBase):
         etc.)
         """
         # active modem state polling enabled? is the value fresh enough?
-        if self._poll_modem_state and self._modemstate_timeout.expired():
+        if self._poll_modem_state and self._modemstate_expires < time.time():
             if self.logger:
                 self.logger.debug('polling modem state')
             # when it is older, request an update
             self.rfc2217_send_subnegotiation(NOTIFY_MODEMSTATE)
-            timeout = Timeout(self._network_timeout)
-            while not timeout.expired():
+            timeout_time = time.time() + self._network_timeout
+            while time.time() < timeout_time:
                 time.sleep(0.05)    # prevent 100% CPU load
                 # when expiration time is updated, it means that there is a new
                 # value
-                if not self._modemstate_timeout.expired():
+                if self._modemstate_expires > time.time():
                     break
             else:
                 if self.logger:
@@ -992,12 +988,12 @@ class PortManager(object):
 
     def telnet_send_option(self, action, option):
         """Send DO, DONT, WILL, WONT."""
-        self.connection.write(IAC + action + option)
+        self.connection.write(to_bytes([IAC, action, option]))
 
     def rfc2217_send_subnegotiation(self, option, value=b''):
         """Subnegotiation of RFC 2217 parameters."""
         value = value.replace(IAC, IAC_DOUBLED)
-        self.connection.write(IAC + SB + COM_PORT_OPTION + option + value + IAC + SE)
+        self.connection.write(to_bytes([IAC, SB, COM_PORT_OPTION, option] + list(value) + [IAC, SE]))
 
     # - check modem lines, needs to be called periodically from user to
     # establish polling
