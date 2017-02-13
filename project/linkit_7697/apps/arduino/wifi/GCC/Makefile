@@ -88,13 +88,6 @@ include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
 #-include $(SOURCE_DIR)/middleware/MTK/smtcn/module.mk
 #endif
 
-# Some relative path related with Arduino
-################################################################################
-ARDUINO_REL_PATH      =middleware/third_party/arduino
-ARDUINO_CORE_REL_PATH =$(ARDUINO_REL_PATH)/hardware/arduino/$(IC_CONFIG)/cores/arduino
-ARDUINO_VARS_REL_PATH =$(ARDUINO_REL_PATH)/hardware/arduino/$(IC_CONFIG)/variants/$(BOARD_CONFIG)
-ARDUINO_LIBS_REL_PATH =$(ARDUINO_REL_PATH)/hardware/arduino/$(IC_CONFIG)/libraries
-
 ##############################################################################
 #
 # Project specific features
@@ -153,7 +146,9 @@ include $(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/module.mk
 # Minisupp Config
 include $(SOURCE_DIR)/middleware/MTK/minisupp/module.mk
 
-#include $(SOURCE_DIR)/middleware/third_party/arduino/module.mk
+# Arduino middleware
+include $(SOURCE_DIR)/middleware/third_party/arduino/module.mk
+ARDUINO_VARS_REL_PATH = $(ARDUINO_SRC)/$(ARDUINO_VARS)
 
 #C_FILES         += $(APP_FILES) $(SYS_FILES)
 #S_FILES         += $(ARDUINO_VARS_REL_PATH)/startup_mt7687.s
@@ -187,18 +182,6 @@ S_OBJS          = $(S_FILES:%.s=$(BUILD_DIR)/%.o)
 
 
 CFLAGS += -DMTK_FW_VERSION=\"$(MTK_FW_VERSION)\"
-CFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_CORE_REL_PATH)
-CFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_VARS_REL_PATH)
-
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_CORE_REL_PATH)
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_VARS_REL_PATH)
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_LIBS_REL_PATH)/LFlash/src
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_LIBS_REL_PATH)/LTimer/src
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_LIBS_REL_PATH)/MCS/src
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_LIBS_REL_PATH)/SPI/src
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_LIBS_REL_PATH)/Wire/src
-CPPFLAGS += -I$(SOURCE_DIR)/$(ARDUINO_LIBS_REL_PATH)/WiFi/src
-
 CPPFLAGS += -fno-rtti
 
 ###################################################

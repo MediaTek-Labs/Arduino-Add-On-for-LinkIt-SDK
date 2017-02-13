@@ -71,6 +71,32 @@ OUTPATH   ?= Build
 # Sources
 include module.mk
 
+S-FILES      = $(wildcard $(ARDUINO_VARS)/*.s)
+
+C-FILES      = $(wildcard $(ARDUINO_CORE)/*.c)
+C-FILES     += $(wildcard $(ARDUINO_VARS)/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/Wire/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/MCS/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/LTimer/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/LFlash/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/SPI/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/LWiFi/src/*.c)
+C-FILES     += $(wildcard $(ARDUINO_LIBS)/LWiFi/src/utility/*.c)
+
+CXX-FILES    = $(wildcard $(ARDUINO_CORE)/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_VARS)/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/Wire/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/MCS/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/LTimer/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/LFlash/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/SPI/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/LWiFi/src/*.cpp)
+CXX-FILES   += $(wildcard $(ARDUINO_LIBS)/LWiFi/src/utility/*.cpp)
+
+S_FILES      = $(addprefix middleware/third_party/arduino/,$(S-FILES))
+C_FILES      = $(addprefix middleware/third_party/arduino/,$(C-FILES))
+CXX_FILES    = $(addprefix middleware/third_party/arduino/,$(CXX-FILES))
+
 CXX_OBJS = $(CXX_FILES:%.cpp=$(BUILD_DIR)/%.o)
 C_OBJS   = $(C_FILES:%.c=$(BUILD_DIR)/%.o)
 S_OBJS   = $(S_FILES:%.s=$(BUILD_DIR)/%.o)
