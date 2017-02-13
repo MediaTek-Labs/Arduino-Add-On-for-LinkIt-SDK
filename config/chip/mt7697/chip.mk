@@ -792,7 +792,7 @@ COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/mqtt/MQTTClient-C/src
 COM_CFLAGS += -I$(SOURCE_DIR)/middleware/third_party/mqtt/MQTTPacket/src
 
 CFLAGS     += -std=gnu99 $(COM_CFLAGS) -Wimplicit-function-declaration
-CPPFLAGS   += -std=c++11 $(COM_CFLAGS)
+CXXFLAGS   += -std=c++11 $(COM_CFLAGS)
 
 #Middleware Module Path
 MID_TFTP_PATH 		= $(SOURCE_DIR)/middleware/MTK/tftp

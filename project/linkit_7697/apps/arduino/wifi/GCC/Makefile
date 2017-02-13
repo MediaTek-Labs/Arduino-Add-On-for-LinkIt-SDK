@@ -182,7 +182,7 @@ S_OBJS          = $(S_FILES:%.s=$(BUILD_DIR)/%.o)
 
 
 CFLAGS += -DMTK_FW_VERSION=\"$(MTK_FW_VERSION)\"
-CPPFLAGS += -fno-rtti
+CXXFLAGS += -fno-rtti
 
 ###################################################
 # include path

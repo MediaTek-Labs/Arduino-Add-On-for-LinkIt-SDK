@@ -60,7 +60,7 @@ include $(SOURCE_DIR)/config/board/$(BOARD_CONFIG)/board.mk
 # HAL driver files
 include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
 
-CPPFLAGS += -fno-rtti
+CXXFLAGS += -fno-rtti
 
 # Project name
 TARGET_LIB=libarduino

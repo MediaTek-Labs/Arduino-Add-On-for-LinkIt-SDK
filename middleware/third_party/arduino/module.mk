@@ -21,10 +21,10 @@ INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/fota/inc/76x7
 INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/nvdm/inc
 
 CFLAGS    += $(INC_FLAGS)
-CPPFLAGS  += $(INC_FLAGS)
+CXXFLAGS  += $(INC_FLAGS)
 
 # FIXME: In the config/board/mt7687_hdk/board.mk, the following include
 # directories only have been exported to CFLAGS. So, we export them to CPPFLAGS
 # here. The following could be removed after this issue has been fixed.
-CPPFLAGS  += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/util/inc
-CPPFLAGS  += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/inc
+CXXFLAGS  += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/util/inc
+CXXFLAGS  += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/inc
