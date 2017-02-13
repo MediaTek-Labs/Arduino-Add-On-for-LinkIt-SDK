@@ -100,8 +100,8 @@ $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.cpp
 	@echo Build... $$(basename $@)
 	@echo Build... $@ >> $(BUILD_LOG)
 	@if [ -e "$@" ]; then rm -f "$@"; fi
-	@echo $(CXX) $(CPPFLAGS) $@ >> $(BUILD_LOG)
-	@-$(CXX) $(CPPFLAGS) -c $< -o $@ 2>>$(ERR_LOG); \
+	@echo $(CXX) $(CXXFLAGS) $@ >> $(BUILD_LOG)
+	@-$(CXX) $(CXXFLAGS) -c $< -o $@ 2>>$(ERR_LOG); \
 	if [ "$$?" != "0" ]; then \
 		echo "Build... $$(basename $@) FAIL"; \
 		echo "Build... $@ FAIL" >> $(BUILD_LOG); \
@@ -115,7 +115,7 @@ $(BUILD_DIR)/%.d: $(SOURCE_DIR)/%.cpp
 	@set -e; rm -f $@; \
 	export D_FILE="$@"; \
 	export B_NAME=`echo $$D_FILE | sed 's/\.d//g'`; \
-	$(CXX) -MM $(CPPFLAGS) $< > $@.$$$$; \
+	$(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
 	sed 's@\(.*\)\.o@'"$$B_NAME\.o $$B_NAME\.d"'@g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
