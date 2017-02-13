@@ -2,9 +2,9 @@
 # Sources
 ARDUINO_SRC  = middleware/third_party/arduino
 
-ARDUINO_CORE = hardware/arduino/$(IC_CONFIG)/cores/arduino
-ARDUINO_VARS = hardware/arduino/$(IC_CONFIG)/variants/$(BOARD_CONFIG)
-ARDUINO_LIBS = hardware/arduino/$(IC_CONFIG)/libraries
+ARDUINO_CORE = hardware/arduino/mt7697/cores/arduino
+ARDUINO_VARS = hardware/arduino/mt7697/variants/$(BOARD_CONFIG)
+ARDUINO_LIBS = hardware/arduino/mt7697/libraries
 
 S-FILES      = $(wildcard $(ARDUINO_VARS)/*.s)
 
