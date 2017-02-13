@@ -30,6 +30,13 @@ extern "C" {
 
 #include "Wire.h"
 
+extern "C" {
+#include "log_dump.h"
+#include "delay.h"
+#include "utility/ard_mtk.h"
+#include "utility/ard_utils.h"
+}
+
 #define I2C_PORT_IDLE				0x5555
 #define I2C_PORT_BUSY				0xAAAA
 
@@ -186,12 +193,17 @@ uint8_t TwoWire::endTransmission(bool stopBit)
 		return 0;
 
 	i2c_port0_wait_idel();
-
-	hal_i2c_master_send_dma((hal_i2c_port_t)i2c_port, txAddress,
-			(uint8_t *)(txBuffer._aucBuffer),
-			(uint32_t)txBuffer.available());
-
 	i2c_port0_set_busy();
+
+	if (HAL_I2C_STATUS_OK  != hal_i2c_master_send_dma((hal_i2c_port_t)i2c_port, txAddress,
+			(uint8_t *)(txBuffer._aucBuffer),
+			(uint32_t)txBuffer.available()))
+	{
+		// TODO: assert here? it's unlikely to fail here.
+	}
+
+	// in Arduino, the endTransmission() should be return AFTER the transmission completes
+	i2c_port0_wait_idel();
 
 	return 0;
 }
