@@ -33,8 +33,6 @@ extern "C" {
 extern "C" {
 #include "log_dump.h"
 #include "delay.h"
-#include "utility/ard_mtk.h"
-#include "utility/ard_utils.h"
 }
 
 #define I2C_PORT_IDLE				0x5555
