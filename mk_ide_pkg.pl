@@ -163,21 +163,19 @@ sub main
 
 	$pkg_ver="0.1.0" if (not defined($pkg_ver));
 	print("The pgk_ver: $pkg_ver\n");
-
-	# $pkg_name = "mt7697";
 	
-	# Pablo Test build libs
+	# build packages
 	&build_base_pkg($outpath);
 	&build_system_src($outpath);
 	&build_system_libs($outpath);
 	&build_system_fw($outpath);
-
 	&build_flash_tool($outpath);
 
-	# Pablo Pack
-	system("cd $outpath; tar -cvjf mediatek_linkit_7697-1.0.0.tar.bz2 mt7697; cd -");
-	system("cd $outpath; tar -cvjf mediatek_linkit_7697_flash_tool-1.0.0.tar.bz2 flash_tool; cd -");
+	# pack into bz2
+	system("cd $outpath; tar -cvjf mediatek_linkit_7697-$pkg_ver.tar.bz2 mt7697; cd -");
+	system("cd $outpath; tar -cvjf mediatek_linkit_7697_flash_tool-$pkg_ver.tar.bz2 flash_tool; cd -");
 
+	# TODO: 
 	my $package_json="middleware/third_party/arduino/build/package_mtk_linkit_7697_index.json";
 	system("cp $package_json $outpath");
 
