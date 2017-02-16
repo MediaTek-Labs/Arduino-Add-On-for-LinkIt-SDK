@@ -149,6 +149,7 @@ $(MODULE_PATH):
 
 
 proj: $(OUTPATH)/$(PROJ_NAME).elf
+#proj: $(OUTPATH)/$(PROJ_NAME).elf $(OUTPATH)/$(PROJ_NAME)-ram.elf
 
 $(OUTPATH)/$(PROJ_NAME)-ram.elf: $(C_OBJS) $(CXX_OBJS) $(S_OBJS) $(LIBS)
 	@echo Linking...
