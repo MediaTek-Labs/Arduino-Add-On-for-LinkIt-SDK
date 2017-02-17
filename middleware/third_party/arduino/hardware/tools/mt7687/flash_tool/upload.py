@@ -187,12 +187,12 @@ s.flushInput()
 #Resetx
 s.setRTS(True)
 s.setDTR(False)
-time.sleep(0.1)
+time.sleep(0.2)
 
 #init Com port to orginal state
-s.setRTS(False)
-s.setDTR(False)
-time.sleep(0.1)
+#s.setRTS(False)
+#s.setDTR(False)
+#time.sleep(0.1)
 
 
 s.close()
