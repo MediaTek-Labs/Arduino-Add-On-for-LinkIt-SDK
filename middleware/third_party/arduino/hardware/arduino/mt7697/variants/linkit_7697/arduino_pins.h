@@ -54,9 +54,13 @@ typedef enum arduino_pin {
 	SCL     = 8,        /* 8: SCL */
 	SDA     = 9,        /* 9: SDA */
 	GPIO32  = 10,       /* 10: SS */
+	SS      = 10,
 	GPIO29  = 11,       /* 11: MOSI */
+	MOSI    = 11,
 	GPIO30  = 12,       /* 12: MISO */
+	MISO    = 12,
 	GPIO31  = 13,       /* 13: SCK */
+	SCK     = 13,
 
 	GPIO57  = 14,       /* 14: GPIO57 */
 	GPIO58  = 15,       /* 15: GPIO58 */
