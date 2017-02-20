@@ -33,9 +33,9 @@
 /// }
 /// \endcode
 
-#define MOSI_PIN    (11)
-#define MISO_PIN    (12)
-#define CLK_PIN     (13)
+#define RH_MOSI_PIN     (11)
+#define RH_MISO_PIN     (12)
+#define RH_CLK_PIN      (13)
 
 class RHSoftwareSPI : public RHGenericSPI
 {
@@ -74,7 +74,7 @@ public:
     /// \param[in] miso master in slave out pin used
     /// \param[in] mosi master out slave in pin used
     /// \param[in] sck clock pin used
-    void setPins(uint8_t miso = MISO_PIN, uint8_t mosi = MOSI_PIN, uint8_t sck = CLK_PIN);
+    void setPins(uint8_t miso = RH_MISO_PIN, uint8_t mosi = RH_MOSI_PIN, uint8_t sck = RH_CLK_PIN);
 
 private:
 

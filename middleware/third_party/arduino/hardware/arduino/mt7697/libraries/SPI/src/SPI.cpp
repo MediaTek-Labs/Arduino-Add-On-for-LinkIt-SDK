@@ -132,9 +132,9 @@ void SPIClass::transfer(void *buf, size_t count)
 {
     if (m_spi != NULL)
     {
-        size_t i;
+        int32_t i;
 
-        for (i = 0; i < count; i++)
+        for (i = count - 1; i >= 0; i--)
         {
             transfer(*(((uint8_t *)buf) + i));
         }

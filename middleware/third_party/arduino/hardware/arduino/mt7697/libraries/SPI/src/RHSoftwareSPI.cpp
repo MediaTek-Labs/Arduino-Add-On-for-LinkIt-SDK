@@ -9,7 +9,7 @@ RHSoftwareSPI::RHSoftwareSPI(RHSPIFrequency frequency, RHSPIBitOrder bitOrder, R
     :
     RHGenericSPI(frequency, bitOrder, dataMode)
 {
-    setPins(MISO_PIN, MOSI_PIN, CLK_PIN);
+    setPins(RH_MISO_PIN, RH_MOSI_PIN, RH_CLK_PIN);
 }
 
 // Caution: on Arduino Uno and many other CPUs, digitalWrite is quite slow, taking about 4us
