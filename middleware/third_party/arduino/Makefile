@@ -59,6 +59,8 @@ include $(SOURCE_DIR)/config/chip/$(IC_CONFIG)/chip.mk
 include $(SOURCE_DIR)/config/board/$(BOARD_CONFIG)/board.mk
 # HAL driver files
 include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
+# Bluetooth files
+include $(SOURCE_DIR)/middleware/MTK/bluetooth/module.mk
 
 CXXFLAGS += -fno-rtti
 
