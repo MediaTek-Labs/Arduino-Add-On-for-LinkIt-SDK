@@ -30,6 +30,9 @@ void init(void)
 #ifdef FREERTOS
 	// Create a Task to run arduino application
 	xTaskCreate(arduino_task, "arduino_task", 1024, NULL, 1, NULL);
+
+	// Create bluetooth task
+	init_bt_subsys();
 #endif
 }
 

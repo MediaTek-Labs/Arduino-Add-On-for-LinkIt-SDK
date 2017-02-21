@@ -17,6 +17,8 @@ extern int __io_getchar(void);
 
 extern void init_system(void);
 
+extern void init_bt_subsys(void);
+
 #ifdef __cplusplus
 }
 #endif // end of __cplusplus
