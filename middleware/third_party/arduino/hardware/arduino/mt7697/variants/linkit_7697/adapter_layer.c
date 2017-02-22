@@ -119,6 +119,7 @@ static void init_sys_clk(void)
 	cmnSerialFlashClkConfTo64M();
 }
 
+#if 0
 LOG_CONTROL_BLOCK_DECLARE(wifi);
 LOG_CONTROL_BLOCK_DECLARE(common);
 LOG_CONTROL_BLOCK_DECLARE(BT);
@@ -134,7 +135,7 @@ log_control_block_t *syslog_control_blocks[] = {
 	  &LOG_CONTROL_BLOCK_SYMBOL(BTHCI),
 	  &LOG_CONTROL_BLOCK_SYMBOL(BTL2CAP)
 };
-
+#endif
 
 void init_system(void)
 {
@@ -143,11 +144,12 @@ void init_system(void)
 	/* Init the UART for stdio */
 	init_stdio();
 
-	log_uart_init(HAL_UART_0);
-
     hal_flash_init();
 
+#if 0
+    log_uart_init(HAL_UART_0);
     log_init(NULL, NULL, syslog_control_blocks);
+#endif
 }
 
 /*
@@ -207,12 +209,16 @@ extern void init_bt_subsys(void)
 {
     bt_mm_init();
     bt_preread_local_address(local_public_addr);
+
+    #if 0
     LOG_I(common, "[BT]local_public_addr [%02X:%02X:%02X:%02X:%02X:%02X]\n", local_public_addr[5],
           local_public_addr[4], local_public_addr[3], local_public_addr[2], local_public_addr[1], local_public_addr[0]);
     log_config_print_switch(BT, DEBUG_LOG_ON);
     log_config_print_switch(BTMM, DEBUG_LOG_OFF);
     log_config_print_switch(BTHCI, DEBUG_LOG_ON);
     log_config_print_switch(BTL2CAP, DEBUG_LOG_ON);
+    #endif
+    
     if (pdPASS != xTaskCreate(bt_task, BLUETOOTH_TASK_NAME, BLUETOOTH_TASK_STACKSIZE/sizeof(StackType_t), (void *)local_public_addr, BLUETOOTH_TASK_PRIO, NULL)) {
         LOG_E(common, "cannot create bt_task.");
     }
