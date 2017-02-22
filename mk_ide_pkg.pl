@@ -33,7 +33,8 @@ sub build_system_src
 		"kernel/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F/",
 		"middleware/third_party/lwip/src/include/",
 		"middleware/third_party/lwip/ports/include/",
-		"driver/board/mt76x7_hdk/wifi/inc/");
+		"driver/board/mt76x7_hdk/wifi/inc/",
+		"middleware/MTK/bluetooth/inc/");
     
 	my @remove_list=("driver/chip/mt7687/inc/wifi.h");
 
@@ -91,6 +92,12 @@ sub build_system_libs
 		"middleware/MTK/minisupp/lib/libminisupp_wps.a",
 		"middleware/MTK/minicli/lib/libminicli_CM4_GCC.a",
 		"middleware/MTK/nvdm/lib/libnvdm_CM4_GCC.a",
+		
+		"middleware/MTK/bluetooth/lib/libble.a",
+		"middleware/MTK/bluetooth/lib/libbtdriver_7697.a",
+
+
+
 		"kernel/service/lib/libkservice_CM4_MT7697_GCC.a");
 
 	foreach $item (@libs_list) {
