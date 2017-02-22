@@ -53,7 +53,7 @@ sub build_system_src
 	}
 }
 
-sub process_obj {
+sub create_linkit_lib {
 	#print abs_path($0);
 	my $rootdir = shift;
 	my $libdir = shift;
@@ -73,38 +73,36 @@ sub build_system_libs
 
 	system("mkdir -p $outpath");
 
-	my $wifi_prj="project/linkit_7697/apps/arduino/wifi/GCC/";
+	my $arduino_lib_prj="project/linkit_7697/apps/arduino/arduino_lib/GCC/";
 
-	system("cd $wifi_prj; make; cd -");
+	system("cd $arduino_lib_prj; make; cd -");
 
-	# enlist all object files and link them
+	# enlist all non-app layer object files and link them into "liblinkit.a"
 	my $cur_dir=abs_path(cwd());
 	find(sub {
-			\&process_obj($cur_dir, "$cur_dir/$outpath"),
+			\&create_linkit_lib($cur_dir, "$cur_dir/$outpath"),
 		 },
-		 ("$wifi_prj/Build/middleware", "$wifi_prj/Build/kernel", "$wifi_prj/Build/driver"));
+		 ("$arduino_lib_prj/Build/middleware", "$arduino_lib_prj/Build/kernel", "$arduino_lib_prj/Build/driver"));
 
 	# copy system libraries
 	my @libs_list=(
 		"driver/chip/mt7687/lib/libhal_core_CM4_GCC.a",
 		"driver/chip/mt7687/lib/libhal_protected_CM4_GCC.a",
 		"driver/board/mt76x7_hdk/lib/libwifi.a",
+		"kernel/service/lib/libkservice_CM4_MT7697_GCC.a",
+
 		"middleware/MTK/minisupp/lib/libminisupp_wps.a",
 		"middleware/MTK/minicli/lib/libminicli_CM4_GCC.a",
 		"middleware/MTK/nvdm/lib/libnvdm_CM4_GCC.a",
-		
 		"middleware/MTK/bluetooth/lib/libble.a",
 		"middleware/MTK/bluetooth/lib/libbtdriver_7697.a",
-
-
-
-		"kernel/service/lib/libkservice_CM4_MT7697_GCC.a");
+	);
 
 	foreach $item (@libs_list) {
 		system("cp $item $outpath");
 	}
 
-	system("cd $wifi_prj; make clean; cd -");
+	system("cd $arduino_lib_prj; make clean; cd -");
 }
 
 sub build_system_fw
