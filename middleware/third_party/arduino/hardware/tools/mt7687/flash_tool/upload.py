@@ -1,3 +1,5 @@
+#!/usr/bin/env python2.7
+
 from optparse import OptionParser
 import serial
 import xmodem
