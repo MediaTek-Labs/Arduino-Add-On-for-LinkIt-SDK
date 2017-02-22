@@ -4,6 +4,7 @@
 #include "wifi_api.h"
 #include "lwip/dhcp.h"
 #include "lwip/inet.h"
+#include "lwip/dns.h"
 #include "ethernetif.h"
 
 #include "log_dump.h"
@@ -182,7 +183,7 @@ void foundHostByName(const char *name, ip_addr_t *ipaddr, void *callback_arg)
 		pr_debug("foundHostByName error, failed get server-ip\r\n");
 }
 
-int req_reply_host_by_name(char *buf, uint8_t len)
+int req_reply_host_by_name(const char *buf, uint8_t len)
 {
 	char hostName[DNS_MAX_NAME_LENGTH];
 	if(len < DNS_MAX_NAME_LENGTH){

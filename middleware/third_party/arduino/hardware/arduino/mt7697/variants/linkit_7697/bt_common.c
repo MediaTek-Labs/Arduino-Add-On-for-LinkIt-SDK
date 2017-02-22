@@ -51,8 +51,10 @@ static bt_gap_le_smp_pairing_config_t pairing_config = {//mitm, bond, oob
 
 static bt_gap_le_local_key_t local_key = {
     .encryption_info.ltk = { 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc8, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf },
-    .master_id.ediv = 0x1005,
-    .master_id.rand = { 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7 },
+    .master_id = {
+        .ediv = 0x1005,
+        .rand = { 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7 },
+    },
     .identity_info.irk = { 0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf },
     .signing_info.csrk = { 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf }
 };
@@ -81,7 +83,7 @@ bt_gap_le_local_config_req_ind_t *bt_gap_le_get_local_config(void)
  * @param[in] remote_addr The address of the remote device to be bonded.
  * @return                The Bonding Information pointer, please set a pointer to the connection bonding information. The pointer should not be NULL and it must be a global variable.
  */
-bt_gap_le_bonding_info_t *bt_gap_le_get_bonding_info(const bt_addr_t remote_addr)
+bt_gap_le_bonding_info_t *bt_gap_le_get_bonding_info(const bt_addr_t __attribute__ ((unused))remote_addr)
 {
     return &bonding_info;
 }

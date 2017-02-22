@@ -12,7 +12,7 @@
 #define ENABLE_STDIO_TTY				HAL_UART_0
 
 #define pr_debug(format, arg...)				\
-	printf("[Arduino:%s:%d] " format, __func__, __LINE__, ##arg)
+	do{printf("[Arduino:%s:%d] " format, __func__, __LINE__, ##arg);}while(0);
 
 #else
 #define pr_debug(format, arg...)
