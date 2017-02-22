@@ -10,8 +10,6 @@ Arduino Add-On for LinkIt 7697 on LinkIt SDK v4. This package allows developers 
  * You need a working LinkIt SDK v4.2 public version. To obtain public version of LinkIt SDK v4.2, visit https://docs.labs.mediatek.com/resource/mt7687-mt7697/en/downloads
  * You must build this package on a Linux machine with `make` and `perl` installed.
 
-# ERROR
-
 ## Usage - Build LinkIt 7697 Arduino Supporting Package
 Copy-n-replace into LinkIt SDK v4 public version.
 Use following command to build the board support package:
