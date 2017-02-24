@@ -189,13 +189,21 @@ s.flushInput()
 #Resetx
 s.setRTS(True)
 s.setDTR(False)
-time.sleep(0.2)
 
 #init Com port to orginal state
-#s.setRTS(False)
-#s.setDTR(False)
-#time.sleep(0.1)
-
+#   Workaround for COM port behavior on different platforms:
+#
+#   On Windows, fail to reset s.RTS causes RST pin to be pull-down
+#   (and fail to re-boot the board) until COM port is re-opened again.
+#
+#   On macOS, the COM port cannot be re-opened again
+#   if we change RTS/DTS state before closing it.
+if 'Windows' == platform.system():
+    time.sleep(0.1)
+    s.setRTS(False)
+    s.setDTR(False)
+    time.sleep(0.1)
+else:
+    time.sleep(0.2)
 
 s.close()
-
