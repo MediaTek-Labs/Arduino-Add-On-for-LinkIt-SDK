@@ -6,6 +6,7 @@ import xmodem
 import os, sys, time
 import logging
 import pyprind
+import platform
 
 da87_path = './da87.bin'
 da97_path = './da97.bin'
