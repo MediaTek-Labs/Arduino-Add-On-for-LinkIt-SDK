@@ -117,7 +117,11 @@ recipe.objcopy.bin.pattern="{compiler.path}{compiler.elf2hex.cmd}" {compiler.elf
 # 4.6 Compute size
 # ------------------------
 recipe.size.pattern="{compiler.path}{compiler.size.cmd}" -A "{build.path}/{build.project_name}.elf"
-recipe.size.regex=\.text\s+([0-9]+).*
+recipe.size.regex=^(?:\.text|\.data)\s+([0-9]+).*
+# Refer to https://forum.labs.mediatek.com/zh/t/faq18632-ram-size/344
+# note that we don't calculate TCM RAM usage here, as Arduino layer
+# won't be accessing that part of memory.
+recipe.size.regex.data=^(?:\.data|\.bss|\.heap|.\stack_dummy)\s+([0-9]+).*
 
 
 # 5 Upload tools

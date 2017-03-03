@@ -11,6 +11,11 @@ linkit_7697.pid.0=0xEA60
 linkit_7697.upload.tool=flash_tool
 linkit_7697.upload.protocol=xmodem
 
+# Size limiations
+# This is derived from CM4_CODE_LENGTH in flash_map.h
+linkit_7697.upload.maximum_size=2019328
+linkit_7697.upload.maximum_data_size=360448
+
 linkit_7697.build.mcu=cortex-m4
 linkit_7697.build.f_cpu=192000000L
 linkit_7697.build.board=linkit_7697
