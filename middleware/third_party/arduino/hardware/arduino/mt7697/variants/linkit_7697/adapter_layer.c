@@ -3,6 +3,7 @@
 #include <system_mt7687.h>
 #include <top.h>
 #include <hal_gpio.h>
+#include <hal_pwm.h>
 #include <hal_platform.h>
 #include <syslog.h>
 #include <FreeRTOS.h>
@@ -145,6 +146,10 @@ void init_system(void)
 	init_stdio();
 
     hal_flash_init();
+
+    // Pre-initialize PWM to highest clock.
+    // This resets pin status so we put it in init_system().
+    hal_pwm_init(HAL_PWM_CLOCK_40MHZ);
 
 #if 0
     log_uart_init(HAL_UART_0);
