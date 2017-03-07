@@ -1,11 +1,8 @@
 
 // From LinkIt SDK
-#include <bt_hci.h>
-#include <bt_gap_le.h>
-#include <bt_debug.h>
 #include <FreeRTOS.h>
 #include <task.h>
-#include <bt_system.h>
+
 
 // From LinkIt 7697 board support package
 #include <task_def.h>		
@@ -111,29 +108,43 @@ static void ard_ble_set_ready(void)
 	g_ard_ble_initialized = 1;
 }
 
+static int g_wait_for_event = BT_MODULE_GENERAL_ERROR;
+int ard_ble_wait_for_event(bt_msg_type_t event)
+{
+    // busy waiting for the event to match the input.
+    // bt_task is supposed to change g_latest_event.
+    while(g_wait_for_event != BT_MODULE_GENERAL_ERROR)
+    {
+        taskYIELD();
+    }
+    g_wait_for_event = BT_MODULE_GENERAL_ERROR;
+    return 1;
+}
+
+
 // This is a mandatory callback for the BLE framework.
-// All BLE events are routed to this callback for processing.
+// All BLE events are routed to this callback for processing by BLE framework.
+// This callback is invoked in bt_task context.
 bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
 	const char* msg_text = NULL;
-	
-	switch(msg)
+
+    if (g_wait_for_event != BT_MODULE_GENERAL_ERROR &&
+        g_wait_for_event == msg)
+    {
+        g_wait_for_event = BT_MODULE_GENERAL_ERROR;
+    }
+		
+    switch(msg)
 	{
     case BT_POWER_ON_CNF:
-    	msg_text = "BT_POWER_ON_CNF";
     	ard_ble_set_ready();
         break;
 
-#if 0
-    case BT_GAP_LE_SET_SCAN_CNF:
-    	msg_text = "BT_GAP_LE_SET_SCAN_CNF";
+    case BT_GAP_LE_ADVERTISING_REPORT_IND:
+        ard_ble_central_onCentralEvents(msg, status, buff);
     	break;
 
-    case BT_GAP_LE_ADVERTISING_REPORT_IND:
-    	msg_text = "BT_GAP_LE_ADVERTISING_REPORT_IND";
-    	print_adv_report((bt_gap_le_advertising_report_ind_t*)buff);
-    	break;
-#endif
 	default:
 		break;
 	}

@@ -21,10 +21,41 @@
 #define LBLE_H
 
 #include <inttypes.h>
+#include <WString.h>
+#include <Printable.h>
 
 extern "C" {
-
+#include "utility/ard_ble.h"
 }
+
+class LBLEUuid : public Printable
+{
+public:
+	LBLEUuid();
+	LBLEUuid(const char* uuidString);
+	LBLEUuid(uint16_t uuid16);
+	LBLEUuid(uint32_t uuid32);
+	LBLEUuid(const bt_uuid_t& uuid_data);
+	LBLEUuid(const LBLEUuid& rhs);
+
+	bool isEmpty() const;
+
+	LBLEUuid & operator = (const bt_uuid_t &rhs);
+	LBLEUuid & operator = (const LBLEUuid &rhs);
+	LBLEUuid & operator = (const char* rhs);
+
+	String toString() const;
+
+	virtual size_t printTo(Print& p) const;
+
+private:
+	bt_uuid_t uuid_data;
+};
+
+class LBLEAddress
+{
+
+};
 
 class LBLEClass
 {
