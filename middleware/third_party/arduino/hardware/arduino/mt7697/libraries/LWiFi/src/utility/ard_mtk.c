@@ -899,7 +899,7 @@ uint8_t get_idx_enct(uint8_t networkItem)
 
 void dns_print(void)
 {
-	int  dns1, dns2;
+	ip_addr_t dns1, dns2;
 	dns1 = dns_getserver(0);
 	dns2 = dns_getserver(1);
 	struct in_addr temp1, temp2;
