@@ -375,7 +375,7 @@ static const char* get_event_type(uint8_t type)
 
 // process incoming peripheral advertisement
 void LBLECentral::processAdvertisement(const bt_gap_le_advertising_report_ind_t *report)
-{   
+{
     if(NULL == report)
     {
     	return;

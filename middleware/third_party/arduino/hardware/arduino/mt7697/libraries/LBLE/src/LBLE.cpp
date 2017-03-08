@@ -82,6 +82,18 @@ bool LBLEUuid::isEmpty() const
 	return (0 == memcmp(&uuid_data, &zero_data, sizeof(bt_uuid_t)));
 }
 
+void LBLEUuid::toRawBuffer(uint8_t* uuidBuf, uint32_t bufLength) const
+{
+	// input check
+	if(NULL == uuidBuf || 16 > bufLength)
+	{
+		return;
+	}
+
+	// full 16 bytes of 128-bit uuid.
+	memcpy(uuidBuf, uuid_data.uuid, 16);
+}
+
 String LBLEUuid::toString() const
 {
 	char str[37] = {0};

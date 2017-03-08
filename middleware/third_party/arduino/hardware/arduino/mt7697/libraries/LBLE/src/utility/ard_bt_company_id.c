@@ -1,4 +1,5 @@
-// Table pulled from https://github.com/dannycabrera/Bluetooth-Company-Identifiers
+// This Bluetooth Manufacturer ID Table is pulled from 
+// https://github.com/dannycabrera/Bluetooth-Company-Identifiers
 
 #include "ard_bt_company_id.h"
 
@@ -1147,6 +1148,11 @@ static struct BTCompanyEntry company_list[] = {
 
 const char* getBluetoothCompanyName(uint16_t companyId)
 {
+    // Actually we can return `company_list[companyId].name` directly
+    // becaue the list is currently ordered without any gap.
+    //
+    // However, to prevent holes in id list in the future,
+    // we still linear search here.
     for(int i = 0; i < sizeof(company_list) / sizeof(struct BTCompanyEntry); ++i)
     {
         if(company_list[i].id == companyId)

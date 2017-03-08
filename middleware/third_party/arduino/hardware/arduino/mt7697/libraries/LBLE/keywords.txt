@@ -7,6 +7,8 @@
 #######################################
 
 LBLE	KEYWORD1	LBLE
+LBLECentral KEYWORD1    LBLE
+LBLEPeripheral KEYWORD1    LBLEPeripheral
 
 #######################################
 # Datatypes (KEYWORD1)

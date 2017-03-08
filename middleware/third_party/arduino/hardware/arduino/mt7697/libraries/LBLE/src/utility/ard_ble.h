@@ -1,3 +1,6 @@
+/*
+  Adapter layer from Arduino to LinkIt SDK API
+*/
 #ifndef _ARD_BLE_H_
 #define _ARD_BLE_H_
 
