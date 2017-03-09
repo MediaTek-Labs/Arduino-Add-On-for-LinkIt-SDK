@@ -15,11 +15,15 @@ extern "C" {
 #include <bt_type.h>
 #include <bt_uuid.h>
 
-extern int ard_ble_begin(void);
-extern int ard_ble_is_ready(void);
+int ard_ble_begin(void);
+int ard_ble_is_ready(void);
 
-extern int ard_ble_wait_for_event(bt_msg_type_t event);
+// implemented by LBLE.cpp
+extern void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff);
+
+// implemented by LBLECentral.cpp
 extern void ard_ble_central_onCentralEvents(bt_msg_type_t msg, bt_status_t status, void *buff);
+
 
 #ifdef __cplusplus
 }

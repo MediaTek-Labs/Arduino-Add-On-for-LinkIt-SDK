@@ -205,24 +205,6 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
 		uuid = tmpUuid;
 		iBeaconBuffer += 16;
 
-		Serial.print("contet=");
-		for(int i = 0; i < 5; ++i)
-		{
-			Serial.print((uint32_t)iBeaconBuffer[i], HEX);
-			Serial.print(" ");
-		}
-		Serial.println();
-
-		unsigned short test = 0x05;
-		Serial.print("contet=");
-		char* test_buf = (char*)&test;
-		for(int i = 0; i < 2; ++i)
-		{
-			Serial.print((uint32_t)test_buf[i], HEX);
-			Serial.print(" ");
-		}
-		Serial.println();
-
 		major = *(unsigned short*)(iBeaconBuffer);
 		iBeaconBuffer += 2;
 

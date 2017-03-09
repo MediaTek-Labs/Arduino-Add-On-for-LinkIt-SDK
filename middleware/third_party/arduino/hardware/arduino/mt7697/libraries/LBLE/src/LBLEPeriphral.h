@@ -32,7 +32,7 @@ struct LBLEAdvDataItem
 	{
 		adType = 0;
 		adDataLen = 0;
-		memset(adData, 0, sizeof(adData));
+		memset(adData, 0, MAX_ADV_DATA_LEN);
 	}
 };
 
@@ -51,7 +51,7 @@ public:
 	// (https://developer.apple.com/library/content/samplecode/AirLocate/Introduction/Intro.html)
 	//
 	// major, minor, and txPower are all user defined values.
-	void configIBeaconInfo(const LBLEUuid& uuid, 		
+	void configAsIBeacon(const LBLEUuid& uuid, 		
 							  uint16_t major, 
 							  uint16_t minor, 
 							  int8_t txPower);

@@ -23,22 +23,26 @@ void setup() {
 	}
 	Serial.println("BLE ready");
 
-	Serial.println("Prepare data");
 	// configure our advertisement data as iBeacon.
 	LBLEAdvertisementData beaconData;
-	beaconData.configIBeaconInfo(LBLEUuid("74278BDA-B644-4520-8F0C-720EAF059935"),
-						   32,
-						   11,
-						   -40);
+
+	// This is a common AirLocate example UUID.
+	LBLEUuid uuid("E2C56DB5-DFFB-48D2-B060-D0F5A71096E0");
+	beaconData.configAsIBeacon(uuid, 01, 02, -40);
 	
-	Serial.println("Start advertising");
+	Serial.print("Start advertising iBeacon with uuid=");
+	Serial.println(uuid);
+
 	// start advertising it
 	device.advertise(beaconData);
 }
 
 void loop() {
-	// the underlying framework will advertise periodically.
+	// The underlying framework will advertise periodically.
 	// we simply wait here.
+	// 
+	// You can use iBeacon apps such as
+	// "Locate Beacon" by Radius Networks on iOS devices 
+	// to locate this beacon.
 	delay(3000);
-	Serial.println("Advertising");
 }

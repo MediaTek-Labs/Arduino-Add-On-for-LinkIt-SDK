@@ -1,4 +1,5 @@
 #include "LBLE.h"
+#include <Arduino.h>
 #include <stdio.h>
 #include <Print.h>
 
@@ -18,7 +19,7 @@ int LBLEClass::begin()
 int LBLEClass::ready()
 {
 	return ard_ble_is_ready();
-}
+}                       
 
 LBLEClass LBLE;
 
@@ -27,9 +28,50 @@ LBLEUuid::LBLEUuid()
 	memset(&uuid_data, 0, sizeof(uuid_data));
 }
 
+uint8_t ascii_to_uint8(char c)
+{
+	if('0' <= c && c <= '9')
+		return c - '0';
+
+	if('A' <= c && c <= 'F')
+		return 10 + (c - 'A');
+
+	if('a' <= c && c <= 'f')
+		return 10 + (c - 'a');
+
+	return 0;
+}
+
+void str_to_uuid(bt_uuid_t &data, const char* uuidStr)
+{
+	// https://www.ietf.org/rfc/rfc4122.txt
+	const uint len = strlen(uuidStr);
+	if(len != 36)
+	{
+		return;
+	}
+
+	for(int i = 0; i < 16; ++i)
+	{
+		uint8_t val = 0;
+
+		if('-' == *uuidStr)
+			++uuidStr;
+
+		val = ascii_to_uint8(*uuidStr);
+		val = (val << 4);
+		++uuidStr;
+
+		val += ascii_to_uint8(*uuidStr);
+		++uuidStr;
+
+		data.uuid[i] = val;
+	}
+}
+
 LBLEUuid::LBLEUuid(const char* uuidString)
 {
-	bt_uuid_load(&uuid_data, uuidString, strlen(uuidString));
+	str_to_uuid(uuid_data, uuidString);
 }
 
 LBLEUuid::LBLEUuid(uint16_t uuid16)
@@ -72,7 +114,7 @@ LBLEUuid & LBLEUuid::operator = (const LBLEUuid &rhs)
 
 LBLEUuid & LBLEUuid::operator = (const char* rhs)
 {
-	bt_uuid_load(&uuid_data, rhs, strlen(rhs));
+	str_to_uuid(uuid_data, rhs);
 	return *this;
 }
 
@@ -144,4 +186,44 @@ size_t LBLEUuid::printTo(Print& p) const
 	p.print(str);
 
 	return str.length();
+}
+
+
+void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
+{
+#if 0
+	Serial.print("ard_ble_postAllEvents:");
+	Serial.print(msg, HEX);
+	Serial.print(":");
+	Serial.println(status, HEX);
+
+    switch(msg)
+    {
+    case BT_POWER_ON_CNF:
+        Serial.print("[BT_POWER_ON_CNF]=");
+        Serial.println(status, HEX);
+        break;
+
+    case BT_GAP_LE_SET_RANDOM_ADDRESS_CNF: 
+        Serial.print("[BT_GAP_LE_SET_RANDOM_ADDRESS_CNF]=");
+        Serial.println(status, HEX);
+        break;
+
+    case BT_GAP_LE_SET_ADVERTISING_CNF:
+        Serial.print("[BT_GAP_LE_SET_ADVERTISING_CNF]=");
+        Serial.println(status, HEX);
+        break;
+
+    case BT_GAP_LE_DISCONNECT_IND:
+        Serial.print("[BT_GAP_LE_DISCONNECT_IND]=");
+        Serial.println(status, HEX);
+        break;
+
+    case BT_GAP_LE_CONNECT_IND:
+        Serial.print("[BT_GAP_LE_CONNECT_IND]=");
+        Serial.println(status, HEX);
+        break;
+    }
+#endif
+    return;
 }

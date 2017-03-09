@@ -16,7 +16,7 @@ LBLEAdvertisementData::LBLEAdvertisementData()
 
 }
 
-void LBLEAdvertisementData::configIBeaconInfo(const LBLEUuid& uuid, 		
+void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid, 		
 				  uint16_t major, 
 				  uint16_t minor, 
 				  int8_t txPower)
@@ -32,6 +32,7 @@ void LBLEAdvertisementData::configIBeaconInfo(const LBLEUuid& uuid,
 	item.adType = BT_GAP_LE_AD_TYPE_FLAG;
 	item.adData[0] = BT_GAP_LE_AD_FLAG_BR_EDR_NOT_SUPPORTED | BT_GAP_LE_AD_FLAG_GENERAL_DISCOVERABLE;
 	item.adDataLen = 1;
+
 	m_advDataList.push_back(item);
 
 	// Manufacturer data
@@ -45,11 +46,15 @@ void LBLEAdvertisementData::configIBeaconInfo(const LBLEUuid& uuid,
 	item.adData[2] = 0x02;  // iBeacon type
     item.adData[3] = 0x15;  // iBeacon type
 
-    uuid.toRawBuffer(item.adData + 4, 16);  // 16 bytes of user-specified UUID
+    // 16 bytes of user-specified UUID
+    uuid.toRawBuffer(item.adData + 4, 16);  
 
-    (*(uint16_t*)(item.adData + 20)) = major;	// 2 byte Major number
-    (*(uint16_t*)(item.adData + 22)) = minor;	// 2 byte Minor number
-    item.adData[24] = (uint8_t)txPower;		// 1 byte TxPower
+    // 2 byte major number & 2 byte minor, note that the endian is different.
+    (*(uint16_t*)(item.adData + 20)) = (major >> 8) | (major << 8);
+    (*(uint16_t*)(item.adData + 22)) = (minor >> 8) | (minor << 8);
+
+    // 1 byte TxPower (signed)
+    item.adData[24] = (uint8_t)txPower;		
 
     m_advDataList.push_back(item);
 }
@@ -90,13 +95,13 @@ uint32_t LBLEAdvertisementData::getPayload(uint8_t* buf, uint32_t bufLength) con
 void LBLEPeripheral::advertise(const LBLEAdvertisementData& advData)
 {
 	// enable advertisement
-    bt_hci_cmd_le_set_advertising_enable_t enable;
+    bt_hci_cmd_le_set_advertising_enable_t enable = {0};
     enable.advertising_enable = BT_HCI_ENABLE;
 
     // advertisement parameters
-    bt_hci_cmd_le_set_advertising_parameters_t adv_param;
+    bt_hci_cmd_le_set_advertising_parameters_t adv_param = {0};
     adv_param.advertising_interval_min = 0x00C0;
-    adv_param.advertising_interval_max = 0x00D0;
+    adv_param.advertising_interval_max = 0x00C0;
 	// TODO: for iBeacon-only devices, 
     // you may want to set advertising type to BT_HCI_ADV_TYPE_NON_CONNECTABLE_UNDIRECTED
     adv_param.advertising_type = BT_HCI_ADV_TYPE_CONNECTABLE_UNDIRECTED;
