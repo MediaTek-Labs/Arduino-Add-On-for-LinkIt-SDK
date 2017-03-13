@@ -53,16 +53,17 @@ int WiFiClient::connect(IPAddress ip, uint16_t port) {
 		ServerDrv::startClient(uint32_t(ip), port, _sock);
 		WiFiClass::_state[_sock] = _sock;
 
-		//unsigned long start = millis();
-		// wait 4 second for the connection to close
-		//while (!connected() && millis() - start < 10000)
-		//	delay(1);
-
-		char count = 4;
-		while(!connected() && count--)
-			delay(1000);
-		if (!connected())
+		const unsigned long start = millis();
+		// wait for 10 second for the connection
+		while (!connected() && ((millis() - start) < 10000))
 		{
+			// wait 50ms before next check
+			delay(50);
+		}
+
+		if (!connected())
+		{	
+			pr_debug("timeout\n");
 			return 0;
 		}
 	} else {
