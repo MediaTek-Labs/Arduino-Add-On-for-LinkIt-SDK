@@ -34,7 +34,8 @@ sub build_system_src
 		"middleware/third_party/lwip/src/include/",
 		"middleware/third_party/lwip/ports/include/",
 		"driver/board/mt76x7_hdk/wifi/inc/",
-		"middleware/MTK/bluetooth/inc/");
+		"middleware/MTK/bluetooth/inc/",
+		"middleware/MTK/nvdm/inc/");
     
 	my @remove_list=("driver/chip/mt7687/inc/wifi.h");
 
