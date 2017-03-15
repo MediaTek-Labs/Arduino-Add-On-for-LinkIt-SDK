@@ -4,6 +4,8 @@
 #include <WiFiClient.h>
 #include <WiFiUdp.h>
 #include "utility/wifi_drv.h"
+#include <LBLE.h>
+#include <LBLECentral.h>
 
 extern "C"{
 #include <bt_system.h>
@@ -11,8 +13,10 @@ extern "C"{
 
 int led = 7;
 char key = '0';
-volatile int ble_init = 0;
+//volatile int ble_init = 0;
 int ble_id = 0;
+
+LBLECentral scanner;
 
 /**
  * @brief   This function is a static callback for the application to listen to the event. Provide a user-defined callback.
@@ -24,31 +28,35 @@ int ble_id = 0;
 
 void scan(void)
 {
-	bt_hci_cmd_le_set_scan_parameters_t scan_para = {0};
-    bt_hci_cmd_le_set_scan_enable_t enable = {BT_HCI_ENABLE, BT_HCI_ENABLE};
-   	scan_para.le_scan_type = BT_HCI_SCAN_TYPE_ACTIVE;
-    scan_para.own_address_type = BT_HCI_SCAN_ADDR_PUBLIC;
-    scan_para.le_scan_interval = 0x0024;
-    scan_para.le_scan_window = 0x0011;
-    scan_para.scanning_filter_policy = 0x00;
-
     /* start scan */
-    bt_gap_le_set_scan(&enable, &scan_para);
+    scanner.scan();
 
     delay(3500);
 
+    for(int i = 0; i < scanner.getPeripheralCount(); i++)
+    {
+        Serial.print(i);
+        Serial.print(") ");
+
+        Serial.print("address: ");
+        Serial.print(scanner.getAddress(i).c_str());
+
+        Serial.print(" manufacturer: ");
+        Serial.print(scanner.getManufacturer(i).c_str());
+        Serial.println("");
+    }
+
     /* stop scan */
-    enable.le_scan_enable = BT_HCI_DISABLE;
-    bt_gap_le_set_scan(&enable, &scan_para);
+    scanner.stopScan();
 
     delay(500);
 }
 
 void onCNF(void)
 {
-	bt_bd_addr_t addr = {0x0C, 0x01, 0x02, 0x03, 0x04, 0x05};
+	//bt_bd_addr_t addr = {0x0C, 0x01, 0x02, 0x03, 0x04, 0x05};
 	// set random address before advertising
-    bt_gap_le_set_random_address((bt_bd_addr_ptr_t)addr);
+    //bt_gap_le_set_random_address((bt_bd_addr_ptr_t)addr);
 
     // trigger scan immediately ater power-on
     scan();
@@ -145,8 +153,7 @@ void print_adv_report(const bt_gap_le_advertising_report_ind_t *report)
 #endif
 }
 
-
-
+#if 0
 bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
 	const char* msg_text = NULL;
@@ -177,6 +184,7 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
     /*Listen all BT event*/
     return BT_STATUS_SUCCESS;
 }
+#endif
 
 }
 
@@ -334,11 +342,6 @@ void loop_ble_scan(void)
 
     ble_id = 0;
 
-    while (!ble_init)
-    {
-        delay(100);
-    }
-
     onCNF();
 }
 
@@ -392,9 +395,19 @@ void setup() {
     digitalWrite(led, 0);
 
     //listNetworks(false);
-    WiFiDrv::startScanNetworks();
+    //WiFiDrv::startScanNetworks();
 
-    init_bt_subsys();
+    Serial.print("BLE init");
+
+    LBLE.begin();
+
+    while (!LBLE.ready())
+    {
+        delay(100);
+        Serial.print(".");
+    }
+
+    Serial.println("Done!");
 }
 
 void loop() {

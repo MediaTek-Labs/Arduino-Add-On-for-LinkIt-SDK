@@ -22,13 +22,13 @@ void BtAddressToString(const bt_bd_addr_t& addr, String& addr_str)
 {
 	// 6-byte MAC address in HEX with ":" as seperator, plus NULL terminator
 	char addr_buf[sizeof(bt_bd_addr_t) * 2 + sizeof(bt_bd_addr_t) - 1 + 1] = {0};
-	sprintf(addr_buf, "%02x:%02x:%02x:%02x:%02x:%02x", 
-				addr[0],
-				addr[1],
-				addr[2],
-				addr[3],
+	sprintf(addr_buf, "%02x:%02x:%02x:%02x:%02x:%02x",
+				addr[5],
 				addr[4],
-				addr[5]);
+				addr[3],
+				addr[2],
+				addr[1],
+				addr[0]);
 
 	addr_str = (const char*)addr_buf;
 	return;
@@ -58,7 +58,7 @@ uint32_t LBLEAdvertisements::getAdvDataWithTypeFromPayload(uint8_t type, uint8_t
         {
             return 0;
         }
-        
+
         ad_data_type = payload.data[cursor+1];
 
         if (ad_data_type == type)
@@ -154,7 +154,7 @@ LBLEUuid LBLEAdvertisements::getServiceUuid() const
 	bt_uuid_t uuid_data = {0};
 	uint8_t dataBuf[MAX_ADV_DATA_LEN + 1] = {0}; // extra 1 byte to ensure NULL-termination.
 	uint32_t dataLen = 0;
-	
+
 	// Process "complete" uuid only - since we don't know how to handle partial uuid.
 	// A "partial" uuid needs to be defined by the device manufacturer.
 	if(dataLen = getAdvDataWithType(BT_GAP_LE_AD_TYPE_128_BIT_UUID_COMPLETE, dataBuf, MAX_ADV_DATA_LEN))
@@ -190,7 +190,7 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
 			break;
 
 		unsigned char *iBeaconBuffer = (unsigned char*)(dataBuf + 2);
-		
+
 		const unsigned char beaconType = *(iBeaconBuffer++);
 		const unsigned char beaconLength = *(iBeaconBuffer++);
 
@@ -216,7 +216,7 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
 		return true;
 
 	} while (false);
-	
+
 	return false;
 }
 
@@ -248,12 +248,12 @@ void LBLECentral::scan()
 	scan_para.scanning_filter_policy = BT_HCI_SCAN_FILTER_ACCEPT_ALL_ADVERTISING_PACKETS;
 	scan_para.le_scan_interval = 0x0024;	// Interval between scans
 	scan_para.le_scan_window = 0x0011;		// How long a scan keeps
-		
+
 	// set_scan is actually asynchronous - but since
 	// we don't have anything to check, we keep going
 	// without waiting for BT_GAP_LE_SET_SCAN_CNF.
 	result = bt_gap_le_set_scan(&enbleSetting, &scan_para);
-	
+
 	return;
 }
 
@@ -264,12 +264,14 @@ void LBLECentral::stopScan()
 	bt_hci_cmd_le_set_scan_enable_t enbleSetting;
 	enbleSetting.le_scan_enable = BT_HCI_DISABLE;
 	enbleSetting.filter_duplicates = BT_HCI_DISABLE;
-	
+
 	// set_scan is actually asynchronous - but since
 	// we don't have anything to check, we keep going
 	// without waiting for BT_GAP_LE_SET_SCAN_CNF.
 	result = bt_gap_le_set_scan(&enbleSetting, NULL);
-	
+
+    g_peripherals_found.clear();
+
 	return;
 }
 
@@ -308,14 +310,14 @@ LBLEUuid LBLECentral::getServiceUuid(int index) const
 {
 	bt_gap_le_advertising_report_ind_t dummy = {0};
 	LBLEAdvertisements parser(g_peripherals_found[index], dummy);
-	return parser.getServiceUuid(); 
+	return parser.getServiceUuid();
 }
 
 bool LBLECentral::isIBeacon(int index) const
 {
 	bt_gap_le_advertising_report_ind_t dummy = {0};
 	LBLEAdvertisements parser(g_peripherals_found[index], dummy);
-	
+
 	LBLEUuid uuid;
 	uint16_t major, minor;
 	uint8_t txPower;
@@ -420,7 +422,7 @@ void LBLECentral::processAdvertisement(const bt_gap_le_advertising_report_ind_t 
         ad_data_len = report->data[cursor];
         Serial.print("AD: len=");
         Serial.print(ad_data_len);
-        
+
         ad_data_type = report->data[cursor+1];
         Serial.print(", Type=");
         Serial.print(ad_data_type);
@@ -457,8 +459,8 @@ void LBLECentral::processAdvertisement(const bt_gap_le_advertising_report_ind_t 
 				Serial.print(" BT_GAP_LE_AD_TYPE_128_BIT_UUID_COMPLETE | ");
 				char str[37] = {};
 				unsigned char *uuid = (unsigned char*)(report->data + cursor + 2);
-				sprintf(str, 
-					"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
+				sprintf(str,
+					"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
 				    uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
 				    uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]
 				);
@@ -542,8 +544,8 @@ void LBLECentral::processAdvertisement(const bt_gap_le_advertising_report_ind_t 
 					Serial.print(" UUID=");
 					char str[37] = {};
 					unsigned char *uuid = (unsigned char*)(iBeaconBuffer);
-					sprintf(str, 
-						"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
+					sprintf(str,
+						"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
 					    uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
 					    uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]
 					);

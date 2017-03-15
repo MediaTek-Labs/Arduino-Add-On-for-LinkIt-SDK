@@ -136,7 +136,7 @@ int ard_ble_begin(void)
 
 	ard_ble_init_public_addr();
     ard_ble_bt_mm_init();
-    
+
     #if 0
     LOG_I(common, "[BT]g_local_public_addr [%02X:%02X:%02X:%02X:%02X:%02X]\n", g_local_public_addr[5],
           g_local_public_addr[4], g_local_public_addr[3], g_local_public_addr[2], g_local_public_addr[1], g_local_public_addr[0]);
@@ -145,12 +145,12 @@ int ard_ble_begin(void)
     log_config_print_switch(BTHCI, DEBUG_LOG_ON);
     log_config_print_switch(BTL2CAP, DEBUG_LOG_ON);
     #endif
-    
-    if (pdPASS != xTaskCreate(bt_task, 
-    						  BLUETOOTH_TASK_NAME, 
-    						  BLUETOOTH_TASK_STACKSIZE/sizeof(StackType_t), 
-    						  (void *)g_local_public_addr, 
-    						  BLUETOOTH_TASK_PRIO, 
+
+    if (pdPASS != xTaskCreate(bt_task,
+    						  BLUETOOTH_TASK_NAME,
+    						  BLUETOOTH_TASK_STACKSIZE/sizeof(StackType_t),
+    						  (void *)g_local_public_addr,
+    						  BLUETOOTH_TASK_PRIO,
     						  NULL))
     {
         return 0;
@@ -171,7 +171,7 @@ static void ard_ble_set_ready(void)
 }
 
 // This is a mandatory callback for the BLE framework.
-// All BLE events are routed to this callback for processing by BLE framework. 
+// All BLE events are routed to this callback for processing by BLE framework.
 // This callback is invoked in bt_task context.
 bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
