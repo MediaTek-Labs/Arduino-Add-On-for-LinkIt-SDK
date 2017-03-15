@@ -45,6 +45,7 @@ static int32_t _wifi_event_handler(wifi_event_t event,
 static void _connsys_workaround()
 {
     /* Wi-Fi must be initialized for BLE start-up */
+#if 0
     wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_event_handler);
 
     wifi_config_t config = {0};
@@ -53,6 +54,9 @@ static void _connsys_workaround()
 
     lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}, {0}, {0}, {0}};
     lwip_tcpip_init(&tcpip_config, WIFI_MODE_STA_ONLY);
+#endif
+
+    start_scan_net();
 }
 
 

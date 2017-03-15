@@ -44,6 +44,8 @@ void scan(void)
         Serial.print(" manufacturer: ");
         Serial.print(scanner.getManufacturer(i).c_str());
         Serial.println("");
+
+        delay(100);
     }
 
     /* stop scan */
@@ -397,17 +399,17 @@ void setup() {
     //listNetworks(false);
     //WiFiDrv::startScanNetworks();
 
-    Serial.print("BLE init");
+    //Serial.print("BLE init");
 
     LBLE.begin();
 
     while (!LBLE.ready())
     {
         delay(100);
-        Serial.print(".");
+        //Serial.print(".");
     }
 
-    Serial.println("Done!");
+    //Serial.println("Done!");
 }
 
 void loop() {
