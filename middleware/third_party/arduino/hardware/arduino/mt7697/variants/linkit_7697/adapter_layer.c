@@ -149,7 +149,7 @@ void init_system(void)
 
     // Pre-initialize PWM to highest clock.
     // This resets pin status so we put it in init_system().
-    hal_pwm_init(HAL_PWM_CLOCK_40MHZ);
+    hal_pwm_init(PWM_SOURCE_CLOCK);
 
 #if 0
     log_uart_init(HAL_UART_0);
