@@ -8,8 +8,6 @@
 #include <LBLE.h>
 #include <LBLEPeriphral.h>
 
-LBLEPeripheral device;
-
 void setup() {
 	//Initialize serial and wait for port to open:
 	Serial.begin(9600);
@@ -34,7 +32,7 @@ void setup() {
 	Serial.println(uuid);
 
 	// start advertising it
-	device.advertise(beaconData);
+	LBLEPeripheral.advertise(beaconData);
 }
 
 void loop() {

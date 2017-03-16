@@ -124,6 +124,19 @@ bool LBLEUuid::isEmpty() const
 	return (0 == memcmp(&uuid_data, &zero_data, sizeof(bt_uuid_t)));
 }
 
+bool LBLEUuid::is16Bit() const
+{
+	return bt_uuid_is_uuid16(&uuid_data);
+}
+
+uint16_t LBLEUuid::getUuid16() const
+{
+	if(!is16Bit())
+		return 0;
+
+	return uuid_data.uuid16;
+}
+
 void LBLEUuid::toRawBuffer(uint8_t* uuidBuf, uint32_t bufLength) const
 {
 	// input check
@@ -191,7 +204,7 @@ size_t LBLEUuid::printTo(Print& p) const
 
 void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-#if 0
+#if 1
 	Serial.print("ard_ble_postAllEvents:");
 	Serial.print(msg, HEX);
 	Serial.print(":");

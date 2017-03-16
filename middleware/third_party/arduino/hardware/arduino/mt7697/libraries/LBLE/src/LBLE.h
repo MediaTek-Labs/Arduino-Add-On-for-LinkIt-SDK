@@ -25,6 +25,9 @@ public:
 
 	bool isEmpty() const;
 
+	bool is16Bit() const;
+	uint16_t getUuid16() const;
+
 	LBLEUuid & operator = (const bt_uuid_t &rhs);
 	LBLEUuid & operator = (const LBLEUuid &rhs);
 	LBLEUuid & operator = (const char* rhs);

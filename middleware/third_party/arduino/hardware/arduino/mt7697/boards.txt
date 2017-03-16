@@ -45,6 +45,7 @@ linkit_7697.build.lwip_inc=middleware/third_party/lwip/src/include/
 linkit_7697.build.lwip_ports_inc=middleware/third_party/lwip/ports/include/
 linkit_7697.build.wifi_inc=driver/board/mt76x7_hdk/wifi/inc/
 linkit_7697.build.ble_inc=middleware/MTK/bluetooth/inc/
+linkit_7697.build.nvdm_inc=middleware/MTK/nvdm/inc/
 
 linkit_7697.build.bootloader=mt7687_bootloader.bin
 linkit_7697.build.wifi_binary=WIFI_RAM_CODE_MT76X7_in_flash.bin

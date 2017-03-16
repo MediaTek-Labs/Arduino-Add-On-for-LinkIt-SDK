@@ -58,6 +58,17 @@ public:
 	LBLEUuid getServiceUuid(int index) const;
 	String getManufacturer(int index) const;
 
+	// Advertisement Flags may be:
+	//	BT_GAP_LE_AD_FLAG_LIMITED_DISCOVERABLE     (0x01)
+	//  BT_GAP_LE_AD_FLAG_GENERAL_DISCOVERABLE     (0x02)
+	//	BT_GAP_LE_AD_FLAG_BR_EDR_NOT_SUPPORTED	   (0x04)
+	//	
+	//	There are also other flags, including:
+	//	0x08: Bluetooth BR/EDR Controller
+	//	0x10: Bluetooth BR/EDR Host
+	//	which are not used by BLE-only devices.
+	uint8_t  getAdvertisementFlag(int index)const;
+
 	bool isIBeacon(int index) const;
 	bool getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower)const;
 	
@@ -94,6 +105,8 @@ public:
 	LBLEUuid getServiceUuid() const;
 
 	String getManufacturer() const;
+
+	uint8_t getAdvertisementFlag()const;
 
 	// returns false if this advertisment is not of iBeacon format.
 	bool getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const;

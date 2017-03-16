@@ -43,6 +43,8 @@ void printDeviceInfo(int i)
 	{
 		Serial.println();
 	}
+	Serial.print("Flag: ");
+	Serial.println(scanner.getAdvertisementFlag(i), HEX);
 	Serial.print("Manu: ");
 	Serial.println(scanner.getManufacturer(i));
 

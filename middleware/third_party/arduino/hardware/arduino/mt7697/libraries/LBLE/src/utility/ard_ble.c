@@ -4,9 +4,10 @@
 
 /* system service headers */
 #ifndef MTK_NVDM_ENABLE
-#error "LinkIt 7697 Bluetooth relies on NVDM (to read local BT device address")
+#error "LinkIt 7697 Bluetooth relies on NVDM to read local BT device address"
 #endif
-// #include "nvdm.h"
+#include <nvdm.h>
+#include <hal_trng.h>
 
 /* Bluetooth headers */
 #include <task_def.h>
@@ -16,13 +17,13 @@
 // Workaround for CONSYS patch issue
 
 /* wifi related header */
-#include "wifi_api.h"
-#include "lwip/ip4_addr.h"
-#include "lwip/inet.h"
-#include "lwip/netif.h"
-#include "lwip/tcpip.h"
-#include "lwip/dhcp.h"
-#include "ethernetif.h"
+#include <wifi_api.h>
+#include <lwip/ip4_addr.h>
+#include <lwip/inet.h>
+#include <lwip/netif.h>
+#include <lwip/tcpip.h>
+#include <lwip/dhcp.h>
+#include <ethernetif.h>
 
 static int32_t _wifi_event_handler(wifi_event_t event,
         uint8_t *payload,
@@ -91,17 +92,56 @@ static char rx_buf[BT_RX_BUF_SIZE]
 
 // This is should be a unique & requested MAC address for the end product.
 // In the case of LinkIt 7697 HDK, the address is provided by the module manufacturer.
-// We'll fill this value with the content from nvdm(flash) and efuse.
+// We'll read the address from nvdm(flash) and efuse.
 static bt_bd_addr_t g_local_public_addr = {0};
+
+static void generate_random_device_address(bt_bd_addr_t addr)
+{
+    uint32_t ret = 0;
+    uint32_t random_seed = 0;
+
+    ret = hal_trng_init();
+    if (HAL_TRNG_STATUS_OK != ret) {
+        LOG_I(common, "[BT]generate_random_address--error 1");
+    }
+    for(int i = 0; i < 30; ++i) {
+        ret = hal_trng_get_generated_random_number(&random_seed);
+        if (HAL_TRNG_STATUS_OK != ret) {
+            LOG_I(common, "[BT]generate_random_address--error 2");
+        }
+        LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
+    }
+    /* randomly generate address */
+    ret = hal_trng_get_generated_random_number(&random_seed);
+    if (HAL_TRNG_STATUS_OK != ret) {
+        LOG_I(common, "[BT]generate_random_address--error 3");
+    }
+
+    LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
+    addr[0] = random_seed & 0xFF;
+    addr[1] = (random_seed >> 8) & 0xFF;
+    addr[2] = (random_seed >> 16) & 0xFF;
+    addr[3] = (random_seed >> 24) & 0xFF;
+    ret = hal_trng_get_generated_random_number(&random_seed);
+    if (HAL_TRNG_STATUS_OK != ret) {
+        LOG_I(common, "[BT]generate_random_address--error 3");
+    }
+    LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
+    addr[4] = random_seed & 0xFF;
+    addr[5] = (random_seed >> 8) & 0xCF;
+    hal_trng_deinit();
+}
+
 static void ard_ble_init_public_addr(void)
 {
-#if 1
-	g_local_public_addr[0] = 0x9C;
-	g_local_public_addr[1] = 0x65;
-	g_local_public_addr[2] = 0xF9;
-	g_local_public_addr[3] = 0x1E;
-	g_local_public_addr[4] = 0xB2;
-	g_local_public_addr[5] = 0xF1;
+#if 0
+    // Use a mocking address
+    g_local_public_addr[0] = 0x0C;
+    g_local_public_addr[1] = 0x01;
+    g_local_public_addr[2] = 0x02;
+    g_local_public_addr[3] = 0x03;
+    g_local_public_addr[4] = 0x04;
+    g_local_public_addr[5] = 0x05;
 #else
     uint32_t size = 12;
     uint8_t buffer[18] = {0};
@@ -111,14 +151,20 @@ static void ard_ble_init_public_addr(void)
     // It is stored as HEX strings - so we read and convert them.
     if (NVDM_STATUS_OK == nvdm_read_data_item("BT", "address", buffer, &size))
     {
-        for (i = 0; i < 6; ++i) {
+        LOG_I(common, "[BT]read BT address --ok");
+        for (int i = 0; i < 6; ++i) {
             tmp_buf[0] = buffer[2 * i];
             tmp_buf[1] = buffer[2 * i + 1];
             g_local_public_addr[i] = (uint8_t)strtoul((char *)tmp_buf, NULL, 16);
         }
     }
+    else
+    {
+        generate_random_device_address(g_local_public_addr);
+    }
 #endif
 }
+
 
 static void ard_ble_bt_mm_init()
 {
@@ -192,6 +238,12 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
     case BT_GAP_LE_ADVERTISING_REPORT_IND:
         ard_ble_central_onCentralEvents(msg, status, buff);
     	break;
+    case BT_GAP_LE_CONNECT_IND:
+        ard_ble_peri_onConnect(msg, status, buff);
+        break;
+    case BT_GAP_LE_DISCONNECT_IND:
+        ard_ble_peri_onDisconnect(msg, status, buff);
+        break;
 	default:
 		break;
 	}
@@ -205,3 +257,9 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
 }
 
 
+static const bt_gatts_primary_service_16_t bt_if_gap_primary_service = {
+    .rec_hdr.uuid_ptr = &BT_GATT_UUID_PRIMARY_SERVICE,
+    .rec_hdr.perm = BT_GATTS_REC_PERM_READABLE,
+    .rec_hdr.value_len = 2,
+    .uuid16 = BT_GATT_UUID16_GAP_SERVICE
+};

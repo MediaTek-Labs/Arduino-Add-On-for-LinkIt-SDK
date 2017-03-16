@@ -149,6 +149,19 @@ String LBLEAdvertisements::getManufacturer() const
 	return String("Unknown");
 }
 
+uint8_t  LBLEAdvertisements::getAdvertisementFlag()const
+{
+	uint8_t dataBuf[MAX_ADV_DATA_LEN + 1] = {0}; // extra 1 byte to ensure NULL-termination.
+	const uint32_t dataLen = getAdvDataWithType(BT_GAP_LE_AD_TYPE_FLAG, dataBuf, MAX_ADV_DATA_LEN);
+
+	if(dataLen)
+	{
+		return dataBuf[0];
+	}
+
+	return 0;
+}
+
 LBLEUuid LBLEAdvertisements::getServiceUuid() const
 {
 	bt_uuid_t uuid_data = {0};
@@ -336,6 +349,13 @@ String LBLECentral::getManufacturer(int index) const
 	bt_gap_le_advertising_report_ind_t dummy = {0};
 	LBLEAdvertisements parser(g_peripherals_found[index], dummy);
 	return parser.getManufacturer();
+}
+
+uint8_t  LBLECentral::getAdvertisementFlag(int index) const
+{
+	bt_gap_le_advertising_report_ind_t dummy = {0};
+	LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+	return parser.getAdvertisementFlag();
 }
 
 static const char* get_event_type(uint8_t type)

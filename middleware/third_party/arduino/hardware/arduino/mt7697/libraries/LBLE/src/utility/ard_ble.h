@@ -8,12 +8,14 @@
 extern "C" {
 #endif
 
-#include <bt_hci.h>
-#include <bt_gap_le.h>
 #include <bt_debug.h>
-#include <bt_system.h>
 #include <bt_type.h>
 #include <bt_uuid.h>
+#include <bt_system.h>
+#include <bt_hci.h>
+#include <bt_gap_le.h>
+#include <bt_gatt.h>
+#include <bt_gatts.h>
 
 int ard_ble_begin(void);
 int ard_ble_is_ready(void);
@@ -24,6 +26,11 @@ extern void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *b
 // implemented by LBLECentral.cpp
 extern void ard_ble_central_onCentralEvents(bt_msg_type_t msg, bt_status_t status, void *buff);
 
+// implemented by LBLEPeripheral.cpp
+extern void ard_ble_peri_onConnect(bt_msg_type_t msg, bt_status_t status, void *buff);
+extern void ard_ble_peri_onDisconnect(bt_msg_type_t msg, bt_status_t status, void *buff);
+
+extern void ard_ble_peri_onName(const char *str, uint16_t handle);
 
 #ifdef __cplusplus
 }
