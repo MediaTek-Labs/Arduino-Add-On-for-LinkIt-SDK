@@ -275,9 +275,7 @@ int LBLECentral::getPeripheralCount()
 
 String LBLECentral::getAddress(int index)
 {
-	String addrStr;
-    BtAddressToString(g_peripherals_found[index].address.addr, addrStr);
-	return addrStr;
+    return LBLEAddress::convertAddressToString(g_peripherals_found[index].address.addr);
 }
 
 String LBLECentral::getName(int index)
@@ -406,10 +404,7 @@ void LBLECentral::processAdvertisement(const bt_gap_le_advertising_report_ind_t 
     Serial.println(report->rssi);
 
     Serial.print("Addr:");
-    String addrStr;
-    BtAddressToString(report->address.addr, addrStr);
-    Serial.println(addrStr);
-
+    String addrStr = LBLEAddress::convertAddressToString(report->address.addr)
     Serial.print("data_length:");
     Serial.println(report->data_length);
 

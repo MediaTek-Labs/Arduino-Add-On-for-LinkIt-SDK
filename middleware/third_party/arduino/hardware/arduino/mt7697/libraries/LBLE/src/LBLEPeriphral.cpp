@@ -8,23 +8,22 @@
 extern "C"
 {
 #include "utility/ard_ble.h"
+#include "utility/ard_bt_builtin_profile.h"
+#include "utility/ard_bt_attr_callback.h"
 }
 
 LBLEAdvertisementData::LBLEAdvertisementData()
 {
-	Serial.println("alloc LBLEAdvertisementData");
 	m_advDataList.clear();
 }
 
 LBLEAdvertisementData::LBLEAdvertisementData(const LBLEAdvertisementData& rhs)
 {
-	Serial.println("copy LBLEAdvertisementData");
 	m_advDataList = rhs.m_advDataList;
 }
 
 LBLEAdvertisementData::~LBLEAdvertisementData()
 {
-	Serial.println("delete LBLEAdvertisementData");
 	m_advDataList.clear();
 }
 
@@ -230,7 +229,6 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
     currentHandle++;
     m_records.push_back((bt_gatts_service_rec_t*)pRecord);
     
-
     // Generate characterstics attribute records
     for(int i = 0; i < m_attributes.size(); ++i)
     {
@@ -249,11 +247,7 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
 	m_serviceData.starting_handle = startingHandle;
 	m_serviceData.ending_handle	= startingHandle + m_records.size() - 1;
 
-	Serial.print("handle=");
-	Serial.print(m_serviceData.starting_handle, HEX);
-	Serial.print(",");
-	Serial.print(m_serviceData.ending_handle, HEX);
-
+	pr_debug("new service with handle from %04x to %04x", m_serviceData.starting_handle, m_serviceData.ending_handle);
 
 	// we don't use encryption by default.
 	m_serviceData.required_encryption_key_size = 0;
@@ -279,26 +273,18 @@ void LBLEService::end()
 // LBLECharacteristic
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-LBLECharacteristicInt* g_pAttributeInsts[10] = {0};
-
-uint32_t attribute_callback(int index, const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+// implement trampoline callback as requested in ard_bt_attr_callback.h
+uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset, void* user_data)
 {
-	Serial.print("attribute_callback:");
-	Serial.print(index);
-	Serial.print(",");
-	Serial.print(rw);
-	Serial.print(",");
-	Serial.print(size);
-	Serial.print(",");
-	Serial.print(offset);
+	pr_debug("attribute_callback [%d, %d, %04x, %08x, %d, %d - %08x", index, rw, handle, data, size, offset, user_data);
 
-
-	if(NULL == g_pAttributeInsts[index])
+	if(NULL == user_data)
 	{
+		pr_debug("NULL user data in " __FUNC__);
 		return 0;
 	}
 
-	LBLECharacteristicInt* pThis = g_pAttributeInsts[index];
+	LBLEAttributeInterface* pThis = (LBLEAttributeInterface*)user_data;
 
 	if(0 == size)
 	{
@@ -316,71 +302,6 @@ uint32_t attribute_callback(int index, const uint8_t rw, uint16_t handle, void *
     
     return 0;
 }
-
-uint32_t attribute_callback_0(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(0, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_1(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(1, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_2(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(2, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_3(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(3, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_4(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(4, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_5(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(5, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_6(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(6, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_7(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(7, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_8(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(8, rw, handle, data, size, offset);
-}
-
-uint32_t attribute_callback_9(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
-{
-	return attribute_callback(9, rw, handle, data, size, offset);
-}
-
-
-static bt_gatts_rec_callback_t g_pCallbacks[10] = {
-	attribute_callback_0,
-	attribute_callback_1,
-	attribute_callback_2,
-	attribute_callback_3,
-	attribute_callback_4,
-	attribute_callback_5,
-	attribute_callback_6,
-	attribute_callback_7,
-	attribute_callback_8,
-	attribute_callback_9,
-};
-
 
 LBLECharacteristicInt::LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission):
 	m_updated(false),
@@ -401,20 +322,17 @@ void LBLECharacteristicInt::setValue(int value)
 	// m_update means "set by central device",
 	// so clear it here.
 	m_updated = false;
+	m_data = value;
 }
 
 int LBLECharacteristicInt::getValue()
 {
-	Serial.print("Get Value():");
-	Serial.println(m_data, HEX);
-
 	m_updated = false;
 	return m_data;
 }
 
 uint32_t LBLECharacteristicInt::onSize() const
 {
-	Serial.println("onSize()");
 	return sizeof(m_data);
 }
 
@@ -426,8 +344,6 @@ uint32_t LBLECharacteristicInt::onRead(void *data, uint16_t size, uint16_t offse
         return dataSize;
     }
 
-    Serial.println("onRead()");
-
     uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
     copySize = (size > copySize) ? copySize : size;
     memcpy(data, ((uint8_t*)(&m_data)) + offset, copySize);
@@ -437,18 +353,14 @@ uint32_t LBLECharacteristicInt::onRead(void *data, uint16_t size, uint16_t offse
 
 uint32_t LBLECharacteristicInt::onWrite(void *data, uint16_t size, uint16_t offset)
 {
-	Serial.println("onWrite()");
-
 	const uint32_t dataSize = onSize();
 	uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
     copySize = (size > copySize) ? copySize : size;
     memcpy(((uint8_t*)(&m_data)) + offset, data, copySize);
 
-    Serial.print("after=");
-	Serial.println(m_data, HEX);
-
-    // update flag
 	m_updated = true;
+
+	Serial.println("onWrite!");
 
 	return copySize;
 }
@@ -463,10 +375,9 @@ bt_gatts_service_rec_t* LBLECharacteristicInt::allocRecord(uint32_t recordIndex,
 			// it then points the the actual value entry by the "handle" field.
 			bt_gatts_characteristic_128_t* pRec = (bt_gatts_characteristic_128_t*)malloc(sizeof(bt_gatts_characteristic_128_t));
 			if(NULL == pRec)
+			{
 				return NULL;
-
-			Serial.print("allocRecord:");
-			Serial.println(currentHandle + 1, HEX);
+			}	
 
 		    pRec->rec_hdr.uuid_ptr = &BT_GATT_UUID_CHARC;
 		    pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
@@ -479,19 +390,26 @@ bt_gatts_service_rec_t* LBLECharacteristicInt::allocRecord(uint32_t recordIndex,
     	}
 	case 1:
 		{
+			// allocating callback function - not needed if SDK allows passing user data directly.
+			bt_gatts_rec_callback_t callbackFunc = ard_bt_alloc_callback_slot((LBLEAttributeInterface*)this);
+			if(NULL == callbackFunc)
+			{
+				return NULL;
+			}	
+
 			// the first record is a "Characteristic UUID" attribute
 			// it then points the the actual value entry by the "handle" field.
 			bt_gatts_characteristic_t* pRec = (bt_gatts_characteristic_t*)malloc(sizeof(bt_gatts_characteristic_t));
 			if(NULL == pRec)
+			{
+				// TODO: if we can free callbackFunc, we should free it.
 				return NULL;
+			}	
 
 	    	pRec->rec_hdr.uuid_ptr = &m_uuid.uuid_data;
 	    	pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
 	    	pRec->rec_hdr.value_len = 0;
-
-	    	// HACK: register into global table;
-	    	g_pAttributeInsts[0] = this;
-	    	pRec->value.callback = g_pCallbacks[0];
+	    	pRec->value.callback = callbackFunc;
 	    	return (bt_gatts_service_rec_t*)pRec;
     	}
     default:
@@ -521,14 +439,6 @@ void LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
 	// make a copy of advertisement data for re-advertising after disconnect event.
     // previous advertisement data will be cleared since m_pAdvData is unique_ptr.
     m_pAdvData = std::unique_ptr<LBLEAdvertisementData>(new LBLEAdvertisementData(advData));
-
-#if 1
-    Serial.print("my address is:");
-    String addrStr;
-    bt_bd_addr_ptr_t addr = bt_gap_le_get_random_address();
-    BtAddressToString(addr, addrStr);
-    Serial.println(addrStr);
-#endif
 
     // start advertisement
     advertiseAgain();
@@ -583,7 +493,7 @@ void LBLEPeripheralClass::advertiseAgain()
 
 void LBLEPeripheralClass::setName(const char* name)
 {
-
+	ard_bt_set_gatts_device_name(name);
 }
 
 void LBLEPeripheralClass::addService(const LBLEService& service)
@@ -667,17 +577,13 @@ const bt_gatts_service_t** bt_get_gatt_server()
 #if 0
 	return g_gatt_server;
 #else
-	Serial.println("get server");
 	return LBLEPeripheral.getServiceTable();
 #endif
 }
 
 void ard_ble_peri_onName(const char* str, uint16_t handle)
 {
-	Serial.print("func:");
-	Serial.println(str);
-	Serial.print("handle:");
-	Serial.println(handle);
+	pr_debug("@%s:%04x", str, handle);
 }
 
 void ard_ble_peri_onConnect(bt_msg_type_t msg, bt_status_t status, void *buff)
@@ -686,21 +592,19 @@ void ard_ble_peri_onConnect(bt_msg_type_t msg, bt_status_t status, void *buff)
 	{
 		return;
 	}
-
+	pr_debug("device connected");
 	const bt_gap_le_connection_ind_t* connect_ind = (bt_gap_le_connection_ind_t*)buff;
-	Serial.println("device connected");
 }
 
 void ard_ble_peri_onDisconnect(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-	Serial.println("device disconnected");
+	pr_debug("device disconnected");
 
 	// for most cases, we'd like to
 	// automatically re-start advertising, so that
 	// this periphera can be found by other central devices.
 	LBLEPeripheral.advertiseAgain();
 }
-
 
 } // extern "C"
 

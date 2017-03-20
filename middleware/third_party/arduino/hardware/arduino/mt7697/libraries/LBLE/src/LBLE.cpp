@@ -19,10 +19,20 @@ int LBLEClass::begin()
 int LBLEClass::ready()
 {
 	return ard_ble_is_ready();
-}                       
+}
+
+LBLEAddress LBLEClass::getDeviceAddress()
+{
+	// the underlying framework passes an pointer
+	// to global device address.
+	return LBLEAddress(bt_gap_le_get_random_address());
+}      
 
 LBLEClass LBLE;
 
+/////////////////////////////////////////////////////////////////////////////
+// LBLEUuid helper class
+/////////////////////////////////////////////////////////////////////////////
 LBLEUuid::LBLEUuid()
 {
 	memset(&uuid_data, 0, sizeof(uuid_data));
@@ -204,54 +214,46 @@ size_t LBLEUuid::printTo(Print& p) const
 }
 
 
-void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
+/////////////////////////////////////////////////////////////////////////////
+// LBLEAddress helper class
+/////////////////////////////////////////////////////////////////////////////
+LBLEAddress::LBLEAddress():
+	m_addr(NULL)
 {
-#if 1
-	Serial.print("ard_ble_postAllEvents:");
-	Serial.print(msg, HEX);
-	Serial.print(":");
-	Serial.println(status, HEX);
 
-    switch(msg)
-    {
-    case BT_POWER_ON_CNF:
-        Serial.print("[BT_POWER_ON_CNF]=");
-        Serial.println(status, HEX);
-        break;
-
-    case BT_GAP_LE_SET_RANDOM_ADDRESS_CNF: 
-        Serial.print("[BT_GAP_LE_SET_RANDOM_ADDRESS_CNF]=");
-        Serial.println(status, HEX);
-        break;
-
-    case BT_GAP_LE_SET_ADVERTISING_CNF:
-        Serial.print("[BT_GAP_LE_SET_ADVERTISING_CNF]=");
-        Serial.println(status, HEX);
-        break;
-
-    case BT_GAP_LE_DISCONNECT_IND:
-        Serial.print("[BT_GAP_LE_DISCONNECT_IND]=");
-        Serial.println(status, HEX);
-        break;
-
-    case BT_GAP_LE_CONNECT_IND:
-        Serial.print("[BT_GAP_LE_CONNECT_IND]=");
-        Serial.println(status, HEX);
-        break;
-    }
-#endif
-    return;
 }
 
-// returns true if lhs equals rhs address.
-bool compare_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
+LBLEAddress::LBLEAddress(bt_bd_addr_ptr_t addr)
 {
-    return (lhs.type == rhs.type) && (0 == memcmp(lhs.addr, rhs.addr, sizeof(lhs.addr)));
+	m_addr = addr;
 }
 
-void BtAddressToString(const bt_bd_addr_ptr_t addr, String& addr_str)
+LBLEAddress::~LBLEAddress()
 {
-    // 6-byte MAC address in HEX with ":" as seperator, plus NULL terminator
+	m_addr = NULL;
+}
+
+size_t LBLEAddress::printTo(Print& p) const
+{
+	const String str = toString();
+	p.print(str);
+
+	return str.length();
+}
+
+String LBLEAddress::toString() const
+{
+	return convertAddressToString(m_addr);
+}
+
+String LBLEAddress::convertAddressToString(const bt_bd_addr_ptr_t addr)
+{
+	if(NULL == addr)
+	{
+		return String();
+	}
+
+	// 6-byte MAC address in HEX with ":" as seperator, plus NULL terminator
     char addr_buf[sizeof(bt_bd_addr_t) * 2 + sizeof(bt_bd_addr_t) - 1 + 1] = {0};
     sprintf(addr_buf, "%02x:%02x:%02x:%02x:%02x:%02x",
                 addr[5],
@@ -261,6 +263,21 @@ void BtAddressToString(const bt_bd_addr_ptr_t addr, String& addr_str)
                 addr[1],
                 addr[0]);
 
-    addr_str = (const char*)addr_buf;
+    return String(addr_buf);
+}
+
+// returns true if lhs equals rhs address.
+bool compare_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
+{
+    return (lhs.type == rhs.type) && (0 == memcmp(lhs.addr, rhs.addr, sizeof(lhs.addr)));
+}
+
+
+void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
+{
+	// this is a filter hook, executed after all BT message handlers
+#if 1
+	pr_debug("ard_ble_postAllEvents: %04x : %04x : %08x", msg, status, buff);
+#endif
     return;
 }

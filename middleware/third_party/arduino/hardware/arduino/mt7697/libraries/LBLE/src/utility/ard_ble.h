@@ -16,6 +16,7 @@ extern "C" {
 #include <bt_gap_le.h>
 #include <bt_gatt.h>
 #include <bt_gatts.h>
+#include <log_dump.h>
 
 int ard_ble_begin(void);
 int ard_ble_is_ready(void);

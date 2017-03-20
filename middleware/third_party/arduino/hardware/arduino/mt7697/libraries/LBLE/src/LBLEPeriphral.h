@@ -99,19 +99,30 @@ enum LBLEPermission
 	LBLE_WRITE = BT_GATTS_REC_PERM_WRITABLE,
 };
 
-class LBLECharacteristicInt
+class LBLEAttributeInterface
 {
 public:
-	
-	
+	virtual uint32_t onSize() const = 0;
+	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset) = 0;
+	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset) = 0;
+};
+
+class LBLECharacteristicInt : public LBLEAttributeInterface
+{
+public:	// method for Arduino users
+
 	LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission);
 
+	// Check if a character is written
 	bool isWritten();
 
+	// Set value
 	void setValue(int value);
 
+	// Retrieve value, note that isWritten() flag turns off after calling getValue()
 	int getValue();
 
+public:	// for BLE framework
 	virtual uint32_t onSize() const;
 	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
 	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);

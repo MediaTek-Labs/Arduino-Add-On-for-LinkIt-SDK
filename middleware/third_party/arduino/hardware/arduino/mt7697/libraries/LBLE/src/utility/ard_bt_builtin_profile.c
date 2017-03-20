@@ -16,11 +16,23 @@ const bt_uuid_t CLI_BT_SIG_UUID_CENTRAL_ADDRESS_RESOLUTION =
 //service collects all bt_gatts_service_rec_t
 //IMPORTAMT: handle:0x0000 is reserved, please start your handle from 0x0001
 //GAP 0x0001
-char gatts_device_name[256]={"UNIQLO"};
+static char g_gatts_device_name[256]={"LinkIt 7697"};
+
+void ard_bt_set_gatts_device_name(const char* device_name)
+{
+    if(NULL == device_name)
+    {
+        return;
+    }
+    
+    strncpy(g_gatts_device_name, device_name, sizeof(g_gatts_device_name) - 1);
+    return;
+}
+
 static uint32_t bt_if_gap_dev_name_callback (const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
 {
-    uint32_t str_size = strlen(gatts_device_name);
-    uint32_t buf_size = sizeof(gatts_device_name);
+    uint32_t str_size = strlen(g_gatts_device_name);
+    uint32_t buf_size = sizeof(g_gatts_device_name);
     uint32_t copy_size;
 
     ard_ble_peri_onName(__FUNCTION__, handle);
@@ -32,11 +44,11 @@ static uint32_t bt_if_gap_dev_name_callback (const uint8_t rw, uint16_t handle, 
                 return str_size;
             }
             copy_size = (size > copy_size)? copy_size:size;
-            memcpy(data, gatts_device_name+offset, copy_size);
+            memcpy(data, g_gatts_device_name+offset, copy_size);
             return copy_size;
         case BT_GATTS_CALLBACK_WRITE:
             copy_size = (size > buf_size)? buf_size:size;
-            memcpy(gatts_device_name, data, copy_size);
+            memcpy(g_gatts_device_name, data, copy_size);
             return copy_size;
         default:
             return BT_STATUS_SUCCESS;

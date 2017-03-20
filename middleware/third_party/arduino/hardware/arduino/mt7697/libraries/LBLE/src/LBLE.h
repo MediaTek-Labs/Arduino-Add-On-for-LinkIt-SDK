@@ -16,12 +16,9 @@ extern "C" {
 // returns true if lhs equals rhs address.
 bool compare_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs);
 
-// converts bt device address to string
-void BtAddressToString(const bt_bd_addr_ptr_t addr, String& addr_str);
-
 class LBLEUuid : public Printable
 {
-public:
+public: // Constructors
 	LBLEUuid();
 	LBLEUuid(const char* uuidString);
 	LBLEUuid(uint16_t uuid16);
@@ -29,27 +26,40 @@ public:
 	LBLEUuid(const bt_uuid_t& uuid_data);
 	LBLEUuid(const LBLEUuid& rhs);
 
-	bool isEmpty() const;
-
-	bool is16Bit() const;
-	uint16_t getUuid16() const;
-
 	LBLEUuid & operator = (const bt_uuid_t &rhs);
 	LBLEUuid & operator = (const LBLEUuid &rhs);
 	LBLEUuid & operator = (const char* rhs);
 
-	void toRawBuffer(uint8_t* uuidBuf, uint32_t bufLength) const;
-
+public:	// implementing Pritable
 	String toString() const;
-
 	virtual size_t printTo(Print& p) const;
 
+public:	// Helper function
+	void toRawBuffer(uint8_t* uuidBuf, uint32_t bufLength) const;
+	bool isEmpty() const;
+	bool is16Bit() const;
+	uint16_t getUuid16() const;
+
+public:
 	bt_uuid_t uuid_data;
 };
 
-class LBLEAddress
+class LBLEAddress : public Printable
 {
+public: // Constructors
+	LBLEAddress();
+	LBLEAddress(bt_bd_addr_ptr_t addr);
+	~LBLEAddress();
 
+public:	// implementing Pritable
+	String toString() const;
+	virtual size_t printTo(Print& p) const;
+
+public:	// Helper function
+	static String convertAddressToString(const bt_bd_addr_ptr_t addr);
+
+public:
+	bt_bd_addr_ptr_t m_addr;
 };
 
 class LBLEClass
@@ -72,6 +82,7 @@ class LBLEClass
 		 */
 		int ready();
 
+		LBLEAddress getDeviceAddress();
 
 		friend class LBLECentral;
 		friend class LBLEPeripheral;
