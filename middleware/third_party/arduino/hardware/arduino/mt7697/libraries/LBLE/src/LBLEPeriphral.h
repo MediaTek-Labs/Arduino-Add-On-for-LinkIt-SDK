@@ -93,21 +93,70 @@ private:
 	std::vector<LBLEAdvDataItem> m_advDataList;
 };
 
-class LBLEGATTAttributes : public bt_gatts_service_rec_t
+enum LBLEPermission
 {
-
+	LBLE_READ = BT_GATTS_REC_PERM_READABLE,
+	LBLE_WRITE = BT_GATTS_REC_PERM_WRITABLE,
 };
 
-class LBLEGATTService : public bt_gatts_service_t
+class LBLECharacteristicInt
 {
 public:
-	LBLEGATTService(const LBLEUuid& uuid);
-	LBLEGATTService& addCharacteristic(const LBLEUuid& uuid);
+	
+	
+	LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission);
+
+	bool isWritten();
+
+	void setValue(int value);
+
+	int getValue();
+
+	virtual uint32_t onSize() const;
+	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
+	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);
+
+	// Each characteristic maps to 2 GATT attribute records
+	virtual uint32_t getRecordCount() {return 2;};
+
+	// @param recordIndex ranges from 0 ~ (getRecordCount - 1)
+	// 
+	// returns a generic bt_gatts_service_rec_t pointer
+	// that points to variable-length GATT attribute records.
+	// The user is reponsible to free() the returning buffer.
+	virtual bt_gatts_service_rec_t* allocRecord(uint32_t recordIndex, uint16_t currentHandle);
 
 private:
-	// std::vector<bt_gatt_service_rec_t> m_attributes;	// container for attributes in services
+	LBLEUuid m_uuid;
+	uint32_t m_perm;
+	int m_data;
+	bool m_updated;
 };
 
+class LBLEService
+{
+public:
+	LBLEService(const LBLEUuid& uuid);
+	LBLEService(const char* uuidString);
+
+	void addAttribute(LBLECharacteristicInt& attr);
+	
+	// Allocates underlying record tables for BLE framework.
+	// Accepts the globally ordered handle
+	// returns the last handle + 1.
+	uint16_t begin(uint16_t startingHandle);
+
+	void end();
+
+	bt_gatts_service_t* getServiceDataPointer();
+private:	
+	LBLEUuid m_uuid;
+	bt_gatts_service_t m_serviceData; 				// service record for BLE framework
+	std::vector<bt_gatts_service_rec_t*> m_records; // attribute records (multiple types) for BLE framework
+	std::vector<LBLECharacteristicInt*> m_attributes; // pointers to attribute objects
+};
+
+// Singleton class representing the local BLE periphral device
 class LBLEPeripheralClass
 {
 public:
@@ -117,34 +166,34 @@ public:
 	// start advertisement
 	void advertise(const LBLEAdvertisementData& advertisementData);
 	
-	// start advertisement based on previous input of advertise.
+	// start advertisement based on previous input of advertise
 	void advertiseAgain();
 
-	// stop advertisement and clears advertisement data.
+	// stop advertisement and clears advertisement data
 	// advertiseAgain() fails after stopAdvertise();
 	void stopAdvertise();
 
 	// Generic Access Profile (GAP) configuration
 	void setName(const char* name);
 
+	// After setup services and characteristics
+	// you have to call begin make enable the GATT server
+	void begin();
+
 	// configuring GATT Services. You must configure services
 	// before advertising the device. The services cannot change
 	// after being connected.
-	void addService(const LBLEGATTService& service);
+	void addService(const LBLEService& service);
 
-	const bt_gatts_service_t** getServiceTable();
-
-private:
-	void populateServicePointerTable();
-	uint16_t allocAttrHandle();
+	const bt_gatts_service_t** getServiceTable();	
 
 private:
 	const static uint16_t USER_ATTRIBUTE_HANDLE_START = 0x00A0;
 	std::vector<const bt_gatts_service_t*> m_servicePtrTable;
-	std::vector<bt_gatts_service_t> m_services;			// container for services in the server
+	std::vector<LBLEService> m_services;			// container for services in the server
 	
 	std::unique_ptr<LBLEAdvertisementData> m_pAdvData;
-	uint16_t m_attrHandle;
+	
 };
 
 extern LBLEPeripheralClass LBLEPeripheral;

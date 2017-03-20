@@ -13,6 +13,12 @@ extern "C" {
 #include "utility/ard_ble.h"
 }
 
+// returns true if lhs equals rhs address.
+bool compare_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs);
+
+// converts bt device address to string
+void BtAddressToString(const bt_bd_addr_ptr_t addr, String& addr_str);
+
 class LBLEUuid : public Printable
 {
 public:
@@ -38,7 +44,6 @@ public:
 
 	virtual size_t printTo(Print& p) const;
 
-private:
 	bt_uuid_t uuid_data;
 };
 

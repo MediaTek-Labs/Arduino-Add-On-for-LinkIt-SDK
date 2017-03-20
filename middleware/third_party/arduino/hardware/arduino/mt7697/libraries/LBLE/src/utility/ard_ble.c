@@ -23,6 +23,7 @@
 #include <lwip/netif.h>
 #include <lwip/tcpip.h>
 #include <lwip/dhcp.h>
+#include <lwip/dns.h>
 #include <ethernetif.h>
 
 static int32_t _wifi_event_handler(wifi_event_t event,
@@ -46,7 +47,7 @@ static int32_t _wifi_event_handler(wifi_event_t event,
 static void _connsys_workaround()
 {
     /* Wi-Fi must be initialized for BLE start-up */
-#if 0
+#if 1
     wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_event_handler);
 
     wifi_config_t config = {0};
@@ -55,9 +56,9 @@ static void _connsys_workaround()
 
     lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}, {0}, {0}, {0}};
     lwip_tcpip_init(&tcpip_config, WIFI_MODE_STA_ONLY);
-#endif
-
+#else
     start_scan_net();
+#endif
 }
 
 
@@ -134,14 +135,14 @@ static void generate_random_device_address(bt_bd_addr_t addr)
 
 static void ard_ble_init_public_addr(void)
 {
-#if 0
+#if 1
     // Use a mocking address
-    g_local_public_addr[0] = 0x0C;
-    g_local_public_addr[1] = 0x01;
-    g_local_public_addr[2] = 0x02;
-    g_local_public_addr[3] = 0x03;
-    g_local_public_addr[4] = 0x04;
-    g_local_public_addr[5] = 0x05;
+    g_local_public_addr[0] = 0x23;
+    g_local_public_addr[1] = 0x6F;
+    g_local_public_addr[2] = 0x5B;
+    g_local_public_addr[3] = 0x55;
+    g_local_public_addr[4] = 0x11;
+    g_local_public_addr[5] = 0xCC;
 #else
     uint32_t size = 12;
     uint8_t buffer[18] = {0};
@@ -263,3 +264,5 @@ static const bt_gatts_primary_service_16_t bt_if_gap_primary_service = {
     .rec_hdr.value_len = 2,
     .uuid16 = BT_GATT_UUID16_GAP_SERVICE
 };
+
+

@@ -177,6 +177,327 @@ uint32_t LBLEAdvertisementData::getPayload(uint8_t* buf, uint32_t bufLength) con
 
 	return sizeRequired;
 }
+/////////////////////////////////////////////////////////////////////////////////////////////
+// LBLEService
+/////////////////////////////////////////////////////////////////////////////////////////////
+LBLEService::LBLEService(const LBLEUuid& uuid):
+	m_uuid(uuid)
+{
+	memset(&m_serviceData, 0, sizeof(m_serviceData));
+}
+
+LBLEService::LBLEService(const char* uuidString):
+	m_uuid(uuidString)
+{
+	memset(&m_serviceData, 0, sizeof(m_serviceData));
+}
+
+bt_gatts_service_t* LBLEService::getServiceDataPointer()
+{
+	// check if begin() is called
+	if(m_records.empty())
+	{
+		return NULL;
+	}
+
+	return &m_serviceData;
+}
+
+void LBLEService::addAttribute(LBLECharacteristicInt& attr)
+{
+	m_attributes.push_back(&attr);
+}
+
+uint16_t LBLEService::begin(uint16_t startingHandle)
+{
+	// we can only begin once
+	if(!m_records.empty())
+	{
+		return 0;
+	}
+	
+	// handle number must be globally unique and incresing
+    uint16_t currentHandle = startingHandle;
+
+	// allocate attribute for service
+    // TODO: Assume 128-bit UUID
+	bt_gatts_primary_service_128_t* pRecord = (bt_gatts_primary_service_128_t*) malloc(sizeof(bt_gatts_primary_service_128_t));
+	pRecord->rec_hdr.uuid_ptr = &BT_GATT_UUID_PRIMARY_SERVICE;
+    pRecord->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE;
+    pRecord->rec_hdr.value_len = 16;
+    pRecord->uuid128 = m_uuid.uuid_data;
+    
+    currentHandle++;
+    m_records.push_back((bt_gatts_service_rec_t*)pRecord);
+    
+
+    // Generate characterstics attribute records
+    for(int i = 0; i < m_attributes.size(); ++i)
+    {
+    	for(int r = 0; r < m_attributes[i]->getRecordCount(); ++r)
+    	{
+    		bt_gatts_service_rec_t* pRec = m_attributes[i]->allocRecord(r, currentHandle);
+    		if(pRec)
+    		{
+    			currentHandle++;
+    			m_records.push_back(pRec);
+    		}
+    	}
+    }
+
+	// handle numbers
+	m_serviceData.starting_handle = startingHandle;
+	m_serviceData.ending_handle	= startingHandle + m_records.size() - 1;
+
+	Serial.print("handle=");
+	Serial.print(m_serviceData.starting_handle, HEX);
+	Serial.print(",");
+	Serial.print(m_serviceData.ending_handle, HEX);
+
+
+	// we don't use encryption by default.
+	m_serviceData.required_encryption_key_size = 0;
+	m_serviceData.records = (const bt_gatts_service_rec_t**)&(m_records[0]);
+
+	return m_serviceData.ending_handle + 1;
+}
+
+void LBLEService::end()
+{
+	// Note: all the records are malloc-ed in begin().
+	const uint32_t size = m_records.size();
+	for(int i = 0; i < size; ++i)
+	{
+		free(m_records[i]);
+	}
+
+	m_records.clear();
+	memset(&m_serviceData, 0, sizeof(m_serviceData));
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+// LBLECharacteristic
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+LBLECharacteristicInt* g_pAttributeInsts[10] = {0};
+
+uint32_t attribute_callback(int index, const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	Serial.print("attribute_callback:");
+	Serial.print(index);
+	Serial.print(",");
+	Serial.print(rw);
+	Serial.print(",");
+	Serial.print(size);
+	Serial.print(",");
+	Serial.print(offset);
+
+
+	if(NULL == g_pAttributeInsts[index])
+	{
+		return 0;
+	}
+
+	LBLECharacteristicInt* pThis = g_pAttributeInsts[index];
+
+	if(0 == size)
+	{
+		return pThis->onSize();
+	}
+
+	if (rw == BT_GATTS_CALLBACK_WRITE)
+	{
+        return pThis->onWrite(data, size, offset);
+    }
+    else if (rw == BT_GATTS_CALLBACK_READ)
+    {
+        return pThis->onRead(data, size, offset);
+    }
+    
+    return 0;
+}
+
+uint32_t attribute_callback_0(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(0, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_1(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(1, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_2(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(2, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_3(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(3, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_4(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(4, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_5(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(5, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_6(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(6, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_7(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(7, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_8(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(8, rw, handle, data, size, offset);
+}
+
+uint32_t attribute_callback_9(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
+{
+	return attribute_callback(9, rw, handle, data, size, offset);
+}
+
+
+static bt_gatts_rec_callback_t g_pCallbacks[10] = {
+	attribute_callback_0,
+	attribute_callback_1,
+	attribute_callback_2,
+	attribute_callback_3,
+	attribute_callback_4,
+	attribute_callback_5,
+	attribute_callback_6,
+	attribute_callback_7,
+	attribute_callback_8,
+	attribute_callback_9,
+};
+
+
+LBLECharacteristicInt::LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission):
+	m_updated(false),
+	m_data(0),
+	m_perm(permission),
+	m_uuid(uuid)
+{
+
+}
+
+bool LBLECharacteristicInt::isWritten()
+{
+	return m_updated;
+}
+
+void LBLECharacteristicInt::setValue(int value)
+{
+	// m_update means "set by central device",
+	// so clear it here.
+	m_updated = false;
+}
+
+int LBLECharacteristicInt::getValue()
+{
+	Serial.print("Get Value():");
+	Serial.println(m_data, HEX);
+
+	m_updated = false;
+	return m_data;
+}
+
+uint32_t LBLECharacteristicInt::onSize() const
+{
+	Serial.println("onSize()");
+	return sizeof(m_data);
+}
+
+uint32_t LBLECharacteristicInt::onRead(void *data, uint16_t size, uint16_t offset)
+{
+	const uint32_t dataSize = onSize();
+    
+    if (size == 0){
+        return dataSize;
+    }
+
+    Serial.println("onRead()");
+
+    uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
+    copySize = (size > copySize) ? copySize : size;
+    memcpy(data, ((uint8_t*)(&m_data)) + offset, copySize);
+
+    return copySize;
+}
+
+uint32_t LBLECharacteristicInt::onWrite(void *data, uint16_t size, uint16_t offset)
+{
+	Serial.println("onWrite()");
+
+	const uint32_t dataSize = onSize();
+	uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
+    copySize = (size > copySize) ? copySize : size;
+    memcpy(((uint8_t*)(&m_data)) + offset, data, copySize);
+
+    Serial.print("after=");
+	Serial.println(m_data, HEX);
+
+    // update flag
+	m_updated = true;
+
+	return copySize;
+}
+
+bt_gatts_service_rec_t* LBLECharacteristicInt::allocRecord(uint32_t recordIndex, uint16_t currentHandle)
+{
+	switch(recordIndex)
+	{
+	case 0:
+		{
+			// the first record is a "Characteristic UUID" attribute
+			// it then points the the actual value entry by the "handle" field.
+			bt_gatts_characteristic_128_t* pRec = (bt_gatts_characteristic_128_t*)malloc(sizeof(bt_gatts_characteristic_128_t));
+			if(NULL == pRec)
+				return NULL;
+
+			Serial.print("allocRecord:");
+			Serial.println(currentHandle + 1, HEX);
+
+		    pRec->rec_hdr.uuid_ptr = &BT_GATT_UUID_CHARC;
+		    pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
+		    pRec->rec_hdr.value_len = 19;
+		    pRec->value.properties = BT_GATT_CHARC_PROP_READ | BT_GATT_CHARC_PROP_WRITE;
+		    pRec->value.handle = currentHandle + 1;
+		    pRec->value.uuid128 = m_uuid.uuid_data;
+		    
+		    return (bt_gatts_service_rec_t*)pRec;
+    	}
+	case 1:
+		{
+			// the first record is a "Characteristic UUID" attribute
+			// it then points the the actual value entry by the "handle" field.
+			bt_gatts_characteristic_t* pRec = (bt_gatts_characteristic_t*)malloc(sizeof(bt_gatts_characteristic_t));
+			if(NULL == pRec)
+				return NULL;
+
+	    	pRec->rec_hdr.uuid_ptr = &m_uuid.uuid_data;
+	    	pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
+	    	pRec->rec_hdr.value_len = 0;
+
+	    	// HACK: register into global table;
+	    	g_pAttributeInsts[0] = this;
+	    	pRec->value.callback = g_pCallbacks[0];
+	    	return (bt_gatts_service_rec_t*)pRec;
+    	}
+    default:
+    	return NULL;
+	}
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 // LBLEPeripheral
@@ -185,8 +506,7 @@ uint32_t LBLEAdvertisementData::getPayload(uint8_t* buf, uint32_t bufLength) con
 // The singleton instance
 LBLEPeripheralClass LBLEPeripheral;
 
-LBLEPeripheralClass::LBLEPeripheralClass():
-	m_attrHandle(USER_ATTRIBUTE_HANDLE_START)
+LBLEPeripheralClass::LBLEPeripheralClass()
 {
 
 }
@@ -201,6 +521,14 @@ void LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
 	// make a copy of advertisement data for re-advertising after disconnect event.
     // previous advertisement data will be cleared since m_pAdvData is unique_ptr.
     m_pAdvData = std::unique_ptr<LBLEAdvertisementData>(new LBLEAdvertisementData(advData));
+
+#if 1
+    Serial.print("my address is:");
+    String addrStr;
+    bt_bd_addr_ptr_t addr = bt_gap_le_get_random_address();
+    BtAddressToString(addr, addrStr);
+    Serial.println(addrStr);
+#endif
 
     // start advertisement
     advertiseAgain();
@@ -258,24 +586,20 @@ void LBLEPeripheralClass::setName(const char* name)
 
 }
 
-const bt_gatts_service_t** LBLEPeripheralClass::getServiceTable()
+void LBLEPeripheralClass::addService(const LBLEService& service)
 {
-	if(m_servicePtrTable.empty())
-	{
-		populateServicePointerTable();
-
-		// If there are no services defined, return NULL.
-		if(m_servicePtrTable.empty())
-		{
-			return NULL;
-		}
-	}
-	return (const bt_gatts_service_t**)&m_servicePtrTable[0];
+	m_services.push_back(service);	
 }
 
-uint16_t LBLEPeripheralClass::allocAttrHandle()
+const bt_gatts_service_t** LBLEPeripheralClass::getServiceTable()
 {
-	return m_attrHandle++;
+	// user must call begin() to populate m_servicePtrTable first.
+	if(m_servicePtrTable.empty())
+	{
+		return NULL;
+	}
+
+	return (const bt_gatts_service_t**)&m_servicePtrTable[0];
 }
 
 extern "C"
@@ -286,7 +610,7 @@ extern const bt_gatts_service_t bt_if_gap_service;			// 0x0001-
 extern const bt_gatts_service_t bt_if_gatt_service_ro;		// 0x0011-
 }
 
-void LBLEPeripheralClass::populateServicePointerTable()
+void LBLEPeripheralClass::begin()
 {
 	// Is there any user-defined services?
 	if(m_services.empty())
@@ -305,9 +629,11 @@ void LBLEPeripheralClass::populateServicePointerTable()
 	assert(USER_ATTRIBUTE_HANDLE_START > bt_if_gap_service.ending_handle);
 	assert(USER_ATTRIBUTE_HANDLE_START > bt_if_gatt_service_ro.ending_handle);
 
+	uint16_t currentHandle = USER_ATTRIBUTE_HANDLE_START;
 	for(uint32_t i = 0; i < m_services.size(); ++i)
 	{
-		m_servicePtrTable.push_back(&m_services[i]);
+		currentHandle = m_services[i].begin(currentHandle);
+		m_servicePtrTable.push_back(m_services[i].getServiceDataPointer());
 	}
 
 	// finally, make sure the pointer table is NULL-terminated,
@@ -322,13 +648,11 @@ void LBLEPeripheralClass::populateServicePointerTable()
 ////////////////////////////////////////////////////////////////////////
 extern "C"
 {
-// This callback is called by BLE GATT framework
-// when a remote device is connecting to this peripheral.
 extern const bt_gatts_service_t bt_if_gap_service;			// 0x0001-
 extern const bt_gatts_service_t bt_if_gatt_service_ro;		// 0x0011-
 extern const bt_gatts_service_t bt_if_ble_smtcn_service;  	// 0x0014-
 
-// Server collects all service
+// Collects all service
 const bt_gatts_service_t * g_gatt_server[] = {
     &bt_if_gap_service,         //0x0001
     &bt_if_gatt_service_ro,     //0x0011
@@ -336,9 +660,16 @@ const bt_gatts_service_t * g_gatt_server[] = {
     NULL
 };
 
+// This callback is called by BLE GATT framework
+// when a remote device is connecting to this peripheral.
 const bt_gatts_service_t** bt_get_gatt_server()
 {
-	return g_gatt_server; // LBLEPeripheral.getServiceTable();
+#if 0
+	return g_gatt_server;
+#else
+	Serial.println("get server");
+	return LBLEPeripheral.getServiceTable();
+#endif
 }
 
 void ard_ble_peri_onName(const char* str, uint16_t handle)
@@ -369,6 +700,7 @@ void ard_ble_peri_onDisconnect(bt_msg_type_t msg, bt_status_t status, void *buff
 	// this periphera can be found by other central devices.
 	LBLEPeripheral.advertiseAgain();
 }
+
 
 } // extern "C"
 

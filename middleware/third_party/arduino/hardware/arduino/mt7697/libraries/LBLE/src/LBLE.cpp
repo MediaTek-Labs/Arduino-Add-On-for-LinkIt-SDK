@@ -65,7 +65,9 @@ void str_to_uuid(bt_uuid_t &data, const char* uuidStr)
 		val += ascii_to_uint8(*uuidStr);
 		++uuidStr;
 
-		data.uuid[i] = val;
+		// note that the string representation is
+		// from HIGH to LOW - so we need to reverse here.
+		data.uuid[15 - i] = val;
 	}
 }
 
@@ -238,5 +240,27 @@ void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
         break;
     }
 #endif
+    return;
+}
+
+// returns true if lhs equals rhs address.
+bool compare_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
+{
+    return (lhs.type == rhs.type) && (0 == memcmp(lhs.addr, rhs.addr, sizeof(lhs.addr)));
+}
+
+void BtAddressToString(const bt_bd_addr_ptr_t addr, String& addr_str)
+{
+    // 6-byte MAC address in HEX with ":" as seperator, plus NULL terminator
+    char addr_buf[sizeof(bt_bd_addr_t) * 2 + sizeof(bt_bd_addr_t) - 1 + 1] = {0};
+    sprintf(addr_buf, "%02x:%02x:%02x:%02x:%02x:%02x",
+                addr[5],
+                addr[4],
+                addr[3],
+                addr[2],
+                addr[1],
+                addr[0]);
+
+    addr_str = (const char*)addr_buf;
     return;
 }

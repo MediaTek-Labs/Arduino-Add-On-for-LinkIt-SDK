@@ -12,27 +12,7 @@ extern "C" {
 // Helper functions
 //////////////////////////////////////////////////////////////////////////////////
 
-// returns true if lhs equals rhs address.
-bool compare_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
-{
-	return (lhs.type == rhs.type) && (0 == memcmp(lhs.addr, rhs.addr, sizeof(lhs.addr)));
-}
 
-void BtAddressToString(const bt_bd_addr_t& addr, String& addr_str)
-{
-	// 6-byte MAC address in HEX with ":" as seperator, plus NULL terminator
-	char addr_buf[sizeof(bt_bd_addr_t) * 2 + sizeof(bt_bd_addr_t) - 1 + 1] = {0};
-	sprintf(addr_buf, "%02x:%02x:%02x:%02x:%02x:%02x",
-				addr[5],
-				addr[4],
-				addr[3],
-				addr[2],
-				addr[1],
-				addr[0]);
-
-	addr_str = (const char*)addr_buf;
-	return;
-}
 
 //////////////////////////////////////////////////////////////////////////////////
 // LBLEAdvertisements

@@ -6,6 +6,9 @@
 #include <LBLE.h>
 #include <LBLEPeriphral.h>
 
+LBLEService ledService("19B10010-E8F2-537E-4F6C-D104768A1214");
+LBLECharacteristicInt switchCharacteristic("19B10011-E8F2-537E-4F6C-D104768A1214", LBLE_READ | LBLE_WRITE);
+
 void setup() {
 	//Initialize serial and wait for port to open:
 	Serial.begin(9600);
@@ -31,13 +34,18 @@ void setup() {
 	// TODO: This is currently not working.
 	LBLEPeripheral.setName("LinkIt Simple BLE");
 
-	/*
-	LBLEService s = service LBLEPeripheral.addService(LBLEUuid(0xABCD));
-	s.addAttribute(LBLEUuid(0xABCD), 0);
-	*/
+	ledService.addAttribute(switchCharacteristic);
+	LBLEPeripheral.addService(ledService);
+
+	// start the GATT server
+	LBLEPeripheral.begin();
 
 	// start advertisment
 	LBLEPeripheral.advertise(advertisement);
+
+	// Initialize GPIO
+	pinMode(LED_BUILTIN, OUTPUT);
+
 }
 
 void loop() {
@@ -47,5 +55,25 @@ void loop() {
 	// You can use iOS/Android apps such as
 	// "BLE Finder" to scan this peripheral and check the
 	// services it provides.
-	delay(3000);
+	delay(200);
+
+	if(switchCharacteristic.isWritten())
+	{
+		const char value = switchCharacteristic.getValue();
+		Serial.print("sketch->");
+		Serial.println(value);
+		switch(value)
+		{
+		case 'O':
+			digitalWrite(LED_BUILTIN, HIGH);
+			break;
+		case 'C':
+			digitalWrite(LED_BUILTIN, LOW);
+			break;
+		default:
+			Serial.print("not O, C->");
+			Serial.println(value);
+			break;
+		}
+	}
 }
