@@ -202,7 +202,7 @@ bt_gatts_service_t* LBLEService::getServiceDataPointer()
 	return &m_serviceData;
 }
 
-void LBLEService::addAttribute(LBLECharacteristicInt& attr)
+void LBLEService::addAttribute(LBLEAttributeInterface& attr)
 {
 	m_attributes.push_back(&attr);
 }
@@ -303,69 +303,20 @@ uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *dat
     return 0;
 }
 
-LBLECharacteristicInt::LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission):
+LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid, uint32_t permission):
 	m_updated(false),
-	m_data(0),
 	m_perm(permission),
 	m_uuid(uuid)
 {
 
 }
 
-bool LBLECharacteristicInt::isWritten()
+bool LBLECharacteristicBase::isWritten()
 {
 	return m_updated;
 }
 
-void LBLECharacteristicInt::setValue(int value)
-{
-	// m_update means "set by central device",
-	// so clear it here.
-	m_updated = false;
-	m_data = value;
-}
-
-int LBLECharacteristicInt::getValue()
-{
-	m_updated = false;
-	return m_data;
-}
-
-uint32_t LBLECharacteristicInt::onSize() const
-{
-	return sizeof(m_data);
-}
-
-uint32_t LBLECharacteristicInt::onRead(void *data, uint16_t size, uint16_t offset)
-{
-	const uint32_t dataSize = onSize();
-    
-    if (size == 0){
-        return dataSize;
-    }
-
-    uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
-    copySize = (size > copySize) ? copySize : size;
-    memcpy(data, ((uint8_t*)(&m_data)) + offset, copySize);
-
-    return copySize;
-}
-
-uint32_t LBLECharacteristicInt::onWrite(void *data, uint16_t size, uint16_t offset)
-{
-	const uint32_t dataSize = onSize();
-	uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
-    copySize = (size > copySize) ? copySize : size;
-    memcpy(((uint8_t*)(&m_data)) + offset, data, copySize);
-
-	m_updated = true;
-
-	Serial.println("onWrite!");
-
-	return copySize;
-}
-
-bt_gatts_service_rec_t* LBLECharacteristicInt::allocRecord(uint32_t recordIndex, uint16_t currentHandle)
+bt_gatts_service_rec_t* LBLECharacteristicBase::allocRecord(uint32_t recordIndex, uint16_t currentHandle)
 {
 	switch(recordIndex)
 	{
@@ -416,6 +367,243 @@ bt_gatts_service_rec_t* LBLECharacteristicInt::allocRecord(uint32_t recordIndex,
     	return NULL;
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+// LBLECharacteristic (Raw Buffer)
+/////////////////////////////////////////////////////////////////////////////////////////////
+LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permission):
+	LBLECharacteristicBase(uuid, permission)
+{
+	memset(m_data, 0, sizeof(m_data));
+	m_writtenInfo.size = 0;
+	m_writtenInfo.offset = 0;
+}
+
+// Set value - size must not exceed MAX_ATTRIBUTE_DATA_LEN.
+void LBLECharacteristicBuffer::setValueBuffer(const uint8_t* buffer, size_t size)
+{
+	if(size > sizeof(m_data))
+	{
+		return;
+	}
+
+	memcpy(m_data, buffer, size);
+}
+
+// Get value buffer content. (size + offset) must not exceed MAX_ATTRIBUTE_DATA_LEN.
+void LBLECharacteristicBuffer::getValue(uint8_t* buffer, uint16_t size, uint16_t offset)
+{
+	if((offset + size) > sizeof(m_data))
+	{
+		return;
+	}
+
+	memcpy(buffer, m_data + offset, size);
+	m_updated = false;
+}
+
+// Retrieve value, note that isWritten() flag turns off after calling getValue()
+const LBLECharacteristicWrittenInfo& LBLECharacteristicBuffer::getLastWrittenInfo() const
+{
+	return m_writtenInfo;
+}
+
+uint32_t LBLECharacteristicBuffer::onSize() const
+{
+	return sizeof(m_data);
+}
+
+uint32_t LBLECharacteristicBuffer::onRead(void *data, uint16_t size, uint16_t offset)
+{
+	// check if it's request to get attribute size
+	if(0 == size)
+	{
+		return onSize();
+	}
+
+	const uint32_t dataSize = onSize();
+    
+    uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
+    copySize = (size > copySize) ? copySize : size;
+
+    if(copySize)
+    {
+    	memcpy(data, m_data + offset, copySize);
+    }
+
+    return copySize;
+}
+
+uint32_t LBLECharacteristicBuffer::onWrite(void *data, uint16_t size, uint16_t offset)
+{
+	const uint32_t updateSize = size + offset;
+
+	// abort writing if exceeding GATT limit (512 bytes)
+	if(updateSize > MAX_ATTRIBUTE_DATA_LEN)
+	{
+		return 0;
+	}
+
+	// keep track of transaction info for getLastWrittenInfo()
+	if(size)
+	{
+		m_writtenInfo.size = size;
+		m_writtenInfo.offset = offset;
+		memcpy(m_data + offset, data, size);	
+		m_updated = true;
+	}
+	return size;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+// LBLECharacteristic (String data)
+/////////////////////////////////////////////////////////////////////////////////////////////
+LBLECharacteristicString::LBLECharacteristicString(LBLEUuid uuid, uint32_t permission):
+	LBLECharacteristicBase(uuid, permission)
+{
+
+}
+
+void LBLECharacteristicString::setValue(const String& value)
+{
+	// m_update means "set by central device",
+	// so clear it here.
+	m_updated = false;
+	m_data = value;
+}
+
+String LBLECharacteristicString::getValue()
+{
+	m_updated = false;
+	return m_data;
+}
+
+uint32_t LBLECharacteristicString::onSize() const
+{
+	return m_data.length();
+}
+
+uint32_t LBLECharacteristicString::onRead(void *data, uint16_t size, uint16_t offset)
+{
+	const uint32_t dataSize = onSize();
+    
+    if (size == 0){
+        return dataSize;
+    }
+
+    uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
+    copySize = (size > copySize) ? copySize : size;
+    memcpy(data, ((uint8_t*)m_data.c_str()) + offset, copySize);
+
+    return copySize;
+}
+
+uint32_t LBLECharacteristicString::onWrite(void *data, uint16_t size, uint16_t offset)
+{
+	const uint32_t finalStringSize = size + offset;
+
+	Serial.print("onWrite String:");
+	Serial.print(size);
+	Serial.print(",");
+	Serial.print(offset);
+
+	// check if exceeding GATT limit
+	if(finalStringSize > MAX_ATTRIBUTE_DATA_LEN)
+	{
+		return onSize();
+	}
+
+	// make sure our String is large enough to accomodate
+	// final string and NULL terminator
+	if(onSize() < finalStringSize)
+	{
+		if(!m_data.reserve(finalStringSize + 1))
+		{
+			// we failed to allocate larger buffer
+			return onSize();
+		}
+	}
+
+	// prevent working on the m_data's internal buffer directly
+	// Note that we add NULL terminator - this is the behavior
+	// of this "string" charactertistic, not GATT spec.
+	uint8_t *pBuffer = (uint8_t*)malloc(finalStringSize + 1);
+	if(pBuffer)
+	{
+		memset(pBuffer, 0, finalStringSize);
+		m_data.getBytes(pBuffer, finalStringSize);
+		memcpy(pBuffer + offset, data, size);
+		// insert NULL terminator
+		*(pBuffer + offset + size) = 0;
+	}
+	m_data = (const char*)pBuffer;
+	free(pBuffer);
+	pBuffer = NULL;
+
+	m_updated = true;
+
+	return onSize();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+// LBLECharacteristic (Integer data)
+/////////////////////////////////////////////////////////////////////////////////////////////
+LBLECharacteristicInt::LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission):
+	LBLECharacteristicBase(uuid, permission),
+	m_data(0)
+{
+
+}
+
+void LBLECharacteristicInt::setValue(int value)
+{
+	// m_update means "set by central device",
+	// so clear it here.
+	m_updated = false;
+	m_data = value;
+}
+
+int LBLECharacteristicInt::getValue()
+{
+	m_updated = false;
+	return m_data;
+}
+
+uint32_t LBLECharacteristicInt::onSize() const
+{
+	return sizeof(m_data);
+}
+
+uint32_t LBLECharacteristicInt::onRead(void *data, uint16_t size, uint16_t offset)
+{
+	const uint32_t dataSize = onSize();
+    
+    if (size == 0){
+        return dataSize;
+    }
+
+    uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
+    copySize = (size > copySize) ? copySize : size;
+    memcpy(data, ((uint8_t*)(&m_data)) + offset, copySize);
+
+    return copySize;
+}
+
+uint32_t LBLECharacteristicInt::onWrite(void *data, uint16_t size, uint16_t offset)
+{
+	const uint32_t dataSize = onSize();
+	uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
+    copySize = (size > copySize) ? copySize : size;
+    memcpy(((uint8_t*)(&m_data)) + offset, data, copySize);
+
+	m_updated = true;
+
+	Serial.println("onWrite!");
+
+	return copySize;
+}
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 // LBLEPeripheral

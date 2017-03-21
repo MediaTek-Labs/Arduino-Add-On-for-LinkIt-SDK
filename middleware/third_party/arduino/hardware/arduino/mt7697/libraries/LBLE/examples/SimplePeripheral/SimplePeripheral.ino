@@ -1,6 +1,12 @@
 /*
   This example configures LinkIt 7697 to act as a simple GATT server with 1 characteristic.
 
+  To use it, open AppInventor project:
+
+    * 
+
+  Build & install it on Android id
+
   created Mar 2017
 */
 #include <LBLE.h>
@@ -20,15 +26,15 @@ void setup() {
   Serial.begin(9600);
 
   // Initialize BLE subsystem
-  Serial.println("BLE begin");
   LBLE.begin();
   while (!LBLE.ready()) {
     delay(100);
   }
   Serial.println("BLE ready");
 
-  Serial.print("device address is:");
-  Serial.println(LBLE.getDeviceAddress());
+  Serial.print("Device Address = [");
+  Serial.print(LBLE.getDeviceAddress());
+  Serial.println("]");
 
   // configure our advertisement data.
   // In this case, we simply create an advertisement that represents an
@@ -59,13 +65,14 @@ void loop() {
   if (switchCharacteristic.isWritten()) {
     const char value = switchCharacteristic.getValue();
     switch (value) {
-      case 'O':
+      case 1:
         digitalWrite(LED_BUILTIN, HIGH);
         break;
-      case 'C':
+      case 0:
         digitalWrite(LED_BUILTIN, LOW);
         break;
       default:
+        Serial.println("Unknown value written");
         break;
     }
   }

@@ -102,19 +102,86 @@ enum LBLEPermission
 class LBLEAttributeInterface
 {
 public:
+	static const uint32_t MAX_ATTRIBUTE_DATA_LEN = 512;
 	virtual uint32_t onSize() const = 0;
 	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset) = 0;
 	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset) = 0;
+
+	virtual uint32_t getRecordCount() = 0;
+
+	// @param recordIndex ranges from 0 ~ (getRecordCount - 1)
+	// 
+	// returns a generic bt_gatts_service_rec_t pointer
+	// that points to variable-length GATT attribute records.
+	// The user is reponsible to free() the returning buffer.
+	virtual bt_gatts_service_rec_t* allocRecord(uint32_t recordIndex, uint16_t currentHandle) = 0;
 };
 
-class LBLECharacteristicInt : public LBLEAttributeInterface
+class LBLECharacteristicBase : public LBLEAttributeInterface
+{
+public:	// method for Arduino users
+
+	LBLECharacteristicBase(LBLEUuid uuid, uint32_t permission);
+
+	// Check if a character is written
+	bool isWritten();
+
+public:
+	// Each characteristic maps to 2 GATT attribute records
+	virtual uint32_t getRecordCount() {return 2;};
+
+	// common implementation for characteristics attributes
+	virtual bt_gatts_service_rec_t* allocRecord(uint32_t recordIndex, uint16_t currentHandle);
+
+protected:
+	LBLEUuid m_uuid;
+	uint32_t m_perm;
+	bool m_updated;
+};
+
+// This class is used by LBLECharacteristicBuffer
+struct LBLECharacteristicWrittenInfo
+{
+	uint16_t size;
+	uint16_t offset;
+};
+
+// This characteristic is a 512-byte raw buffer initialized to zero
+// When isWritten() is true, you can use getLastWrittenInfo()
+// to check what part of the buffer is updated during the last write.
+class LBLECharacteristicBuffer : public LBLECharacteristicBase
+{
+public:	// method for Arduino users
+
+	LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permission);
+
+	// Set value - size must not exceed MAX_ATTRIBUTE_DATA_LEN.
+	void setValueBuffer(const uint8_t* buffer, size_t size);
+
+	// Get value buffer content. (size + offset) must not exceed MAX_ATTRIBUTE_DATA_LEN.
+	// Note that isWritten() flag turns off after calling getValue().
+	void getValue(uint8_t* buffer, uint16_t size, uint16_t offset);
+
+	// Check what part of the buffer is updated during last write operation
+	const LBLECharacteristicWrittenInfo& getLastWrittenInfo() const;
+
+public:	// for BLE framework
+	virtual uint32_t onSize() const;
+	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
+	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);
+
+private:
+	uint8_t m_data[MAX_ATTRIBUTE_DATA_LEN];
+	LBLECharacteristicWrittenInfo m_writtenInfo;
+};
+
+// This characterstic is a peristent 4-byte integer initialized to zero.
+// The size is always 4 bytes.
+class LBLECharacteristicInt : public LBLECharacteristicBase
 {
 public:	// method for Arduino users
 
 	LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission);
-
-	// Check if a character is written
-	bool isWritten();
 
 	// Set value
 	void setValue(int value);
@@ -127,21 +194,45 @@ public:	// for BLE framework
 	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
 	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);
 
-	// Each characteristic maps to 2 GATT attribute records
-	virtual uint32_t getRecordCount() {return 2;};
+private:
+	int m_data;
+};
 
-	// @param recordIndex ranges from 0 ~ (getRecordCount - 1)
-	// 
-	// returns a generic bt_gatts_service_rec_t pointer
-	// that points to variable-length GATT attribute records.
-	// The user is reponsible to free() the returning buffer.
-	virtual bt_gatts_service_rec_t* allocRecord(uint32_t recordIndex, uint16_t currentHandle);
+// This is a "string" attribute. A NULL terminater
+// is always automatically inserted after each write operation.
+//
+// That is, the string value is always "reset" after each write operation, 
+// instead of appending/replacing part of the existing string value.
+//
+// Example:
+//  * the central device sends "YES" (3 bytes)
+//  * the central device then sends "NO"(2 bytes)
+//  * the resulting value is "NO\0" instead of "NOS\0".
+//
+// The reason for this design is to make it more intuitive
+// to use with AppInventor's BluetoothLE.WriteStringValue block.
+//
+// If you need behavior that supports replacing part of the buffer,
+// use LBLECharacteristicBuffer instead.
+class LBLECharacteristicString : public LBLECharacteristicBase
+{
+public:	// method for Arduino users
+
+	LBLECharacteristicString(LBLEUuid uuid, uint32_t permission);
+
+	// Set value
+	void setValue(const String& value);
+
+	// Retrieve value, note that isWritten() flag turns off after calling getValue()
+	String getValue();
+
+public:	// for BLE framework
+	virtual uint32_t onSize() const;
+	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
+	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);
 
 private:
-	LBLEUuid m_uuid;
-	uint32_t m_perm;
-	int m_data;
-	bool m_updated;
+	String m_data;
 };
 
 class LBLEService
@@ -150,7 +241,7 @@ public:
 	LBLEService(const LBLEUuid& uuid);
 	LBLEService(const char* uuidString);
 
-	void addAttribute(LBLECharacteristicInt& attr);
+	void addAttribute(LBLEAttributeInterface& attr);
 	
 	// Allocates underlying record tables for BLE framework.
 	// Accepts the globally ordered handle
@@ -164,7 +255,7 @@ private:
 	LBLEUuid m_uuid;
 	bt_gatts_service_t m_serviceData; 				// service record for BLE framework
 	std::vector<bt_gatts_service_rec_t*> m_records; // attribute records (multiple types) for BLE framework
-	std::vector<LBLECharacteristicInt*> m_attributes; // pointers to attribute objects
+	std::vector<LBLEAttributeInterface*> m_attributes; // pointers to attribute objects
 };
 
 // Singleton class representing the local BLE periphral device
