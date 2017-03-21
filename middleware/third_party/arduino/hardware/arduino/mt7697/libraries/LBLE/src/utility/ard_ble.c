@@ -8,6 +8,7 @@
 #endif
 #include <nvdm.h>
 #include <hal_trng.h>
+#include <hal_efuse.h>
 
 /* Bluetooth headers */
 #include <task_def.h>
@@ -96,6 +97,13 @@ static char rx_buf[BT_RX_BUF_SIZE]
 // We'll read the address from nvdm(flash) and efuse.
 static bt_bd_addr_t g_local_public_addr = {0};
 
+static int read_bt_address_from_efuse(bt_bd_addr_t addr)
+{
+    static const uint32_t bt_addr_offset = 0x1A;
+
+    return (HAL_EFUSE_OK == hal_efuse_read(bt_addr_offset, (uint8_t*)addr, 6));
+}
+
 static void generate_random_device_address(bt_bd_addr_t addr)
 {
     uint32_t ret = 0;
@@ -135,23 +143,22 @@ static void generate_random_device_address(bt_bd_addr_t addr)
 
 static void ard_ble_init_public_addr(void)
 {
-#if 1
-    // Use a mocking address
-    g_local_public_addr[0] = 0x23;
-    g_local_public_addr[1] = 0x6F;
-    g_local_public_addr[2] = 0x5B;
-    g_local_public_addr[3] = 0x55;
-    g_local_public_addr[4] = 0x11;
-    g_local_public_addr[5] = 0xCC;
-#else
     uint32_t size = 12;
     uint8_t buffer[18] = {0};
     uint8_t tmp_buf[3] = {0};
 
-    // Public device address (MAC address) should be stored in NVDM
-    // It is stored as HEX strings - so we read and convert them.
-    if (NVDM_STATUS_OK == nvdm_read_data_item("BT", "address", buffer, &size))
+    // Search for public device address (MAC address) 
+    //  * efuse
+    //  * NVDM (Flash)
+    //  * if all the above fails, generate one.
+    if(read_bt_address_from_efuse(g_local_public_addr))
     {
+        // read bytes directly
+        LOG_I(common, "[BT]read address from efuse");
+    }
+    else if (NVDM_STATUS_OK == nvdm_read_data_item("BT", "address", buffer, &size))
+    {
+        // It is stored as HEX strings - so we read and convert them.
         LOG_I(common, "[BT]read BT address --ok");
         for (int i = 0; i < 6; ++i) {
             tmp_buf[0] = buffer[2 * i];
@@ -163,7 +170,14 @@ static void ard_ble_init_public_addr(void)
     {
         generate_random_device_address(g_local_public_addr);
     }
-#endif
+
+    LOG_I(common, "[BT]g_local_public_addr [%02X:%02X:%02X:%02X:%02X:%02X]\n", 
+                g_local_public_addr[5],
+                g_local_public_addr[4], 
+                g_local_public_addr[3], 
+                g_local_public_addr[2], 
+                g_local_public_addr[1], 
+                g_local_public_addr[0]);
 }
 
 
@@ -189,8 +203,6 @@ int ard_ble_begin(void)
     ard_ble_bt_mm_init();
 
     #if 0
-    LOG_I(common, "[BT]g_local_public_addr [%02X:%02X:%02X:%02X:%02X:%02X]\n", g_local_public_addr[5],
-          g_local_public_addr[4], g_local_public_addr[3], g_local_public_addr[2], g_local_public_addr[1], g_local_public_addr[0]);
     log_config_print_switch(BT, DEBUG_LOG_ON);
     log_config_print_switch(BTMM, DEBUG_LOG_OFF);
     log_config_print_switch(BTHCI, DEBUG_LOG_ON);
@@ -256,7 +268,6 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
     /*Listen all BT event*/
     return BT_STATUS_SUCCESS;
 }
-
 
 static const bt_gatts_primary_service_16_t bt_if_gap_primary_service = {
     .rec_hdr.uuid_ptr = &BT_GATT_UUID_PRIMARY_SERVICE,
