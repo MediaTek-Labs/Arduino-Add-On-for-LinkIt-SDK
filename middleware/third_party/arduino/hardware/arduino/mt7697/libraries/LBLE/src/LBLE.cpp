@@ -182,23 +182,23 @@ String LBLEUuid::toString() const
 	else
 	{
 		sprintf(str, 
-				"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
-			    uuid_data.uuid[0],
-			    uuid_data.uuid[1], 
-			    uuid_data.uuid[2], 
-			    uuid_data.uuid[3], 
-			    uuid_data.uuid[4], 
-			    uuid_data.uuid[5], 
-			    uuid_data.uuid[6], 
-			    uuid_data.uuid[7],
-			    uuid_data.uuid[8], 
-			    uuid_data.uuid[9], 
-			    uuid_data.uuid[10], 
-			    uuid_data.uuid[11], 
-			    uuid_data.uuid[12], 
-			    uuid_data.uuid[13], 
+				"%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X", 
+			    uuid_data.uuid[15],
 			    uuid_data.uuid[14], 
-			    uuid_data.uuid[15]
+			    uuid_data.uuid[13], 
+			    uuid_data.uuid[12], 
+			    uuid_data.uuid[11], 
+			    uuid_data.uuid[10], 
+			    uuid_data.uuid[9], 
+			    uuid_data.uuid[8],
+			    uuid_data.uuid[7], 
+			    uuid_data.uuid[6], 
+			    uuid_data.uuid[5], 
+			    uuid_data.uuid[4], 
+			    uuid_data.uuid[3], 
+			    uuid_data.uuid[2], 
+			    uuid_data.uuid[1], 
+			    uuid_data.uuid[0]
 		);
 	}
 
@@ -255,7 +255,7 @@ String LBLEAddress::convertAddressToString(const bt_bd_addr_ptr_t addr)
 
 	// 6-byte MAC address in HEX with ":" as seperator, plus NULL terminator
     char addr_buf[sizeof(bt_bd_addr_t) * 2 + sizeof(bt_bd_addr_t) - 1 + 1] = {0};
-    sprintf(addr_buf, "%02x:%02x:%02x:%02x:%02x:%02x",
+    sprintf(addr_buf, "%02X:%02X:%02X:%02X:%02X:%02X",
                 addr[5],
                 addr[4],
                 addr[3],

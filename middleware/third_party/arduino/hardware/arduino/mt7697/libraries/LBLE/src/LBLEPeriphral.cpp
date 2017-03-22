@@ -132,7 +132,14 @@ void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid,
     item.adData[3] = 0x15;  // iBeacon type
 
     // 16 bytes of user-specified UUID
-    uuid.toRawBuffer(item.adData + 4, 16);  
+    // Note that in iBeacon the byte order is reversed.
+    uint8_t uuidBuf[16] = {0};
+    uint8_t* uuidAdvData = item.adData + 4;
+    uuid.toRawBuffer(uuidBuf, 16);
+    for(int i = 0; i < 16; ++i)
+    {
+    	uuidAdvData[i] = uuidBuf[15-i];
+    }
 
     // 2 byte major number & 2 byte minor, note that the endian is different.
     (*(uint16_t*)(item.adData + 20)) = (major >> 8) | (major << 8);
@@ -276,11 +283,11 @@ void LBLEService::end()
 // implement trampoline callback as requested in ard_bt_attr_callback.h
 uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset, void* user_data)
 {
-	pr_debug("attribute_callback [%d, %d, %04x, %08x, %d, %d - %08x", index, rw, handle, data, size, offset, user_data);
+	pr_debug("attribute_callback [%d, %d, %04x, %08x, %d, %d - %08x", rw, handle, data, size, offset, user_data);
 
 	if(NULL == user_data)
 	{
-		pr_debug("NULL user data in " __FUNC__);
+		pr_debug("NULL user data in ard_bt_callback_trampoline");
 		return 0;
 	}
 
