@@ -131,6 +131,12 @@ APP_PATH_SRC    = $(APP_PATH)/src
 #include lwip
 include $(SOURCE_DIR)/middleware/third_party/lwip/module.mk
 
+#include mbedTLS
+include $(SOURCE_DIR)/middleware/third_party/mbedtls/module.mk
+
+#include httpclient
+include $(SOURCE_DIR)/middleware/third_party/httpclient/module.mk
+
 #include ping
 include $(SOURCE_DIR)/middleware/third_party/ping/module.mk
 

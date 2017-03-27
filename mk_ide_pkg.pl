@@ -33,9 +33,13 @@ sub build_system_src
 		"kernel/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F/",
 		"middleware/third_party/lwip/src/include/",
 		"middleware/third_party/lwip/ports/include/",
+		"middleware/third_party/mbedtls/include",
+		"middleware/third_party/mbedtls/configs",
+		"middleware/third_party/httpclient/inc",
 		"driver/board/mt76x7_hdk/wifi/inc/",
 		"middleware/MTK/bluetooth/inc/",
-		"middleware/MTK/nvdm/inc/");
+		"middleware/MTK/nvdm/inc/",
+		);
     
 	my @remove_list=("driver/chip/mt7687/inc/wifi.h");
 
