@@ -7,8 +7,9 @@
 #######################################
 
 MCSDevice	KEYWORD1
-MCSDataChannel	KEYWORD1
-MCSDataChannelSwitch	KEYWORD1
+MCSLiteDevice	KEYWORD1
+MCSControllerChannelOnOff	KEYWORD1
+MCSDisplayChannelOnOff	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -21,6 +22,7 @@ setDefaultTimeout	KEYWORD2
 updated	KEYWORD2
 set	KEYWORD2
 value	KEYWORD2
+valid	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

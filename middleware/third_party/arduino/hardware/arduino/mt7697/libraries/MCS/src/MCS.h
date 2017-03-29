@@ -6,12 +6,16 @@
 #include <vector>
 #include "LWiFi.h"
 
-class MCSDataChannel;
+class MCSChannel;
+/* ------------------------------------------------------------------------ */
 class MCSDevice
 {
 public:
     MCSDevice(const String& device_id, const String& device_key);
+    MCSDevice(const String& device_id, const String& device_key, const String& server, int port);
     ~MCSDevice();
+
+    void addChannel(MCSChannel& channel);
 
     bool connected(void);
 
@@ -19,70 +23,107 @@ public:
 
     void process(int timeout_ms=0);
 
-    void addChannel(MCSDataChannel* channel);
-
     void setDefaultTimeout(int timeout_ms);
 
 protected:
+    virtual bool _prepareSocket(WiFiClient& socket);
+
     void _keepAlive(void);
 
-    void _processSocket(int timeout_ms);
+    void _readSocket(WiFiClient& socket, String& readBuffer, int timeout_ms);
 
-    // called by MCSDataChannel
-    bool _uploadData(const String& params);
+    // called by MCSChannel
+    bool _uploadDataPoint(const String& params);
+    bool _getDataPoint(const String& channel_id, String& responseBody);
 
     // utility function, should not assume socket
     String _prepareRequest(const String& method, const String& url, const String& content_type, int content_len = 0);
-    bool _waitForResponse(Client &client);
-    int _findHeader(const String& response, const String& header);
+    bool _waitForResponse(Client& client, String& responseBody);
 
-private:
+protected:
     String mServer;
     int mPort;
     int mDefTimeout;
     String mId;
     String mKey;
-    std::vector<MCSDataChannel*> mChannels;
+    std::vector<MCSChannel*> mChannels;
 
     WiFiClient mSocket;
     String mRecevieBuf;
 
     unsigned long mLastHB;
 
-    friend class MCSDataChannel;
+    friend class MCSChannel;
 };
 
-class MCSDataChannel
+/* ------------------------------------------------------------------------ */
+class MCSLiteDevice : public MCSDevice
 {
 public:
-    MCSDataChannel(const String& channel_id);
-    ~MCSDataChannel();
-
-    bool updated(void);
+    MCSLiteDevice(const String& device_id, const String& device_key, const String& server, int port);
+    ~MCSLiteDevice();
 
 protected:
-    void _setFlag(void);
-    void _resetFlag(void);
-    void _setParent(MCSDevice* parentObj);
-    bool _uploadData(const String& params);
-    bool _match(const String& channel_id);
-    String _id() { return mId; }
+    virtual bool _prepareSocket(WiFiClient& socket);
+};
 
+/* ------------------------------------------------------------------------ */
+class MCSChannel
+{
+public:
+    MCSChannel(const String& channel_id);
+    ~MCSChannel();
+
+    bool updated(void)  { return mUpdated; }
+    bool valid(void)    { return mInited; }
+
+protected:
+    bool _match(const String& channel_id);
     virtual void _dispatch(const String& params) = 0;
+
+    void _setParent(MCSDevice* parentObj);
+    bool _uploadDataPoint(const String& params);
+    bool _getDataPoint(String& params);
+
+    void _setUpdated(void)      { mUpdated = true; }
+    void _clearUpdated(void)    { mUpdated = false; }
+    void _setValid(void)       { mInited = true; }
 
 private:
     String mId;
     MCSDevice* mParent;
-    int mFlag;
+    bool mUpdated;
+    bool mInited;
 
     friend class MCSDevice;
 };
 
-class MCSDataChannelSwitch : public MCSDataChannel
+/* ------------------------------------------------------------------------ */
+class MCSControllerChannelOnOff : public MCSChannel
 {
 public:
-    MCSDataChannelSwitch(const String& channel_id);
-    ~MCSDataChannelSwitch();
+    MCSControllerChannelOnOff(const String& channel_id);
+    ~MCSControllerChannelOnOff();
+
+    bool value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    bool mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayChannelOnOff : public MCSChannel
+{
+public:
+    MCSDisplayChannelOnOff(const String& channel_id);
+    ~MCSDisplayChannelOnOff();
 
     bool set(bool value);
     bool value(void);
@@ -94,5 +135,6 @@ protected:
 private:
     bool mValue;
 };
+
 
 #endif

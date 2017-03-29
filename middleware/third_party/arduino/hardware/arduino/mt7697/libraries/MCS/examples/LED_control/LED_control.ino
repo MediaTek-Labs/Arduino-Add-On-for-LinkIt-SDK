@@ -6,14 +6,17 @@
 #define _SSID "your_ssid"
 #define _KEY  "your_password"
 
-// Assign device id / key of your test device, the device should have 2 on/off data channel
+// Assign device id / key of your test device
 MCSDevice mcs("your_device_id", "your_device_key");
+
 // Assign channel id 
-MCSDataChannelSwitch led("your_channel1_id");
-MCSDataChannelSwitch btn("your_channel1_id");
+// The test device should have 2 channel
+// the first channel should be "Controller" - "On/Off"
+// the secord channel should be "Display" - "On/Off"
+MCSControllerChannelOnOff led("your_channel1_id");
+MCSDisplayChannelOnOff    remote("your_channel2_id");
 
 #define LED_PIN 7
-#define BTN_PIN 6
 
 void setup() {
   // setup Serial output at 9600
@@ -21,7 +24,6 @@ void setup() {
 
   // setup LED/Button pin
   pinMode(LED_PIN, OUTPUT);
-  pinMode(BTN_PIN, INPUT);
 
   // setup Wifi connection
   while(WL_CONNECTED != WiFi.status())
@@ -36,14 +38,24 @@ void setup() {
   Serial.println("WiFi connected !!");
 
   // setup MCS connection
-  mcs.addChannel(&led);
-  mcs.addChannel(&btn);
+  mcs.addChannel(led);
+  mcs.addChannel(remote);
   while(!mcs.connected())
   {
     Serial.println("MCS.connect()...");
     mcs.connect();
   }
   Serial.println("MCS connected !!");
+
+  // read LED value from MCS server
+  while(!led.valid())
+  {
+    Serial.println("read LED value from MCS...");
+    led.value();
+  }
+  Serial.print("done, LED value = ");
+  Serial.println(led.value());
+  digitalWrite(LED_PIN, led.value() ? HIGH : LOW);
 }
 
 void loop() {
@@ -59,14 +71,19 @@ void loop() {
     Serial.print("LED updated, new value = ");
     Serial.println(led.value());
     digitalWrite(LED_PIN, led.value() ? HIGH : LOW);
-    if(!btn.set(led.value()))
+    if(!remote.set(led.value()))
     {
-      Serial.print("Failed to update button, current value = ");
-      Serial.println(btn.value());
+      Serial.print("Failed to update remote");
+      Serial.println(remote.value());
     }
   }
   
   // check if need to re-connect
   while(!mcs.connected())
+  {
+    Serial.println("re-connect to MCS...");
     mcs.connect();
+    if(mcs.connected())
+      Serial.println("MCS connected !!");
+  }
 }
