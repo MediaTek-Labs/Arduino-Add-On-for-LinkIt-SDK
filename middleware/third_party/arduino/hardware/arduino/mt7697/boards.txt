@@ -11,6 +11,11 @@ linkit_7697.pid.0=0xEA60
 linkit_7697.upload.tool=flash_tool
 linkit_7697.upload.protocol=xmodem
 
+# Size limiations
+# This is derived from CM4_CODE_LENGTH in flash_map.h
+linkit_7697.upload.maximum_size=2019328
+linkit_7697.upload.maximum_data_size=360448
+
 linkit_7697.build.mcu=cortex-m4
 linkit_7697.build.f_cpu=192000000L
 linkit_7697.build.board=linkit_7697
@@ -26,6 +31,8 @@ linkit_7697.build.lib_minicli_CM4_GCC=libminicli_CM4_GCC.a
 linkit_7697.build.lib_wifi=libwifi.a
 linkit_7697.build.lib_kservice_CM4_MT7697_GCC=libkservice_CM4_MT7697_GCC.a
 linkit_7697.build.lib_minisupp_wps=libminisupp_wps.a
+linkit_7697.build.lib_ble=libble.a
+linkit_7697.build.lib_btdriver_7697=libbtdriver_7697.a
 
 linkit_7697.build.chip_mt7697_inc=driver/chip/mt7687/inc/
 linkit_7697.build.chin_inc=driver/chip/inc/
@@ -36,7 +43,12 @@ linkit_7697.build.rtos_inc=kernel/rtos/FreeRTOS/Source/include/
 linkit_7697.build.rtos_cm4_inc=kernel/rtos/FreeRTOS/Source/portable/GCC/ARM_CM4F/
 linkit_7697.build.lwip_inc=middleware/third_party/lwip/src/include/
 linkit_7697.build.lwip_ports_inc=middleware/third_party/lwip/ports/include/
+linkit_7697.build.httpclient_inc=middleware/third_party/httpclient/src/inc/
+linkit_7697.build.mbedtls_inc=middleware/third_party/mbedtls/include
+linkit_7697.build.mbedtls_configs_inc=middleware/third_party/mbedtls/configs
 linkit_7697.build.wifi_inc=driver/board/mt76x7_hdk/wifi/inc/
+linkit_7697.build.ble_inc=middleware/MTK/bluetooth/inc/
+linkit_7697.build.nvdm_inc=middleware/MTK/nvdm/inc/
 
 linkit_7697.build.bootloader=mt7687_bootloader.bin
 linkit_7697.build.wifi_binary=WIFI_RAM_CODE_MT76X7_in_flash.bin

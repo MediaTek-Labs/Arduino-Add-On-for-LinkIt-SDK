@@ -128,9 +128,6 @@ void analogWrite(uint32_t ulPin, uint32_t ulValue)
 		if (!pin_enable_pwm(pin_desc))
 			return;
 
-		if (HAL_PWM_STATUS_OK != hal_pwm_init(PWM_SRC_CLOCK))
-			return;
-
 		if (HAL_PWM_STATUS_OK != hal_pwm_set_frequency(pwm_channel, PWM_FREQUENCY, &total_count))
 			return;		/* hal_pwm_set_frequency fail */
 

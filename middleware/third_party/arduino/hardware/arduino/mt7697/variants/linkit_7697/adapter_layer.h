@@ -12,10 +12,15 @@ extern "C"{
 
 #define FREERTOS				// FIXME: It's temporary to stay here!!
 
+#define PWM_SOURCE_CLOCK          HAL_PWM_CLOCK_2MHZ
+#define PWM_SOURCE_CLOCK_VALUE    (2*1000*1000)
+
 extern int __io_putchar(int ch);
 extern int __io_getchar(void);
 
 extern void init_system(void);
+
+extern void init_bt_subsys(void);
 
 #ifdef __cplusplus
 }

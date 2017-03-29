@@ -3,11 +3,17 @@
 #include <system_mt7687.h>
 #include <top.h>
 #include <hal_gpio.h>
+#include <hal_pwm.h>
 #include <hal_platform.h>
+#include <syslog.h>
+#include <FreeRTOS.h>
+#include <task.h>
+#include <bt_system.h>
+
+#include "task_def.h"
 
 #include "adapter_layer.h"
 #include "variant.h"
-
 #include "log_dump.h"
 
 /*
@@ -114,6 +120,24 @@ static void init_sys_clk(void)
 	cmnSerialFlashClkConfTo64M();
 }
 
+#if 0
+LOG_CONTROL_BLOCK_DECLARE(wifi);
+LOG_CONTROL_BLOCK_DECLARE(common);
+LOG_CONTROL_BLOCK_DECLARE(BT);
+LOG_CONTROL_BLOCK_DECLARE(BTMM);
+LOG_CONTROL_BLOCK_DECLARE(BTHCI);
+LOG_CONTROL_BLOCK_DECLARE(BTL2CAP);
+
+log_control_block_t *syslog_control_blocks[] = {
+      &LOG_CONTROL_BLOCK_SYMBOL(wifi),
+      &LOG_CONTROL_BLOCK_SYMBOL(common),
+	  &LOG_CONTROL_BLOCK_SYMBOL(BT),
+	  &LOG_CONTROL_BLOCK_SYMBOL(BTMM),
+	  &LOG_CONTROL_BLOCK_SYMBOL(BTHCI),
+	  &LOG_CONTROL_BLOCK_SYMBOL(BTL2CAP)
+};
+#endif
+
 void init_system(void)
 {
 	init_sys_clk();
@@ -122,4 +146,14 @@ void init_system(void)
 	init_stdio();
 
     hal_flash_init();
+
+    // Pre-initialize PWM to highest clock.
+    // This resets pin status so we put it in init_system().
+    hal_pwm_init(PWM_SOURCE_CLOCK);
+
+#if 0
+    log_uart_init(HAL_UART_0);
+    log_init(NULL, NULL, syslog_control_blocks);
+#endif
 }
+

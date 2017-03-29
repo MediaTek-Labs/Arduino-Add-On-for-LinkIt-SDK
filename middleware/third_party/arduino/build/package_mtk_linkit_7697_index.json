@@ -11,7 +11,7 @@
       "platforms": [
          {
           "name": "LinkIt 7697",
-          "architecture": "linkit-rtos",
+          "architecture": "linkit_rtos",
           "version": "1.0.0",
           "category": "Contributed",
           "url": "http://localhost:8080/mediatek_linkit_7697-1.0.0.tar.bz2",

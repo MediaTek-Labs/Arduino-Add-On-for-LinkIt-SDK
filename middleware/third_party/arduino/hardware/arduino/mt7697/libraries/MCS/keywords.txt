@@ -1,0 +1,29 @@
+#######################################
+# Syntax Coloring Map 
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+MCSDevice	KEYWORD1
+MCSLiteDevice	KEYWORD1
+MCSControllerChannelOnOff	KEYWORD1
+MCSDisplayChannelOnOff	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+connected	KEYWORD2
+connect	KEYWORD2
+process	KEYWORD2
+addChannel	KEYWORD2
+setDefaultTimeout	KEYWORD2
+updated	KEYWORD2
+set	KEYWORD2
+value	KEYWORD2
+valid	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################

@@ -87,18 +87,17 @@ static void cleanSockState_cb(void *ctx)
 static err_t close_conn_pcb(struct tcp_pcb* tpcb)
 {
 	err_t err = ERR_OK;
+	//pr_debug("clear handler\r\n");
 
-	if (tpcb->state != CLOSED)
-		err = tcp_close(tpcb);
+	// flush buffers
+	tcp_arg(tpcb, NULL);
+	tcp_sent(tpcb, NULL);
+	tcp_recv(tpcb, NULL);
+	tcp_poll(tpcb, NULL, 10);
 
-	if (err == ERR_OK)
-	{
-		//pr_debug("clear handler\r\n");
-		tcp_arg(tpcb, NULL);
-		tcp_sent(tpcb, NULL);
-		tcp_recv(tpcb, NULL);
-		tcp_poll(tpcb, NULL, 10);
-	}
+	// close socket
+	err = tcp_close(tpcb);
+	
 	//pr_debug("closing tpcb [%p]\r\n", tpcb);
 	return err;
 }

@@ -198,7 +198,27 @@ int UARTClass::available(void)
 	 * How to deal with the data in the VFIFO
 	 * hal_uart_get_available_receive_bytes(_uart_port);
 	 */
+	int ret = _rx_buffer.available();
+	if(ret)
+	{
+		return ret;
+	}
+	else
+	{
+		uint32_t length = 0;
+		uint8_t  buffer[RX_VFIFO_SIZE] = {0};
+
+		length = hal_uart_receive_dma(_uart_port, buffer, length);
+
+		if (length > 0) {
+			pr_debug("Receive Get: %d bytes.\r\n", length);
+
+			for (uint32_t i=0; i<length; i++) {
+				_rx_buffer.store_char(buffer[i]);
+			}
+		}
 	return _rx_buffer.available();
+	}
 }
 
 int UARTClass::peek(void)
@@ -230,7 +250,7 @@ void UARTClass::IrqHandler(hal_uart_callback_event_t event)
 	if (event == HAL_UART_EVENT_READY_TO_READ)
 	{
 		uint32_t length;
-		uint8_t  buffer[RX_VFIFO_SIZE];
+		uint8_t  buffer[RX_VFIFO_SIZE] = {0};
 
 		length = hal_uart_get_available_receive_bytes(_uart_port);
 
