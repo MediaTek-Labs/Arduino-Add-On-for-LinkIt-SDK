@@ -424,6 +424,8 @@ bool MCSControllerChannelOnOff::value(void)
         _update(params);
         return mValue;
     }
+    
+    return false;
 }
 
 void MCSControllerChannelOnOff::_dispatch(const String& params)

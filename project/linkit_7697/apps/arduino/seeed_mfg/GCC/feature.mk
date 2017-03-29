@@ -7,3 +7,5 @@ MTK_WIFI_REPEATER_ENABLE            = y
 MTK_MINISUPP_ENABLE                 = y
 MTK_BT_ENABLE                       = y
 MTK_BLE_ONLY_ENABLE                 = y
+MTK_HTTPCLIENT_SSL_ENABLE			= y
+MTK_MBEDTLS_CONFIG_FILE             = config-mtk-basic.h
