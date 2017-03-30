@@ -187,16 +187,22 @@ int WiFiDrv::getHostByName(IPAddress& aResult)
 
 int WiFiDrv::getHostByName(const char* aHostname, IPAddress& aResult)
 {
-	uint8_t retry = 10;
 	if (reqHostByName(aHostname)) {
-		while (!getHostByName(aResult) && --retry > 0) {
-			pr_debug("Failed get server-ip by dns\r\n");
-			delay(1000);
+		const unsigned long start = millis();
+		uint16_t retry = 0;
+		// 10-second timeout for DNS query
+		while ((millis() - start) < 10000) {
+			if(getHostByName(aResult)) {
+				return 1;
+			}
+			delay(50);
+			retry++;
 		}
+		pr_debug("getHostByName timeout, retry %d times", retry)
 	} else {
 		return 0;
 	}
-	return (retry>0);
+	return 0;
 }
 
 char* WiFiDrv::getFwVersion()

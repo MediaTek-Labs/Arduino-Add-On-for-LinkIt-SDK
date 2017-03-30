@@ -417,7 +417,8 @@ static err_t tcp_send_data_pcb(struct ttcp *ttcp, struct tcp_pcb *pcb)
 		len = tcp_sndbuf(pcb);
 
 	err = tcp_write(pcb, ttcp->payload[id], len, TCP_WRITE_FLAG_COPY);
-	//tcp_output(pcb);
+	// flush immediately
+	tcp_output(pcb);
 	if (err != ERR_OK) {
 		pr_debug("tcp_write failed %p state:%d len:%d err:%d\r\n",
 				pcb, pcb->state, len, err);
