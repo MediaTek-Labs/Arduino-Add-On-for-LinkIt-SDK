@@ -136,5 +136,349 @@ private:
     bool mValue;
 };
 
+/* ------------------------------------------------------------------------ */
+class MCSControllerCategory : public MCSDataChannel
+{
+public:
+    MCSControllerCategory(const String& channel_id);
+    ~MCSControllerCategory();
+
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayCategory : public MCSDataChannel
+{
+public:
+    MCSDisplayCategory(const String& channel_id);
+    ~MCSDisplayCategory();
+
+    bool set(String value);
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerInteger : public MCSDataChannel
+{
+public:
+    MCSControllerInteger(const String& channel_id);
+    ~MCSControllerInteger();
+
+    int value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    int mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayInteger : public MCSDataChannel
+{
+public:
+    MCSDisplayInteger(const String& channel_id);
+    ~MCSDisplayInteger();
+
+    bool set(int value);
+    int value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    int mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerFloat : public MCSDataChannel
+{
+public:
+    MCSControllerFloat(const String& channel_id);
+    ~MCSControllerFloat();
+
+    float value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    float mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayFloat : public MCSDataChannel
+{
+public:
+    MCSDisplayFloat(const String& channel_id);
+    ~MCSDisplayFloat();
+
+    bool set(float value);
+    float value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    float mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerHex : public MCSDataChannel
+{
+public:
+    MCSControllerHex(const String& channel_id);
+    ~MCSControllerHex();
+
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayHex : public MCSDataChannel
+{
+public:
+    MCSDisplayHex(const String& channel_id);
+    ~MCSDisplayHex();
+
+    bool set(String value);
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerString : public MCSDataChannel
+{
+public:
+    MCSControllerString(const String& channel_id);
+    ~MCSControllerString();
+
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayString : public MCSDataChannel
+{
+public:
+    MCSDisplayString(const String& channel_id);
+    ~MCSDisplayString();
+
+    bool set(String value);
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerGPS : public MCSDataChannel
+{
+public:
+    MCSControllerGPS(const String& channel_id);
+    ~MCSControllerGPS();
+
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayGPS : public MCSDataChannel
+{
+public:
+    MCSDisplayGPS(const String& channel_id);
+    ~MCSDisplayGPS();
+
+    bool set(String value);
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerGPIO : public MCSDataChannel
+{
+public:
+    MCSControllerGPIO(const String& channel_id);
+    ~MCSControllerGPIO();
+
+    int value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    int mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayGPIO : public MCSDataChannel
+{
+public:
+    MCSDisplayGPIO(const String& channel_id);
+    ~MCSDisplayGPIO();
+
+    bool set(int value);
+    int value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    int mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerPWM : public MCSDataChannel
+{
+public:
+    MCSControllerPWM(const String& channel_id);
+    ~MCSControllerPWM();
+
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSDisplayPWM : public MCSDataChannel
+{
+public:
+    MCSDisplayPWM(const String& channel_id);
+    ~MCSDisplayPWM();
+
+    bool set(String value);
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    String mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerAnalog : public MCSDataChannel
+{
+public:
+    MCSControllerAnalog(const String& channel_id);
+    ~MCSControllerAnalog();
+
+    int value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    int mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerGamepad : public MCSDataChannel
+{
+public:
+    MCSControllerGamepad(const String& channel_id);
+    ~MCSControllerGamepad();
+
+    String value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    String mValue;
+};
+
 
 #endif
