@@ -129,7 +129,7 @@ recipe.size.regex.data=^(?:\.data|\.bss|\.heap|.\stack_dummy)\s+([0-9]+).*
 
 # 5 Upload tools
 # ------------------------
-tools.flash_tool.path={runtime.tools.flash_tool-1.0.0.path}
+tools.flash_tool.path={runtime.tools.flash_tool.path}
 tools.flash_tool.cmd=upload.py
 tools.flash_tool.cmd.windows=upload.exe
 

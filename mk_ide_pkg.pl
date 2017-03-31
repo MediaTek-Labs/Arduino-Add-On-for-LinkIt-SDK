@@ -141,11 +141,13 @@ sub main
 {
 	my $outpath;
 	my $pkg_ver;
+	my $tool_ver;
 	my $show_help;
 
 	Getopt::Long::GetOptions(
 		'o=s'		=> \$outpath,
 		'v=s'		=> \$pkg_ver,
+		't=s'		=> \$tool_ver,
 		'help'		=> \$show_help,
 	);
 
@@ -153,7 +155,8 @@ sub main
 	if (defined($show_help)) {
 		print("USEAGE:
 			-o=xxx		Indicate the output path
-			-v=xxx		Indicate the package version\n");
+			-v=xxx		Indicate the package version
+			-t=xxx      Indicate the tool version\n");
 
 		exit(0);
 	}
@@ -173,6 +176,10 @@ sub main
 
 	$pkg_ver="0.1.0" if (not defined($pkg_ver));
 	print("The pgk_ver: $pkg_ver\n");
+
+	$tool_ver="1.3.0" if (not defined($tool_ver));
+	print("The tool_ver: $tool_ver\n");
+
 	
 	# build packages
 	&build_base_pkg($outpath);
@@ -183,7 +190,7 @@ sub main
 
 	# pack into bz2
 	system("cd $outpath; tar -cvjf mediatek_linkit_7697-$pkg_ver.tar.bz2 mt7697; cd -");
-	system("cd $outpath; tar -cvjf mediatek_linkit_7697_flash_tool-$pkg_ver.tar.bz2 flash_tool; cd -");
+	system("cd $outpath; tar -cvjf mediatek_linkit_7697_flash_tool-$tool_ver.tar.bz2 flash_tool; cd -");
 
 	# TODO: 
 	my $package_json="middleware/third_party/arduino/build/package_mtk_linkit_7697_index.json";
