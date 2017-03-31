@@ -8,8 +8,8 @@
 
 MCSDevice	KEYWORD1
 MCSLiteDevice	KEYWORD1
-MCSControllerChannelOnOff	KEYWORD1
-MCSDisplayChannelOnOff	KEYWORD1
+MCSControllerOnOff	KEYWORD1
+MCSDisplayOnOff	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)

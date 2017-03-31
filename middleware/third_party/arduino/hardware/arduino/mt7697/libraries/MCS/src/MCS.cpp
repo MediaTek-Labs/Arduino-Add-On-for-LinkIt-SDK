@@ -47,7 +47,7 @@ MCSDevice::~MCSDevice()
 
 }
 
-void MCSDevice::addChannel(MCSChannel& channel)
+void MCSDevice::addChannel(MCSDataChannel& channel)
 {
     channel._setParent(this);
     mChannels.push_back(&channel);
@@ -66,7 +66,7 @@ bool MCSDevice::connect(void)
 void MCSDevice::process(int timeout_ms)
 {
     // clear all channels` flag
-    for(MCSChannel* it : mChannels)
+    for(MCSDataChannel* it : mChannels)
         it->_clearUpdated();
 
     if(!connected())
@@ -111,7 +111,7 @@ void MCSDevice::process(int timeout_ms)
             if(channel.length() > 0) {
                 _DEBUG_PRINT(String("[log]found:channel:")+channel+String(",params:")+params);
 
-                for(MCSChannel* it : mChannels) {
+                for(MCSDataChannel* it : mChannels) {
                     if(it->_match(channel)) {
                         _DEBUG_PRINT("[log]dispatched!");
                         it->_dispatch(params);
@@ -344,10 +344,10 @@ bool MCSLiteDevice::_prepareSocket(WiFiClient& socket)
 }
 
 /* ----------------------------------------------------------------------------
-class MCSChannel
+class MCSDataChannel
 ---------------------------------------------------------------------------- */
 
-MCSChannel::MCSChannel(const String& channel_id):
+MCSDataChannel::MCSDataChannel(const String& channel_id):
 mId(channel_id),
 mParent(NULL),
 mUpdated(false),
@@ -356,22 +356,22 @@ mInited(false)
 
 }
 
-MCSChannel::~MCSChannel()
+MCSDataChannel::~MCSDataChannel()
 {
 
 }
 
-bool MCSChannel::_match(const String& channel_id)
+bool MCSDataChannel::_match(const String& channel_id)
 {
     return mId.equals(channel_id);
 }
 
-void MCSChannel::_setParent(MCSDevice* parentObj)
+void MCSDataChannel::_setParent(MCSDevice* parentObj)
 {
     mParent = parentObj;
 }
 
-bool MCSChannel::_uploadDataPoint(const String& params)
+bool MCSDataChannel::_uploadDataPoint(const String& params)
 {
     String req = mId + String(",,") + params;
     if(mParent)
@@ -379,7 +379,7 @@ bool MCSChannel::_uploadDataPoint(const String& params)
     return false;
 }
 
-bool MCSChannel::_getDataPoint(String& params)
+bool MCSDataChannel::_getDataPoint(String& params)
 {
     if(mParent)
     {
@@ -399,20 +399,20 @@ bool MCSChannel::_getDataPoint(String& params)
 
 
 /* ----------------------------------------------------------------------------
-class MCSControllerChannelOnOff
+class MCSControllerOnOff
 ---------------------------------------------------------------------------- */
 
-MCSControllerChannelOnOff::MCSControllerChannelOnOff(const String& channel_id):
-MCSChannel(channel_id),
+MCSControllerOnOff::MCSControllerOnOff(const String& channel_id):
+MCSDataChannel(channel_id),
 mValue(false)
 {
 }
 
-MCSControllerChannelOnOff::~MCSControllerChannelOnOff()
+MCSControllerOnOff::~MCSControllerOnOff()
 {
 }
 
-bool MCSControllerChannelOnOff::value(void)
+bool MCSControllerOnOff::value(void)
 {
     if(valid())
         return mValue;
@@ -424,17 +424,15 @@ bool MCSControllerChannelOnOff::value(void)
         _update(params);
         return mValue;
     }
-    
-    return false;
 }
 
-void MCSControllerChannelOnOff::_dispatch(const String& params)
+void MCSControllerOnOff::_dispatch(const String& params)
 {
     if(_update(params))
         _setUpdated();
 }
 
-bool MCSControllerChannelOnOff::_update(const String& params)
+bool MCSControllerOnOff::_update(const String& params)
 {
     int b = params.toInt();
     bool v = (b == 1) ? true : false;
@@ -450,20 +448,20 @@ bool MCSControllerChannelOnOff::_update(const String& params)
 
 
 /* ----------------------------------------------------------------------------
-class MCSDisplayChannelOnOff
+class MCSDisplayOnOff
 ---------------------------------------------------------------------------- */
 
-MCSDisplayChannelOnOff::MCSDisplayChannelOnOff(const String& channel_id):
-MCSChannel(channel_id),
+MCSDisplayOnOff::MCSDisplayOnOff(const String& channel_id):
+MCSDataChannel(channel_id),
 mValue(false)
 {
 }
 
-MCSDisplayChannelOnOff::~MCSDisplayChannelOnOff()
+MCSDisplayOnOff::~MCSDisplayOnOff()
 {
 }
 
-bool MCSDisplayChannelOnOff::set(bool value)
+bool MCSDisplayOnOff::set(bool value)
 {
     if(valid() && value == mValue)
         return true;
@@ -477,12 +475,12 @@ bool MCSDisplayChannelOnOff::set(bool value)
     return result;
 }
 
-bool MCSDisplayChannelOnOff::value(void)
+bool MCSDisplayOnOff::value(void)
 {
     return mValue;
 }
 
-void MCSDisplayChannelOnOff::_dispatch(const String& params)
+void MCSDisplayOnOff::_dispatch(const String& params)
 {
     // do nothing for display channel
 }

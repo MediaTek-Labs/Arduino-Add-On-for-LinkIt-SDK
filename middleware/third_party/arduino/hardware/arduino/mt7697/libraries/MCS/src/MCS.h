@@ -6,7 +6,7 @@
 #include <vector>
 #include "LWiFi.h"
 
-class MCSChannel;
+class MCSDataChannel;
 /* ------------------------------------------------------------------------ */
 class MCSDevice
 {
@@ -15,7 +15,7 @@ public:
     MCSDevice(const String& device_id, const String& device_key, const String& server, int port);
     ~MCSDevice();
 
-    void addChannel(MCSChannel& channel);
+    void addChannel(MCSDataChannel& channel);
 
     bool connected(void);
 
@@ -32,7 +32,7 @@ protected:
 
     void _readSocket(WiFiClient& socket, String& readBuffer, int timeout_ms);
 
-    // called by MCSChannel
+    // called by MCSDataChannel
     bool _uploadDataPoint(const String& params);
     bool _getDataPoint(const String& channel_id, String& responseBody);
 
@@ -46,14 +46,14 @@ protected:
     int mDefTimeout;
     String mId;
     String mKey;
-    std::vector<MCSChannel*> mChannels;
+    std::vector<MCSDataChannel*> mChannels;
 
     WiFiClient mSocket;
     String mRecevieBuf;
 
     unsigned long mLastHB;
 
-    friend class MCSChannel;
+    friend class MCSDataChannel;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -68,11 +68,11 @@ protected:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSChannel
+class MCSDataChannel
 {
 public:
-    MCSChannel(const String& channel_id);
-    ~MCSChannel();
+    MCSDataChannel(const String& channel_id);
+    ~MCSDataChannel();
 
     bool updated(void)  { return mUpdated; }
     bool valid(void)    { return mInited; }
@@ -99,11 +99,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerChannelOnOff : public MCSChannel
+class MCSControllerOnOff : public MCSDataChannel
 {
 public:
-    MCSControllerChannelOnOff(const String& channel_id);
-    ~MCSControllerChannelOnOff();
+    MCSControllerOnOff(const String& channel_id);
+    ~MCSControllerOnOff();
 
     bool value(void);
 
@@ -119,11 +119,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSDisplayChannelOnOff : public MCSChannel
+class MCSDisplayOnOff : public MCSDataChannel
 {
 public:
-    MCSDisplayChannelOnOff(const String& channel_id);
-    ~MCSDisplayChannelOnOff();
+    MCSDisplayOnOff(const String& channel_id);
+    ~MCSDisplayOnOff();
 
     bool set(bool value);
     bool value(void);

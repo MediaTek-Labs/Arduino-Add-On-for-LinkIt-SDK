@@ -13,8 +13,8 @@ MCSDevice mcs("your_device_id", "your_device_key");
 // The test device should have 2 channel
 // the first channel should be "Controller" - "On/Off"
 // the secord channel should be "Display" - "On/Off"
-MCSControllerChannelOnOff led("your_channel1_id");
-MCSDisplayChannelOnOff    remote("your_channel2_id");
+MCSControllerOnOff led("your_channel1_id");
+MCSDisplayOnOff    remote("your_channel2_id");
 
 #define LED_PIN 7
 
