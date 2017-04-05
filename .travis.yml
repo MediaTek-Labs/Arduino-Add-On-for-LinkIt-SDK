@@ -3,7 +3,7 @@ before_install:
   - sudo apt-get install libc6-i386
   - wget http://download.labs.mediatek.com/LinkIt_SDK_V4.2.0_travis.tar.gz
 install:
-  - tar --keep-old-files -zxvf LinkIt_SDK_V4.2.0_travis.tar.gz -C .
+  - tar --keep-old-files -zxf LinkIt_SDK_V4.2.0_travis.tar.gz -C .
 script:
   - cd project/linkit_7697/apps/arduino/arduino_lib/GCC/
   - make
