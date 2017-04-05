@@ -424,6 +424,8 @@ bool MCSControllerOnOff::value(void)
         _update(params);
         return mValue;
     }
+
+    return false;
 }
 
 void MCSControllerOnOff::_dispatch(const String& params)
