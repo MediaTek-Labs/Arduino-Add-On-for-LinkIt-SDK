@@ -5,11 +5,15 @@ before_install:
 install:
   - tar --keep-old-files -zxf LinkIt_SDK_V4.2.0_travis.tar.gz -C .
 script:
+  - echo -en 'travis_fold:start:arduino_lib\\r'
   - cd project/linkit_7697/apps/arduino/arduino_lib/GCC/
   - make
+  - echo -en 'travis_fold:end:arduino_lib\\r'
+  - echo -en 'travis_fold:start:ide_pkg\\r'
   - cd -
   - mkdir out
   - ./mk_ide_pkg.pl -o out -v 0.0.1
+  - echo -en 'travis_fold:end:ide_pkg\\r'
 
 notifications:
   email:
