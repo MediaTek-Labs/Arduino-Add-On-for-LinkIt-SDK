@@ -764,7 +764,7 @@ MCSControllerHex::~MCSControllerHex()
 {
 }
 
-String MCSControllerHex::value(void)
+long MCSControllerHex::value(void)
 {
     if(valid())
         return mValue;
@@ -787,7 +787,7 @@ void MCSControllerHex::_dispatch(const String& params)
 bool MCSControllerHex::_update(const String& params)
 {
     String b = params;
-    String v = b;
+    long v = strtol(&b[0], NULL, 16);
 
     if(!valid() || v != mValue)
     {
@@ -813,12 +813,12 @@ MCSDisplayHex::~MCSDisplayHex()
 {
 }
 
-bool MCSDisplayHex::set(String value)
+bool MCSDisplayHex::set(long value)
 {
     if(valid() && value == mValue)
         return true;
 
-    bool result = _uploadDataPoint(String(value));
+    bool result = _uploadDataPoint(String(value, HEX));
     if(result)
     {
         _setValid();
@@ -827,7 +827,7 @@ bool MCSDisplayHex::set(String value)
     return result;
 }
 
-String MCSDisplayHex::value(void)
+long MCSDisplayHex::value(void)
 {
     return mValue;
 }

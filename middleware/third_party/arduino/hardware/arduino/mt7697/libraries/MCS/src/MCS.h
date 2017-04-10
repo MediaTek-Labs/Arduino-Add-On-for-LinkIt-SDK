@@ -257,7 +257,7 @@ public:
     MCSControllerHex(const String& channel_id);
     ~MCSControllerHex();
 
-    String value(void);
+    long value(void);
 
 protected:
     // override
@@ -267,7 +267,7 @@ private:
     bool _update(const String& params);
 
 private:
-    String mValue;
+    long mValue;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -277,15 +277,15 @@ public:
     MCSDisplayHex(const String& channel_id);
     ~MCSDisplayHex();
 
-    bool set(String value);
-    String value(void);
+    bool set(long value);
+    long value(void);
 
 protected:
     // override
     virtual void _dispatch(const String& params);
 
 private:
-    String mValue;
+    long mValue;
 };
 
 /* ------------------------------------------------------------------------ */
