@@ -1317,7 +1317,8 @@ class MCSControllerGamepad
 
 MCSControllerGamepad::MCSControllerGamepad(const String& channel_id):
 MCSDataChannel(channel_id),
-mValue()
+mValue(),
+mPress()
 {
 }
 
@@ -1339,6 +1340,20 @@ String MCSControllerGamepad::value(void)
     }
 }
 
+bool MCSControllerGamepad::press(void)
+{
+    if(valid())
+        return mPress;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mPress;
+    }
+}
+
 void MCSControllerGamepad::_dispatch(const String& params)
 {
     if(_update(params))
@@ -1347,12 +1362,16 @@ void MCSControllerGamepad::_dispatch(const String& params)
 
 bool MCSControllerGamepad::_update(const String& params)
 {
-    String b = params;
-    String v = b;
+    int p = params.indexOf('|');
+    String v1 = params.substring(0, p);
+    int b = params.substring(p+1).toInt();
+    bool v2 = (b == 1) ? true : false;
 
-    if(!valid() || v != mValue)
+
+    if(!valid() || v1 != mValue || v2 != mPress)
     {
-        mValue = v;
+        mValue = v1;
+        mPress = v2;
         _setValid();
         return true;
     }

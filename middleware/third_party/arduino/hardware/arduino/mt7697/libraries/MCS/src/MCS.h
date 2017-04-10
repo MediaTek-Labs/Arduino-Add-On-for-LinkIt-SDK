@@ -480,6 +480,7 @@ public:
     ~MCSControllerGamepad();
 
     String value(void);
+    bool press(void);
 
 protected:
     // override
@@ -490,6 +491,7 @@ private:
 
 private:
     String mValue;
+    bool mPress;
 };
 
 
