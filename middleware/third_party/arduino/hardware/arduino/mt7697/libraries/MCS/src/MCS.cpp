@@ -787,7 +787,7 @@ void MCSControllerHex::_dispatch(const String& params)
 bool MCSControllerHex::_update(const String& params)
 {
     String b = params;
-    long v = strtol(&b[0], NULL, 16);
+    long v = strtol(b.c_str(), NULL, 16);
 
     if(!valid() || v != mValue)
     {
