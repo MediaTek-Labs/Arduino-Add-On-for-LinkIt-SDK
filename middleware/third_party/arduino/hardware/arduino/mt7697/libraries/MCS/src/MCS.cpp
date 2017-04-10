@@ -932,7 +932,9 @@ class MCSControllerGPS
 
 MCSControllerGPS::MCSControllerGPS(const String& channel_id):
 MCSDataChannel(channel_id),
-mValue()
+mLatitude(),
+mLongitude(),
+mAltitude()
 {
 }
 
@@ -940,17 +942,45 @@ MCSControllerGPS::~MCSControllerGPS()
 {
 }
 
-String MCSControllerGPS::value(void)
+float MCSControllerGPS::latitude(void)
 {
     if(valid())
-        return mValue;
+        return mLatitude;
 
     // retrieve latest data point from server
     String params;
     if(_getDataPoint(params))
     {
         _update(params);
-        return mValue;
+        return mLatitude;
+    }
+}
+
+float MCSControllerGPS::longitude(void)
+{
+    if(valid())
+        return mLongitude;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mLongitude;
+    }
+}
+
+float MCSControllerGPS::altitude(void)
+{
+    if(valid())
+        return mAltitude;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mAltitude;
     }
 }
 
@@ -962,12 +992,17 @@ void MCSControllerGPS::_dispatch(const String& params)
 
 bool MCSControllerGPS::_update(const String& params)
 {
-    String b = params;
-    String v = b;
+    int c1 = params.indexOf(',');
+    int c2 = params.indexOf(',', c1+1);
+    float v1 = params.substring(0, c1).toFloat();
+    float v2 = params.substring(c1+1, c2).toFloat();
+    float v3 = params.substring(c2+1).toFloat();
 
-    if(!valid() || v != mValue)
+    if(!valid() || v1 != mLatitude || v2 != mLongitude || v3 != mAltitude)
     {
-        mValue = v;
+        mLatitude = v1;
+        mLongitude = v2;
+        mAltitude = v3;
         _setValid();
         return true;
     }
@@ -981,7 +1016,9 @@ class MCSDisplayGPS
 
 MCSDisplayGPS::MCSDisplayGPS(const String& channel_id):
 MCSDataChannel(channel_id),
-mValue()
+mLatitude(),
+mLongitude(),
+mAltitude()
 {
 }
 
@@ -989,23 +1026,36 @@ MCSDisplayGPS::~MCSDisplayGPS()
 {
 }
 
-bool MCSDisplayGPS::set(String value)
+bool MCSDisplayGPS::set(const float latitude, const float longitude, const float altitude)
 {
-    if(valid() && value == mValue)
+    if(valid() && latitude == mLatitude && longitude == mLongitude && altitude == mAltitude)
         return true;
 
-    bool result = _uploadDataPoint(String(value));
+    String payload = String(latitude)+String(",")+String(longitude)+String(",")+String(altitude);
+    bool result = _uploadDataPoint(payload);
     if(result)
     {
         _setValid();
-        mValue = value;
+        mLatitude = latitude;
+        mLongitude = longitude;
+        mAltitude = altitude;
     }
     return result;
 }
 
-String MCSDisplayGPS::value(void)
+float MCSDisplayGPS::latitude(void)
 {
-    return mValue;
+    return mLatitude;
+}
+
+float MCSDisplayGPS::longitude(void)
+{
+    return mLongitude;
+}
+
+float MCSDisplayGPS::altitude(void)
+{
+    return mAltitude;
 }
 
 void MCSDisplayGPS::_dispatch(const String& params)

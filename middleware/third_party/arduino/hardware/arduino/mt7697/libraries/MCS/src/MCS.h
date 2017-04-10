@@ -333,7 +333,9 @@ public:
     MCSControllerGPS(const String& channel_id);
     ~MCSControllerGPS();
 
-    String value(void);
+    float latitude(void);
+    float longitude(void);
+    float altitude(void);
 
 protected:
     // override
@@ -343,7 +345,9 @@ private:
     bool _update(const String& params);
 
 private:
-    String mValue;
+    float mLatitude;
+    float mLongitude;
+    float mAltitude;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -353,15 +357,19 @@ public:
     MCSDisplayGPS(const String& channel_id);
     ~MCSDisplayGPS();
 
-    bool set(String value);
-    String value(void);
+    bool set(const float latitude, const float longitude, const float altitude);
+    float latitude(void);
+    float longitude(void);
+    float altitude(void);
 
 protected:
     // override
     virtual void _dispatch(const String& params);
 
 private:
-    String mValue;
+    float mLatitude;
+    float mLongitude;
+    float mAltitude;
 };
 
 /* ------------------------------------------------------------------------ */
