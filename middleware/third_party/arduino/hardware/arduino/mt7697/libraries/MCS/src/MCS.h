@@ -417,7 +417,8 @@ public:
     MCSControllerPWM(const String& channel_id);
     ~MCSControllerPWM();
 
-    String value(void);
+    int value(void);
+    int period(void);
 
 protected:
     // override
@@ -427,7 +428,8 @@ private:
     bool _update(const String& params);
 
 private:
-    String mValue;
+    int mValue;
+    int mPeriod;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -437,15 +439,17 @@ public:
     MCSDisplayPWM(const String& channel_id);
     ~MCSDisplayPWM();
 
-    bool set(String value);
-    String value(void);
+    bool set(const int value, const int period);
+    int value(void);
+    int period(void);
 
 protected:
     // override
     virtual void _dispatch(const String& params);
 
 private:
-    String mValue;
+    int mValue;
+    int mPeriod;
 };
 
 /* ------------------------------------------------------------------------ */

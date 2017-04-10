@@ -1158,7 +1158,8 @@ class MCSControllerPWM
 
 MCSControllerPWM::MCSControllerPWM(const String& channel_id):
 MCSDataChannel(channel_id),
-mValue()
+mValue(),
+mPeriod()
 {
 }
 
@@ -1166,7 +1167,7 @@ MCSControllerPWM::~MCSControllerPWM()
 {
 }
 
-String MCSControllerPWM::value(void)
+int MCSControllerPWM::value(void)
 {
     if(valid())
         return mValue;
@@ -1180,6 +1181,20 @@ String MCSControllerPWM::value(void)
     }
 }
 
+int MCSControllerPWM::period(void)
+{
+    if(valid())
+        return mPeriod;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mPeriod;
+    }
+}
+
 void MCSControllerPWM::_dispatch(const String& params)
 {
     if(_update(params))
@@ -1188,12 +1203,14 @@ void MCSControllerPWM::_dispatch(const String& params)
 
 bool MCSControllerPWM::_update(const String& params)
 {
-    String b = params;
-    String v = b;
+    int c = params.indexOf(',');
+    float v1 = params.substring(0, c).toInt();
+    float v2 = params.substring(c+1).toInt();
 
-    if(!valid() || v != mValue)
+    if(!valid() || v1 != mValue || v2 != mPeriod)
     {
-        mValue = v;
+        mValue = v1;
+        mPeriod = v2;
         _setValid();
         return true;
     }
@@ -1207,7 +1224,8 @@ class MCSDisplayPWM
 
 MCSDisplayPWM::MCSDisplayPWM(const String& channel_id):
 MCSDataChannel(channel_id),
-mValue()
+mValue(),
+mPeriod()
 {
 }
 
@@ -1215,12 +1233,13 @@ MCSDisplayPWM::~MCSDisplayPWM()
 {
 }
 
-bool MCSDisplayPWM::set(String value)
+bool MCSDisplayPWM::set(const int value, const int period)
 {
-    if(valid() && value == mValue)
+    if(valid() && value == mValue && period == mPeriod)
         return true;
 
-    bool result = _uploadDataPoint(String(value));
+    String payload = String(value)+String(",")+String(period);
+    bool result = _uploadDataPoint(payload);
     if(result)
     {
         _setValid();
@@ -1229,9 +1248,14 @@ bool MCSDisplayPWM::set(String value)
     return result;
 }
 
-String MCSDisplayPWM::value(void)
+int MCSDisplayPWM::value(void)
 {
     return mValue;
+}
+
+int MCSDisplayPWM::period(void)
+{
+    return mPeriod;
 }
 
 void MCSDisplayPWM::_dispatch(const String& params)
