@@ -514,6 +514,8 @@ String MCSControllerCategory::value(void)
         _update(params);
         return mValue;
     }
+    
+    return "";
 }
 
 void MCSControllerCategory::_dispatch(const String& params)
@@ -601,6 +603,8 @@ int MCSControllerInteger::value(void)
         _update(params);
         return mValue;
     }
+    
+    return 0;
 }
 
 void MCSControllerInteger::_dispatch(const String& params)
@@ -688,6 +692,7 @@ float MCSControllerFloat::value(void)
         _update(params);
         return mValue;
     }
+    return 0.0f;
 }
 
 void MCSControllerFloat::_dispatch(const String& params)
@@ -776,6 +781,8 @@ long MCSControllerHex::value(void)
         _update(params);
         return mValue;
     }
+    
+    return 0;
 }
 
 void MCSControllerHex::_dispatch(const String& params)
@@ -864,6 +871,8 @@ String MCSControllerString::value(void)
         _update(params);
         return mValue;
     }
+    
+    return "";
 }
 
 void MCSControllerString::_dispatch(const String& params)
@@ -954,6 +963,8 @@ float MCSControllerGPS::latitude(void)
         _update(params);
         return mLatitude;
     }
+    
+    return 0.0f;
 }
 
 float MCSControllerGPS::longitude(void)
@@ -968,6 +979,8 @@ float MCSControllerGPS::longitude(void)
         _update(params);
         return mLongitude;
     }
+    
+    return 0.0f;
 }
 
 float MCSControllerGPS::altitude(void)
@@ -982,6 +995,8 @@ float MCSControllerGPS::altitude(void)
         _update(params);
         return mAltitude;
     }
+    
+    return 0.0f;
 }
 
 void MCSControllerGPS::_dispatch(const String& params)
@@ -1090,6 +1105,8 @@ int MCSControllerGPIO::value(void)
         _update(params);
         return mValue;
     }
+    
+    return 0;
 }
 
 void MCSControllerGPIO::_dispatch(const String& params)
@@ -1179,6 +1196,8 @@ int MCSControllerPWM::value(void)
         _update(params);
         return mValue;
     }
+    
+    return 0;
 }
 
 int MCSControllerPWM::period(void)
@@ -1193,6 +1212,8 @@ int MCSControllerPWM::period(void)
         _update(params);
         return mPeriod;
     }
+    
+    return 0;
 }
 
 void MCSControllerPWM::_dispatch(const String& params)
@@ -1289,6 +1310,8 @@ int MCSControllerAnalog::value(void)
         _update(params);
         return mValue;
     }
+    
+    return 0;
 }
 
 void MCSControllerAnalog::_dispatch(const String& params)
