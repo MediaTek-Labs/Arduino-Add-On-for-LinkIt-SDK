@@ -472,27 +472,5 @@ private:
     int mValue;
 };
 
-/* ------------------------------------------------------------------------ */
-class MCSControllerGamepad : public MCSDataChannel
-{
-public:
-    MCSControllerGamepad(const String& channel_id);
-    ~MCSControllerGamepad();
-
-    String value(void);
-    bool press(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    String mValue;
-    bool mPress;
-};
-
 
 #endif
