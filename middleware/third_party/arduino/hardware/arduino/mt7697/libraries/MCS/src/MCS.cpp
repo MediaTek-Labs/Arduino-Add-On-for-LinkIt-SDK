@@ -486,3 +486,850 @@ void MCSDisplayOnOff::_dispatch(const String& params)
 {
     // do nothing for display channel
 }
+
+
+/* ----------------------------------------------------------------------------
+class MCSControllerCategory
+---------------------------------------------------------------------------- */
+
+MCSControllerCategory::MCSControllerCategory(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue()
+{
+}
+
+MCSControllerCategory::~MCSControllerCategory()
+{
+}
+
+String MCSControllerCategory::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return "";
+}
+
+void MCSControllerCategory::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerCategory::_update(const String& params)
+{
+    String b = params;
+    String v = b;
+
+    if(!valid() || v != mValue)
+    {
+        mValue = v;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayCategory
+---------------------------------------------------------------------------- */
+
+MCSDisplayCategory::MCSDisplayCategory(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue()
+{
+}
+
+MCSDisplayCategory::~MCSDisplayCategory()
+{
+}
+
+bool MCSDisplayCategory::set(String value)
+{
+    if(valid() && value == mValue)
+        return true;
+
+    bool result = _uploadDataPoint(String(value));
+    if(result)
+    {
+        _setValid();
+        mValue = value;
+    }
+    return result;
+}
+
+String MCSDisplayCategory::value(void)
+{
+    return mValue;
+}
+
+void MCSDisplayCategory::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+/* ----------------------------------------------------------------------------
+class MCSControllerInteger
+---------------------------------------------------------------------------- */
+
+MCSControllerInteger::MCSControllerInteger(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSControllerInteger::~MCSControllerInteger()
+{
+}
+
+int MCSControllerInteger::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return 0;
+}
+
+void MCSControllerInteger::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerInteger::_update(const String& params)
+{
+    int b = params.toInt();
+    int v = b;
+
+    if(!valid() || v != mValue)
+    {
+        mValue = v;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayInteger
+---------------------------------------------------------------------------- */
+
+MCSDisplayInteger::MCSDisplayInteger(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSDisplayInteger::~MCSDisplayInteger()
+{
+}
+
+bool MCSDisplayInteger::set(int value)
+{
+    if(valid() && value == mValue)
+        return true;
+
+    bool result = _uploadDataPoint(String(value));
+    if(result)
+    {
+        _setValid();
+        mValue = value;
+    }
+    return result;
+}
+
+int MCSDisplayInteger::value(void)
+{
+    return mValue;
+}
+
+void MCSDisplayInteger::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+/* ----------------------------------------------------------------------------
+class MCSControllerFloat
+---------------------------------------------------------------------------- */
+
+MCSControllerFloat::MCSControllerFloat(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSControllerFloat::~MCSControllerFloat()
+{
+}
+
+float MCSControllerFloat::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    return 0.0f;
+}
+
+void MCSControllerFloat::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerFloat::_update(const String& params)
+{
+    float b = params.toFloat();
+    float v = b;
+
+    if(!valid() || v != mValue)
+    {
+        mValue = v;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayFloat
+---------------------------------------------------------------------------- */
+
+MCSDisplayFloat::MCSDisplayFloat(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSDisplayFloat::~MCSDisplayFloat()
+{
+}
+
+bool MCSDisplayFloat::set(float value)
+{
+    if(valid() && value == mValue)
+        return true;
+
+    bool result = _uploadDataPoint(String(value));
+    if(result)
+    {
+        _setValid();
+        mValue = value;
+    }
+    return result;
+}
+
+float MCSDisplayFloat::value(void)
+{
+    return mValue;
+}
+
+void MCSDisplayFloat::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSControllerHex
+---------------------------------------------------------------------------- */
+
+MCSControllerHex::MCSControllerHex(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue()
+{
+}
+
+MCSControllerHex::~MCSControllerHex()
+{
+}
+
+long MCSControllerHex::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return 0;
+}
+
+void MCSControllerHex::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerHex::_update(const String& params)
+{
+    String b = params;
+    long v = strtol(b.c_str(), NULL, 16);
+
+    if(!valid() || v != mValue)
+    {
+        mValue = v;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayHex
+---------------------------------------------------------------------------- */
+
+MCSDisplayHex::MCSDisplayHex(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue()
+{
+}
+
+MCSDisplayHex::~MCSDisplayHex()
+{
+}
+
+bool MCSDisplayHex::set(long value)
+{
+    if(valid() && value == mValue)
+        return true;
+
+    bool result = _uploadDataPoint(String(value, HEX));
+    if(result)
+    {
+        _setValid();
+        mValue = value;
+    }
+    return result;
+}
+
+long MCSDisplayHex::value(void)
+{
+    return mValue;
+}
+
+void MCSDisplayHex::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSControllerString
+---------------------------------------------------------------------------- */
+
+MCSControllerString::MCSControllerString(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue()
+{
+}
+
+MCSControllerString::~MCSControllerString()
+{
+}
+
+String MCSControllerString::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return "";
+}
+
+void MCSControllerString::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerString::_update(const String& params)
+{
+    String b = params;
+    String v = b;
+
+    if(!valid() || v != mValue)
+    {
+        mValue = v;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayString
+---------------------------------------------------------------------------- */
+
+MCSDisplayString::MCSDisplayString(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue()
+{
+}
+
+MCSDisplayString::~MCSDisplayString()
+{
+}
+
+bool MCSDisplayString::set(String value)
+{
+    if(valid() && value == mValue)
+        return true;
+
+    bool result = _uploadDataPoint(String(value));
+    if(result)
+    {
+        _setValid();
+        mValue = value;
+    }
+    return result;
+}
+
+String MCSDisplayString::value(void)
+{
+    return mValue;
+}
+
+void MCSDisplayString::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSControllerGPS
+---------------------------------------------------------------------------- */
+
+MCSControllerGPS::MCSControllerGPS(const String& channel_id):
+MCSDataChannel(channel_id),
+mLatitude(),
+mLongitude(),
+mAltitude()
+{
+}
+
+MCSControllerGPS::~MCSControllerGPS()
+{
+}
+
+float MCSControllerGPS::latitude(void)
+{
+    if(valid())
+        return mLatitude;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mLatitude;
+    }
+    
+    return 0.0f;
+}
+
+float MCSControllerGPS::longitude(void)
+{
+    if(valid())
+        return mLongitude;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mLongitude;
+    }
+    
+    return 0.0f;
+}
+
+float MCSControllerGPS::altitude(void)
+{
+    if(valid())
+        return mAltitude;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mAltitude;
+    }
+    
+    return 0.0f;
+}
+
+void MCSControllerGPS::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerGPS::_update(const String& params)
+{
+    int c1 = params.indexOf(',');
+    int c2 = params.indexOf(',', c1+1);
+    float v1 = params.substring(0, c1).toFloat();
+    float v2 = params.substring(c1+1, c2).toFloat();
+    float v3 = params.substring(c2+1).toFloat();
+
+    if(!valid() || v1 != mLatitude || v2 != mLongitude || v3 != mAltitude)
+    {
+        mLatitude = v1;
+        mLongitude = v2;
+        mAltitude = v3;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayGPS
+---------------------------------------------------------------------------- */
+
+MCSDisplayGPS::MCSDisplayGPS(const String& channel_id):
+MCSDataChannel(channel_id),
+mLatitude(),
+mLongitude(),
+mAltitude()
+{
+}
+
+MCSDisplayGPS::~MCSDisplayGPS()
+{
+}
+
+bool MCSDisplayGPS::set(const float latitude, const float longitude, const float altitude)
+{
+    if(valid() && latitude == mLatitude && longitude == mLongitude && altitude == mAltitude)
+        return true;
+
+    String payload = String(latitude)+String(",")+String(longitude)+String(",")+String(altitude);
+    bool result = _uploadDataPoint(payload);
+    if(result)
+    {
+        _setValid();
+        mLatitude = latitude;
+        mLongitude = longitude;
+        mAltitude = altitude;
+    }
+    return result;
+}
+
+float MCSDisplayGPS::latitude(void)
+{
+    return mLatitude;
+}
+
+float MCSDisplayGPS::longitude(void)
+{
+    return mLongitude;
+}
+
+float MCSDisplayGPS::altitude(void)
+{
+    return mAltitude;
+}
+
+void MCSDisplayGPS::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSControllerGPIO
+---------------------------------------------------------------------------- */
+
+MCSControllerGPIO::MCSControllerGPIO(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSControllerGPIO::~MCSControllerGPIO()
+{
+}
+
+int MCSControllerGPIO::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return 0;
+}
+
+void MCSControllerGPIO::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerGPIO::_update(const String& params)
+{
+    int b = params.toInt();
+    int v = b;
+
+    if(!valid() || v != mValue)
+    {
+        mValue = v;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayGPIO
+---------------------------------------------------------------------------- */
+
+MCSDisplayGPIO::MCSDisplayGPIO(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSDisplayGPIO::~MCSDisplayGPIO()
+{
+}
+
+bool MCSDisplayGPIO::set(int value)
+{
+    if(valid() && value == mValue)
+        return true;
+
+    bool result = _uploadDataPoint(String(value));
+    if(result)
+    {
+        _setValid();
+        mValue = value;
+    }
+    return result;
+}
+
+int MCSDisplayGPIO::value(void)
+{
+    return mValue;
+}
+
+void MCSDisplayGPIO::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSControllerPWM
+---------------------------------------------------------------------------- */
+
+MCSControllerPWM::MCSControllerPWM(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(),
+mPeriod()
+{
+}
+
+MCSControllerPWM::~MCSControllerPWM()
+{
+}
+
+int MCSControllerPWM::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return 0;
+}
+
+int MCSControllerPWM::period(void)
+{
+    if(valid())
+        return mPeriod;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mPeriod;
+    }
+    
+    return 0;
+}
+
+void MCSControllerPWM::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerPWM::_update(const String& params)
+{
+    int c = params.indexOf(',');
+    float v1 = params.substring(0, c).toInt();
+    float v2 = params.substring(c+1).toInt();
+
+    if(!valid() || v1 != mValue || v2 != mPeriod)
+    {
+        mValue = v1;
+        mPeriod = v2;
+        _setValid();
+        return true;
+    }
+    return false;
+}
+
+
+/* ----------------------------------------------------------------------------
+class MCSDisplayPWM
+---------------------------------------------------------------------------- */
+
+MCSDisplayPWM::MCSDisplayPWM(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(),
+mPeriod()
+{
+}
+
+MCSDisplayPWM::~MCSDisplayPWM()
+{
+}
+
+bool MCSDisplayPWM::set(const int value, const int period)
+{
+    if(valid() && value == mValue && period == mPeriod)
+        return true;
+
+    String payload = String(value)+String(",")+String(period);
+    bool result = _uploadDataPoint(payload);
+    if(result)
+    {
+        _setValid();
+        mValue = value;
+    }
+    return result;
+}
+
+int MCSDisplayPWM::value(void)
+{
+    return mValue;
+}
+
+int MCSDisplayPWM::period(void)
+{
+    return mPeriod;
+}
+
+void MCSDisplayPWM::_dispatch(const String& params)
+{
+    // do nothing for display channel
+}
+
+/* ----------------------------------------------------------------------------
+class MCSControllerAnalog
+---------------------------------------------------------------------------- */
+
+MCSControllerAnalog::MCSControllerAnalog(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSControllerAnalog::~MCSControllerAnalog()
+{
+}
+
+int MCSControllerAnalog::value(void)
+{
+    if(valid())
+        return mValue;
+
+    // retrieve latest data point from server
+    String params;
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return 0;
+}
+
+void MCSControllerAnalog::_dispatch(const String& params)
+{
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerAnalog::_update(const String& params)
+{
+    int b = params.toInt();
+    int v = b;
+
+    if(!valid() || v != mValue)
+    {
+        mValue = v;
+        _setValid();
+        return true;
+    }
+    return false;
+}
