@@ -1,5 +1,5 @@
 #######################################
-# Syntax Coloring Map For WiFi
+# Syntax Coloring Map For LBLE
 #######################################
 
 #######################################
@@ -7,15 +7,16 @@
 #######################################
 
 LBLE	KEYWORD1	LBLE
-LBLECentral KEYWORD1    LBLE
+LBLECentral KEYWORD1    LBLECentral
 LBLEPeripheral KEYWORD1    LBLEPeripheral
 
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
 
-Central	KEYWORD1	LBLECentral
-Peripheral	KEYWORD1	LBLEPeripheral
+LBLECentral	KEYWORD1	LBLECentral
+LBLEPeripheral	KEYWORD1	LBLEPeripheral
+LBLEUuid        KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -52,6 +53,14 @@ endPacket		KEYWORD2
 parsePacket		KEYWORD2
 remoteIP		KEYWORD2
 remotePort		KEYWORD2
+
+scan            KEYWORD2    
+getAddress      KEYWORD2    
+getName         KEYWORD2    
+getTxPower      KEYWORD2    
+getRSSI         KEYWORD2    
+getServiceUuid  KEYWORD2    
+getManufacturer KEYWORD2    
 
 
 #######################################

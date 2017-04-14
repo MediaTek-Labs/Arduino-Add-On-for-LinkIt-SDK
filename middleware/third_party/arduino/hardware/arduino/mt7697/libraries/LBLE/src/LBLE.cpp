@@ -282,18 +282,16 @@ String LBLEAddress::convertAddressToString(const bt_bd_addr_ptr_t addr)
 }
 
 // returns true if lhs equals rhs address.
-bool compare_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
+bool equal_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
 {
-    return (lhs.type == rhs.type) && (0 == memcmp(lhs.addr, rhs.addr, sizeof(lhs.addr)));
+    return (lhs.type == rhs.type) && (0 == memcmp(lhs.addr, rhs.addr, BT_BD_ADDR_LEN));
 }
 
 
 void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
 	// this is a filter hook, executed after all BT message handlers
-#if 1
-	pr_debug("ard_ble_postAllEvents: %04x : %04x : %08x", msg, status, buff);
-#endif
+	
 	LBLE.handleEvent(msg, status, buff);
     return;
 }
@@ -306,12 +304,37 @@ void LBLEEventDispatcher::addObserver(bt_msg_type_t msg, LBLEEventObserver* pObs
 void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
 	EventTable::iterator i = m_table.find(msg);
-
 	// execute observer's callback and pop the element found 
 	while(i != m_table.end())
 	{
+		// process event
 		i->second->onEvent(msg, status, buff);
-		m_table.erase(i);
-		i = m_table.find(msg);
+		// check if we need to remove after processing the event
+		// make a copy before we advance to next item
+		auto j = i;
+		++i;
+		// 
+		if(j->second->isOnce())
+		{
+			m_table.erase(j);
+		}
 	}
+}
+
+bool waitAndProcessEvent(std::function<void(void)> action, 
+                        bt_msg_type_t msg, 
+                        std::function<void(bt_msg_type_t, bt_status_t, void *)> handler)
+{
+    EventBlocker h(msg, handler);
+    LBLE.registerForEvent(msg, &h);
+
+    action();
+
+    uint32_t start = millis();
+    while(!h.done() && (millis() - start) < 10 * 1000)
+    {
+        delay(50);
+    }
+
+    return h.done();
 }

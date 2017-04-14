@@ -2,7 +2,6 @@
 #include "LBLECentral.h"
 #include <stdlib.h>
 #include <vector>
-#include <functional>
 
 extern "C" {
 #include "utility/ard_ble.h"
@@ -10,17 +9,17 @@ extern "C" {
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-// Helper functions
+// Singlelton object definition
 //////////////////////////////////////////////////////////////////////////////////
-
-
+LBLECentralClass LBLECentral;
 
 //////////////////////////////////////////////////////////////////////////////////
 // LBLEAdvertisements
 //////////////////////////////////////////////////////////////////////////////////
-LBLEAdvertisements::LBLEAdvertisements(bt_gap_le_advertising_report_ind_t& adv,
-                                          bt_gap_le_advertising_report_ind_t& resp):
-    adv_data(adv),resp_data(resp)
+LBLEAdvertisements::LBLEAdvertisements(const bt_gap_le_advertising_report_ind_t& adv,
+                                       const bt_gap_le_advertising_report_ind_t& resp):
+    adv_data(adv),
+    resp_data(resp)
 {
 
 }
@@ -216,33 +215,33 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
 
 
 //////////////////////////////////////////////////////////////////////////////////
-// LBLECentral
+// LBLECentralClass
 //////////////////////////////////////////////////////////////////////////////////
-
-// global list of scanned peripherals(advertisements).
-std::vector<bt_gap_le_advertising_report_ind_t> LBLECentral::g_peripherals_found;
-
-LBLECentral::LBLECentral()
+LBLECentralClass::LBLECentralClass()
 {
 
 }
 
-void LBLECentral::scan()
+void LBLECentralClass::scan()
 {
     bt_status_t result = BT_STATUS_SUCCESS;
 
     bt_hci_cmd_le_set_scan_enable_t enbleSetting;
     enbleSetting.le_scan_enable = BT_HCI_ENABLE;
-    enbleSetting.filter_duplicates = BT_HCI_ENABLE;		// Enable driver-level filter for duplicated adv.
-
+    enbleSetting.filter_duplicates = BT_HCI_DISABLE;		// Disable driver-level filter for duplicated adv.
+                                                            // We'll filter in our onEvent() handler.
     bt_hci_cmd_le_set_scan_parameters_t scan_para;
     scan_para.own_address_type = BT_HCI_SCAN_ADDR_RANDOM;
-    scan_para.le_scan_type = BT_HCI_SCAN_TYPE_ACTIVE;		// Requesting scan-response from peripherals.
-                                                            // If you don't want scan-response,
-                                                            // use BT_HCI_SCAN_TYPE_PASSIVE instead.
+    scan_para.le_scan_type = BT_HCI_SCAN_TYPE_PASSIVE;		// Requesting scan-response from peripherals.
+                                                            // We use BT_HCI_SCAN_TYPE_PASSIVE because
+                                                            // we don't parse scan response data (yet).
     scan_para.scanning_filter_policy = BT_HCI_SCAN_FILTER_ACCEPT_ALL_ADVERTISING_PACKETS;
     scan_para.le_scan_interval = 0x0024;	// Interval between scans
     scan_para.le_scan_window = 0x0011;		// How long a scan keeps
+
+    // after scanning we'll receiving BT_GAP_LE_ADVERTISING_REPORT_IND
+    // so register and process it.
+    LBLE.registerForEvent(BT_GAP_LE_ADVERTISING_REPORT_IND, this);
 
     // set_scan is actually asynchronous - but since
     // we don't have anything to check, we keep going
@@ -252,7 +251,7 @@ void LBLECentral::scan()
     return;
 }
 
-void LBLECentral::stopScan()
+void LBLECentralClass::stopScan()
 {
     bt_status_t result = BT_STATUS_SUCCESS;
 
@@ -260,91 +259,73 @@ void LBLECentral::stopScan()
     enbleSetting.le_scan_enable = BT_HCI_DISABLE;
     enbleSetting.filter_duplicates = BT_HCI_DISABLE;
 
-    // set_scan is actually asynchronous - but since
-    // we don't have anything to check, we keep going
-    // without waiting for BT_GAP_LE_SET_SCAN_CNF.
-    result = bt_gap_le_set_scan(&enbleSetting, NULL);
+    // set_scan is actually asynchronous - to ensure
+    // m_peripherals_found does not get re-polulated,
+    // we wait for BT_GAP_LE_SET_SCAN_CNF.
+    bool done = waitAndProcessEvent(
+                        [&]()
+                        { 
+                            bt_gap_le_set_scan(&enbleSetting, NULL);
+                        },
 
-    g_peripherals_found.clear();
+                        BT_GAP_LE_SET_SCAN_CNF,
 
+                        [this](bt_msg_type_t msg, bt_status_t status, void* buf)
+                        {
+                            return;
+                        }
+            );
+
+    // we keep the BT_GAP_LE_ADVERTISING_REPORT_IND registered,
+    // assuming that the underlying framework won't send any new messages
     return;
 }
 
-int LBLECentral::getPeripheralCount()
+int LBLECentralClass::getPeripheralCount()
 {
-    return g_peripherals_found.size();
+    return m_peripherals_found.size();
 }
 
-String LBLECentral::getAddress(int index)
+String LBLECentralClass::getAddress(int index)
 {
-    return LBLEAddress::convertAddressToString(g_peripherals_found[index].address.addr);
+    return LBLEAddress::convertAddressToString(m_peripherals_found[index].address.addr);
 }
 
-LBLEAddress LBLECentral::getBLEAddress(int index)
+LBLEAddress LBLECentralClass::getBLEAddress(int index)
 {
-    return LBLEAddress(g_peripherals_found[index].address.addr);
+    return LBLEAddress(m_peripherals_found[index].address.addr);
 }
 
-String LBLECentral::getName(int index)
+String LBLECentralClass::getName(int index)
 {
     bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
     return parser.getName();
 }
 
-class EventBlocker : public LBLEEventObserver
+int32_t LBLECentralClass::getRSSI(int index)
 {
-public:
-    const bt_msg_type_t m_event;
-    bool m_eventArrived;
-    std::function<void(bt_msg_type_t , bt_status_t , void *)> m_handler;
-
-    EventBlocker(bt_msg_type_t e, std::function<void(bt_msg_type_t , bt_status_t , void *)>& handler):
-        m_event(e),
-        m_eventArrived(false),
-        m_handler(handler)
-    {
-
-    }
-
-    bool done() const
-    {
-        return m_eventArrived;
-    }
-
-    virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void* buff)
-    {
-        if(m_event == msg)
-        {
-            m_eventArrived = true;
-            m_handler(msg, status, buff);
-        }
-    }
-};
-
-int32_t LBLECentral::getRSSI(int index)
-{
-    return g_peripherals_found[index].rssi;
+    return m_peripherals_found[index].rssi;
 }
 
-int32_t LBLECentral::getTxPower(int index)
+int32_t LBLECentralClass::getTxPower(int index)
 {
     bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
     return parser.getTxPower();
 }
 
-LBLEUuid LBLECentral::getServiceUuid(int index) const
+LBLEUuid LBLECentralClass::getServiceUuid(int index) const
 {
     bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
     return parser.getServiceUuid();
 }
 
-bool LBLECentral::isIBeacon(int index) const
+bool LBLECentralClass::isIBeacon(int index) const
 {
     bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
 
     LBLEUuid uuid;
     uint16_t major, minor;
@@ -352,24 +333,24 @@ bool LBLECentral::isIBeacon(int index) const
     return parser.getIBeaconInfo(uuid, major, minor, txPower);
 }
 
-bool LBLECentral::getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const
+bool LBLECentralClass::getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const
 {
     bt_gap_le_advertising_report_ind_t dummy;
-    LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
     return parser.getIBeaconInfo(uuid, major, minor, txPower);
 }
 
-String LBLECentral::getManufacturer(int index) const
+String LBLECentralClass::getManufacturer(int index) const
 {
     bt_gap_le_advertising_report_ind_t dummy;
-    LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
     return parser.getManufacturer();
 }
 
-uint8_t  LBLECentral::getAdvertisementFlag(int index) const
+uint8_t  LBLECentralClass::getAdvertisementFlag(int index) const
 {
     bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(g_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
     return parser.getAdvertisementFlag();
 }
 
@@ -392,290 +373,53 @@ static const char* get_event_type(uint8_t type)
     }
 }
 
-// process incoming peripheral advertisement
-void LBLECentral::processAdvertisement(const bt_gap_le_advertising_report_ind_t *report)
+void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-    if(NULL == report)
+    if(BT_GAP_LE_ADVERTISING_REPORT_IND == msg)
     {
-        return;
-    }
-
-    switch(report->event_type)
-    {
-    case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_IND:
-        // advertising packet - add directly since we enabled `filter_duplicates`.
-        g_peripherals_found.push_back(*report);
-        break;
-    case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_SCAN_RSP:
-        //TODO: scan response - looking for matching address in g_peripherals_found list.
-        /*
-        for(int i = 0; i < g_peripherals_found.size(); ++i)
+        const bt_gap_le_advertising_report_ind_t* pReport = (bt_gap_le_advertising_report_ind_t*)buff;
+        if(BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_IND == pReport->event_type)
         {
-            // Search for duplication entry
-            if (compare_bt_address(g_peripherals_found[i].address, report->address))
+            // advertising packet - check if we need to update existing entry
+            // or appending new one.
+            const size_t peripheralCount = m_peripherals_found.size();
+            for(int i = 0; i < peripheralCount; ++i)
             {
-                g_peripherals_found[i] = *report;
-            }
-        }
-        */
-        break;
-    default:
-        // ignore other events
-        break;
-    }
-
-#if 0
-
-    if(report->data_length > LBLEAdvertisements::MAX_ADV_DATA_LEN)
-    {
-        Serial.print("Illegal adv data size=");
-        Serial.println(report->data_length);
-        return;
-    }
-
-    // Parse advertisement data
-    Serial.print("Type:");
-    Serial.println(get_event_type(report->event_type));
-
-    Serial.print("RSSI:");
-    Serial.println(report->rssi);
-
-    Serial.print("Addr:");
-    String addrStr = LBLEAddress::convertAddressToString(report->address.addr)
-    Serial.print("data_length:");
-    Serial.println(report->data_length);
-
-    int cursor = 0;
-    int ad_data_len = 0;
-    int ad_data_type = 0;
-    unsigned short ad_type_flag = 0;
-    uint8_t buff[LBLEAdvertisements::MAX_ADV_DATA_LEN] = {0};
-    while (cursor < report->data_length) {
-        ad_data_len = report->data[cursor];
-        Serial.print("AD: len=");
-        Serial.print(ad_data_len);
-
-        ad_data_type = report->data[cursor+1];
-        Serial.print(", Type=");
-        Serial.print(ad_data_type);
-        Serial.print(" ");
-
-        switch(ad_data_type)
-        {
-        case BT_GAP_LE_AD_TYPE_FLAG:
-            Serial.print("BT_GAP_LE_AD_TYPE_FLAG ");
-            ad_type_flag = *(unsigned short*)(report->data + cursor + 2);
-            if(ad_type_flag & (0x1 << 0)) Serial.print("| LE Limited Discovery ");
-            if(ad_type_flag & (0x1 << 1)) Serial.print("| LE Normal Discovery ");
-            if(ad_type_flag & (0x1 << 2)) Serial.print("| No BR/EDR ");
-            if(ad_type_flag & (0x1 << 3)) Serial.print("| Controller BR/EDR ");
-            if(ad_type_flag & (0x1 << 4)) Serial.print("| Host BR/EDR ");
-            break;
-        case BT_GAP_LE_AD_TYPE_16_BIT_UUID_PART:
-            Serial.println("BT_GAP_LE_AD_TYPE_16_BIT_UUID_PART");
-            break;
-        case BT_GAP_LE_AD_TYPE_16_BIT_UUID_COMPLETE:
-            Serial.println("BT_GAP_LE_AD_TYPE_16_BIT_UUID_COMPLETE");
-            break;
-        case BT_GAP_LE_AD_TYPE_32_BIT_UUID_PART:
-            Serial.println("BT_GAP_LE_AD_TYPE_32_BIT_UUID_PART");
-            break;
-        case BT_GAP_LE_AD_TYPE_32_BIT_UUID_COMPLETE:
-            Serial.println("BT_GAP_LE_AD_TYPE_32_BIT_UUID_COMPLETE");
-            break;
-        case BT_GAP_LE_AD_TYPE_128_BIT_UUID_PART:
-            Serial.println(" BT_GAP_LE_AD_TYPE_128_BIT_UUID_PART  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_128_BIT_UUID_COMPLETE:
-            {
-                Serial.print(" BT_GAP_LE_AD_TYPE_128_BIT_UUID_COMPLETE | ");
-                char str[37] = {};
-                unsigned char *uuid = (unsigned char*)(report->data + cursor + 2);
-                sprintf(str,
-                    "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                    uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
-                    uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]
-                );
-                Serial.print(str);
-            }
-            break;
-        case BT_GAP_LE_AD_TYPE_TX_POWER:
-            Serial.println(" BT_GAP_LE_AD_TYPE_TX_POWER  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_COD:
-            Serial.println(" BT_GAP_LE_AD_TYPE_COD  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_SM_TK:
-            Serial.println(" BT_GAP_LE_AD_TYPE_SM_TK  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_SM_OOB_FLAG:
-            Serial.println(" BT_GAP_LE_AD_TYPE_SM_OOB_FLAG  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_SLAVE_CONNECTION_INTERVAL_RANGE:
-            Serial.println(" BT_GAP_LE_AD_TYPE_SLAVE_CONNECTION_INTERVAL_RANGE  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_16_BIT_SOLICITATION_UUID:
-            Serial.println(" ---BT_GAP_LE_AD_TYPE_16_BIT_SOLICITATION_UUID-  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_128_BIT_SOLICITATION_UUID:
-            Serial.println(" BT_GAP_LE_AD_TYPE_128_BIT_SOLICITATION_UUID  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_16_BIT_UUID_DATA:
-            Serial.println(" BT_GAP_LE_AD_TYPE_16_BIT_UUID_DATA  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_PUBLIC_TARGET_ADDRESS:
-            Serial.println(" BT_GAP_LE_AD_TYPE_PUBLIC_TARGET_ADDRESS  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_RANDOM_TARGET_ADDRESS:
-            Serial.println(" BT_GAP_LE_AD_TYPE_RANDOM_TARGET_ADDRESS  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_LE_BT_DEVICE_ADDRESS:
-            Serial.println(" BT_GAP_LE_AD_TYPE_LE_BT_DEVICE_ADDRESS  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_APPEARANCE:
-            Serial.println(" BT_GAP_LE_AD_TYPE_APPEARANCE  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_ADV_INTERVAL:
-            Serial.println(" BT_GAP_LE_AD_TYPE_ADV_INTERVAL  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_LE_ROLE:
-            Serial.println(" BT_GAP_LE_AD_TYPE_LE_ROLE  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_32_BIT_SOLICITATION_UUID:
-            Serial.println(" BT_GAP_LE_AD_TYPE_32_BIT_SOLICITATION_UUID  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_32_BIT_UUID_DATA:
-            Serial.println(" BT_GAP_LE_AD_TYPE_32_BIT_UUID_DATA  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_128_BIT_UUID_DATA:
-            Serial.println(" BT_GAP_LE_AD_TYPE_128_BIT_UUID_DATA  ");
-            break;
-        case BT_GAP_LE_AD_TYPE_MANUFACTURER_SPECIFIC:
-            {
-                Serial.print(" BT_GAP_LE_AD_TYPE_MANUFACTURER_SPECIFIC ");
-                unsigned short vendorId = *(unsigned short*)(report->data + cursor + 2);
-                Serial.print(" vendor = ");
-                Serial.print(vendorId);
-                Serial.print("-");
-                Serial.print(getBluetoothCompanyName(vendorId));
-
-                // detect iBeacon
-                if(vendorId == 0x4C)
+                // check if already found
+                if(equal_bt_address(m_peripherals_found[i].address, pReport->address))
                 {
-                    Serial.print(" iBeacon => ");
-                    unsigned char *iBeaconBuffer = (unsigned char*)(report->data + cursor + 4);
-                    unsigned char beaconType = *(iBeaconBuffer++);
-                    unsigned char beaconLength = *(iBeaconBuffer++);
-
-                    Serial.print(" beaconType = ");
-                    Serial.print(beaconType);
-
-                    Serial.print(" beaconLength = ");
-                    Serial.print(beaconLength);
-
-                    Serial.print(" UUID=");
-                    char str[37] = {};
-                    unsigned char *uuid = (unsigned char*)(iBeaconBuffer);
-                    sprintf(str,
-                        "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                        uuid[0], uuid[1], uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7],
-                        uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]
-                    );
-                    Serial.print(str);
-                    iBeaconBuffer += 16;
-
-                    unsigned short majorNum = *(unsigned short*)iBeaconBuffer;
-                    Serial.print(" Major = ");
-                    Serial.print(majorNum);
-                    iBeaconBuffer += 2;
-
-                    unsigned short minorNum = *(unsigned short*)iBeaconBuffer;
-                    Serial.print(" Minor = ");
-                    Serial.print(minorNum);
-                    iBeaconBuffer += 2;
-
-                    int8_t txPower = *(int8_t*)iBeaconBuffer;
-                    Serial.print(" txPower = ");
-                    Serial.print(txPower);
+                    /*
+                    LBLEAddress a(m_peripherals_found[i].address.addr);
+                    LBLEAddress b(pReport->address.addr);
+                    Serial.print(a);
+                    Serial.print("------");
+                    Serial.println(b);
+                    */
+                    m_peripherals_found[i] = *pReport;
+                    return;
                 }
             }
 
-            break;
-        case BT_GAP_LE_AD_TYPE_NAME_SHORT:
-        case BT_GAP_LE_AD_TYPE_NAME_COMPLETE:
-            Serial.print("BT_GAP_LE_AD_TYPE_NAME = ");
-            strncpy((char*)buff, (const char*)(report->data + cursor + 2), ad_data_len - 2);
-            Serial.println((const char*)buff);
-            break;
-        default:
-            break;
-        }
-
-        /* Error handling for data length over 30 bytes. */
-        if (ad_data_len > 0x1F || ad_data_len < 0) {
+            // not found, append
+            m_peripherals_found.push_back(*pReport);
             return;
         }
-
-        cursor += (ad_data_len + 1);
-
-        Serial.println();
-    }
-#endif
-}
-
-// handles Central-related events from BLE framework
-extern "C"
-{
-
-void ard_ble_central_onCentralEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
-{
-    switch(msg)
-    {
-    case BT_GAP_LE_ADVERTISING_REPORT_IND:
-        LBLECentral::processAdvertisement((bt_gap_le_advertising_report_ind_t*)buff);
-        break;
-    case BT_GATTC_CHARC_VALUE_NOTIFICATION:
-        Serial.println("==============NOTIFICATION COMING===============");
-        bt_gatt_handle_value_notification_t* pNoti = (bt_gatt_handle_value_notification_t*)buff;
-        Serial.print("gatt length=");
-        Serial.println(pNoti->length);
-        Serial.print("Att opcode=");
-        Serial.println(pNoti->att_rsp->opcode);
-        Serial.print("Att handle=");
-        Serial.println(pNoti->att_rsp->handle);
-        Serial.print("Att value=");
-        for(int i = 0; i < 10; ++i)
+        else if(BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_SCAN_RSP == pReport->event_type)
         {
-            Serial.println(pNoti->att_rsp->attribute_value[i]);
+            // TODO: scan response - this usually carries extra information
+            // we need to find matching address in g_peripherals_found list,
+            // and insert the scan response info to that entry.
         }
-        
-        break;
     }
-}
-
 }
 
 ///////////////////////////////////////////////////////////////
 //		LBLEClient
 ///////////////////////////////////////////////////////////////
-
-// do ACTION and wait for MSG, if it arrives HANDLER is called.
-bool waitAndProcessEvent(std::function<void(void)> action, 
-                        bt_msg_type_t msg, 
-                        std::function<void(bt_msg_type_t, bt_status_t, void *)> handler)
+LBLEClient::LBLEClient():
+    m_connection(0)
 {
-    EventBlocker h(msg, handler);
-    LBLE.registerForEvent(msg, &h);
-
-    action();
-
-    uint32_t start = millis();
-    while(!h.done() && (millis() - start) < 10 * 1000)
-    {
-        delay(50);
-    }
-
-    return h.done();
+    
 }
 
 bool LBLEClient::connect(const LBLEAddress& address)
@@ -876,4 +620,25 @@ LBLEValueBuffer LBLEClient::readCharacterstic(LBLEUuid serviceUuid)
                 );
 
     return resultBuffer;
+}
+
+
+void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t status, void *buff)
+{
+    if(BT_GATTC_CHARC_VALUE_NOTIFICATION == msg)
+    {
+        Serial.println("==============NOTIFICATION COMING===============");
+        bt_gatt_handle_value_notification_t* pNoti = (bt_gatt_handle_value_notification_t*)buff;
+        Serial.print("gatt length=");
+        Serial.println(pNoti->length);
+        Serial.print("Att opcode=");
+        Serial.println(pNoti->att_rsp->opcode);
+        Serial.print("Att handle=");
+        Serial.println(pNoti->att_rsp->handle);
+        Serial.print("Att value=");
+        for(int i = 0; i < 10; ++i)
+        {
+            Serial.println(pNoti->att_rsp->attribute_value[i]);
+        }
+    }
 }

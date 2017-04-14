@@ -238,7 +238,7 @@ static void ard_ble_set_ready(void)
 // This callback is invoked in bt_task context.
 bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-    // Routing to event handlers
+    // special event handlers that cannot use the Dispatcher-Observer mechanism
     switch(msg)
 	{
     case BT_POWER_ON_CNF:
@@ -248,10 +248,6 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
         // initialization complete after setting random address
         ard_ble_set_ready();
         break;
-    case BT_GAP_LE_ADVERTISING_REPORT_IND:
-    case BT_GATTC_CHARC_VALUE_NOTIFICATION:
-        ard_ble_central_onCentralEvents(msg, status, buff);
-    	break;
     case BT_GAP_LE_CONNECT_IND:
         ard_ble_peri_onConnect(msg, status, buff);
         break;
@@ -262,11 +258,10 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
 		break;
 	}
 
-    // A generic fallback callback executed
-    // after all other event processors
+    // Dispatch to all observers
     ard_ble_postAllEvents(msg, status, buff);
 
-    /*Listen all BT event*/
+    // Listen to all BT event
     return BT_STATUS_SUCCESS;
 }
 

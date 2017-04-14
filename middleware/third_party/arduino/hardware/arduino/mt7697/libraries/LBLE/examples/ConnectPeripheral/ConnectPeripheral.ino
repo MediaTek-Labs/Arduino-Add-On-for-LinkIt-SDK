@@ -11,7 +11,6 @@
 // Note: 0x180A is the Heart Rate service
 const uint16_t SERVICE_TO_CONNECT = 0x180A;   
 
-LBLECentral central;
 LBLEClient client;
 
 void setup() {
@@ -27,32 +26,32 @@ void setup() {
   Serial.println("BLE ready");
 
   // start scanning nearby advertisements
-  central.scan();
+  LBLECentral.scan();
 }
 
 void printDeviceInfo(int i) {
   Serial.print("Addr: ");
-  Serial.println(central.getAddress(i));
+  Serial.println(LBLECentral.getAddress(i));
   Serial.print("RSSI: ");
-  Serial.println(central.getRSSI(i));
+  Serial.println(LBLECentral.getRSSI(i));
   Serial.print("Name: ");
-  Serial.println(central.getName(i));
+  Serial.println(LBLECentral.getName(i));
   Serial.print("UUID: ");
-  if (!central.getServiceUuid(i).isEmpty()) {
-    Serial.println(central.getServiceUuid(i));
+  if (!LBLECentral.getServiceUuid(i).isEmpty()) {
+    Serial.println(LBLECentral.getServiceUuid(i));
   } else {
     Serial.println();
   }
   Serial.print("Flag: ");
-  Serial.println(central.getAdvertisementFlag(i), HEX);
+  Serial.println(LBLECentral.getAdvertisementFlag(i), HEX);
   Serial.print("Manu: ");
-  Serial.println(central.getManufacturer(i));
+  Serial.println(LBLECentral.getManufacturer(i));
 
-  if (central.isIBeacon(i)) {
+  if (LBLECentral.isIBeacon(i)) {
     LBLEUuid uuid;
     uint16_t major = 0, minor = 0;
     uint8_t txPower = 0;
-    central.getIBeaconInfo(i, uuid, major, minor, txPower);
+    LBLECentral.getIBeaconInfo(i, uuid, major, minor, txPower);
 
     Serial.println("iBeacon->");
     Serial.print("    UUID: ");
@@ -86,15 +85,15 @@ void loop() {
       delay(3000);
 
       // enumerate advertisements found.
-      Serial.println(central.getPeripheralCount());
+      Serial.println(LBLECentral.getPeripheralCount());
       const LBLEUuid searchId((uint16_t)SERVICE_TO_CONNECT);
-      for (int i = 0; i < central.getPeripheralCount(); ++i) {
+      for (int i = 0; i < LBLECentral.getPeripheralCount(); ++i) {
         // find any heartrate device
-        const LBLEUuid serviceId = central.getServiceUuid(i);
+        const LBLEUuid serviceId = LBLECentral.getServiceUuid(i);
         if(serviceId == searchId)
         {
           state = CONNECTING;
-          serverAddress = central.getBLEAddress(i);
+          serverAddress = LBLECentral.getBLEAddress(i);
           Serial.print("Device found & connect to address");
           Serial.println(serverAddress);
         }

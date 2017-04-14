@@ -7,8 +7,6 @@
 #include <LBLE.h>
 #include <LBLECentral.h>
 
-LBLECentral scanner;
-
 void setup() {
   //Initialize serial
   Serial.begin(9600);
@@ -19,58 +17,74 @@ void setup() {
   while (!LBLE.ready()) {
     delay(10);
   }
-  Serial.println("BLE ready");
 
-  // start scanning nearby advertisements
-  scanner.scan();
-}
-
-void printDeviceInfo(int i) {
-  Serial.print("Addr: ");
-  Serial.println(scanner.getAddress(i));
-  Serial.print("RSSI: ");
-  Serial.println(scanner.getRSSI(i));
-  Serial.print("Name: ");
-  Serial.println(scanner.getName(i));
-  Serial.print("UUID: ");
-  if (!scanner.getServiceUuid(i).isEmpty()) {
-    Serial.println(scanner.getServiceUuid(i));
-  } else {
-    Serial.println();
+  Serial.println("BLE ready, start scan (wait 10 seconds)");
+  LBLECentral.scan();
+  for(int i = 0; i < 10; ++i)
+  {
+    delay(1000);
+    Serial.print(".");
   }
-  Serial.print("Flag: ");
-  Serial.println(scanner.getAdvertisementFlag(i), HEX);
-  Serial.print("Manu: ");
-  Serial.println(scanner.getManufacturer(i));
 
-  if (scanner.isIBeacon(i)) {
-    LBLEUuid uuid;
-    uint16_t major = 0, minor = 0;
-    uint8_t txPower = 0;
-    scanner.getIBeaconInfo(i, uuid, major, minor, txPower);
-
-    Serial.println("iBeacon->");
-    Serial.print("    UUID: ");
-    Serial.println(uuid);
-    Serial.print("    Major: ");
-    Serial.println(major);
-    Serial.print("    Minor: ");
-    Serial.println(minor);
-    Serial.print("    txPower: ");
-    Serial.println(txPower);
+  // list advertisements found.
+  Serial.print("Total ");
+  Serial.print(LBLECentral.getPeripheralCount());
+  Serial.println(" devices found:");
+  Serial.println("idx\taddress\t\t\tflag\tRSSI");
+  for (int i = 0; i < LBLECentral.getPeripheralCount(); ++i) {
+    printDeviceInfo(i);
   }
+  LBLECentral.stopScan();
+  Serial.println("------scan stopped-------");
 }
 
 void loop() {
-  // wait for a while
+  // do nothing
   delay(3000);
+}
 
-  // enumerate advertisements found.
-  Serial.println(scanner.getPeripheralCount());
-  for (int i = 0; i < scanner.getPeripheralCount(); ++i) {
-    Serial.println("---");
-    printDeviceInfo(i);
+void printDeviceInfo(int i) {
+  Serial.print(i);
+  Serial.print("\t");
+  Serial.print(LBLECentral.getAddress(i));
+  Serial.print("\t");
+  Serial.print(LBLECentral.getAdvertisementFlag(i), HEX);
+  Serial.print("\t");
+  Serial.print(LBLECentral.getRSSI(i));
+  Serial.print("\t");
+  const String name = LBLECentral.getName(i);
+  Serial.print(name);
+  if(name.length() == 0)
+  {
+    Serial.print("(Unknown)");
+  }
+  Serial.print(" by ");
+  const String manu = LBLECentral.getManufacturer(i);
+  Serial.print(manu);
+  Serial.print(", service: ");
+  if (!LBLECentral.getServiceUuid(i).isEmpty()) {
+    Serial.print(LBLECentral.getServiceUuid(i));
+  } else {
+    Serial.print("(no service info)");
   }
 
-  Serial.println("----------------------");
+  if (LBLECentral.isIBeacon(i)) {
+    LBLEUuid uuid;
+    uint16_t major = 0, minor = 0;
+    uint8_t txPower = 0;
+    LBLECentral.getIBeaconInfo(i, uuid, major, minor, txPower);
+
+    Serial.print(" ");
+    Serial.print("iBeacon->");
+    Serial.print("  UUID: ");
+    Serial.print(uuid);
+    Serial.print("\tMajor:");
+    Serial.print(major);
+    Serial.print("\tMinor:");
+    Serial.print(minor);
+    Serial.print("\ttxPower:");
+    Serial.print(txPower);
+  }
+
+  Serial.println();
 }

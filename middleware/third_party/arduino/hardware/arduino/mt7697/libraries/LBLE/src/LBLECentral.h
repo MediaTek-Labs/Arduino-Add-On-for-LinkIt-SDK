@@ -2,8 +2,8 @@
 
 */
 
-#ifndef LBLECENTRAL_H
-#define LBLECENTRAL_H
+#ifndef LBLECentral_H
+#define LBLECentral_H
 
 #include <inttypes.h>
 #include <vector>
@@ -26,10 +26,10 @@ using LBLEValueBuffer = std::vector<uint8_t>;
 // This class does not provide functions to connect to remote 
 // peripheral devices. Use LBLEClient class to connect to a remote
 // device and read/write its characteristics.
-class LBLECentral
+class LBLECentralClass : public LBLEEventObserver
 {
 public:
-	LBLECentral();
+	LBLECentralClass();
 
 	/* Scan all nearby BLE peripherals.
 	 * Note that it may took sometime for peripherals to get scanned.
@@ -76,21 +76,21 @@ public:
 	bool isIBeacon(int index) const;
 	bool getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower)const;
 
-protected:
+
+public:
 	// Event handlers and required data structure
-	static std::vector<bt_gap_le_advertising_report_ind_t> g_peripherals_found;
+	virtual bool isOnce() { return false; };
+	virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void *buff);
+
+	std::vector<bt_gap_le_advertising_report_ind_t> m_peripherals_found;
 	static void processAdvertisement(const bt_gap_le_advertising_report_ind_t *report);
-	
-	// Accessibility Modifiers
-	friend bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *buff);
-	friend void ard_ble_central_onCentralEvents(bt_msg_type_t msg, bt_status_t status, void *buff);
 };
 
 class LBLEAdvertisements
 {
 public:
-	LBLEAdvertisements(bt_gap_le_advertising_report_ind_t& adv,
-					   bt_gap_le_advertising_report_ind_t& resp);
+	LBLEAdvertisements(const bt_gap_le_advertising_report_ind_t& adv,
+					   const bt_gap_le_advertising_report_ind_t& resp);
 
 	virtual bool isValid() const;
 
@@ -147,8 +147,8 @@ public:
 
 private:
 	
-	bt_gap_le_advertising_report_ind_t& adv_data;
-	bt_gap_le_advertising_report_ind_t& resp_data;
+	const bt_gap_le_advertising_report_ind_t& adv_data;
+	const bt_gap_le_advertising_report_ind_t& resp_data;
 
 	// searches if a specific AD Type field exists in advertisement or scan response data.
 	// copy the content if found, and returns the length of the AD data found.
@@ -166,8 +166,10 @@ private:
 class LBLEClient
 {
 public:
+	LBLEClient();
+	
 	// Connect to a remote peripheral device.
-	// You can use LBLECentral to scan nearby devices and 
+	// You can use LBLECentralClass to scan nearby devices and 
 	// get their addresses
 	bool connect(const LBLEAddress& address);
 
@@ -186,10 +188,9 @@ public:
 	LBLEValueBuffer readCharacterstic(LBLEUuid uuid);
 
 protected:
-	
-
-protected:
 	bt_handle_t m_connection;
 	std::vector<LBLEUuid> m_services;
 };
+
+extern LBLECentralClass LBLECentral;
 #endif
