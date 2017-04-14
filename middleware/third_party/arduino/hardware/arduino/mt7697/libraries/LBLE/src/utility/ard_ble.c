@@ -249,6 +249,7 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
         ard_ble_set_ready();
         break;
     case BT_GAP_LE_ADVERTISING_REPORT_IND:
+    case BT_GATTC_CHARC_VALUE_NOTIFICATION:
         ard_ble_central_onCentralEvents(msg, status, buff);
     	break;
     case BT_GAP_LE_CONNECT_IND:

@@ -18,11 +18,14 @@ extern "C"
 extern "C" bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *buff);
 extern "C" void ard_ble_central_onCentralEvents(bt_msg_type_t msg, bt_status_t status, void *buff);
 
+using LBLEValueBuffer = std::vector<uint8_t>;
+
 // This class allows LinkIt 7697 to act as a BLE central device.
 // It can scan nearby BLE peripherals, checking if they are beacons or 
 // devices that provides GATT services.
-// Currently, this class does not provide functions to connect to remote 
-// peripheral devices.
+// This class does not provide functions to connect to remote 
+// peripheral devices. Use LBLEClient class to connect to a remote
+// device and read/write its characteristics.
 class LBLECentral
 {
 public:
@@ -52,11 +55,12 @@ public:
 	// Get scanned peripheral information by index,
 	// ranging from 0 to [getRemotePeripheralCount() - 1]
 	String getAddress(int index);
+	LBLEAddress getBLEAddress(int index);
 	String getName(int index);
 	int32_t getRSSI(int index);
 	int32_t getTxPower(int index);
 	LBLEUuid getServiceUuid(int index) const;
-	String getManufacturer(int index) const;
+	String getManufacturer(int index) const;	
 
 	// Advertisement Flags may be:
 	//	BT_GAP_LE_AD_FLAG_LIMITED_DISCOVERABLE     (0x01)
@@ -71,7 +75,7 @@ public:
 
 	bool isIBeacon(int index) const;
 	bool getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower)const;
-	
+
 protected:
 	// Event handlers and required data structure
 	static std::vector<bt_gap_le_advertising_report_ind_t> g_peripherals_found;
@@ -159,10 +163,33 @@ private:
 												  const bt_gap_le_advertising_report_ind_t& payload);
 };
 
-class LBLEiBeacon
+class LBLEClient
 {
 public:
+	// Connect to a remote peripheral device.
+	// You can use LBLECentral to scan nearby devices and 
+	// get their addresses
+	bool connect(const LBLEAddress& address);
 
+	// check if connected to remote device.
+	bool connected();
+
+	// disconnect from the remote device
+	void disconnect();
+	
+	// check availalbe services of the connected peripheral
+	int discoverServices();
+	int getServiceCount();
+	LBLEUuid getServiceUuid(int index);
+	
+	// Read raw data from a given characteristic
+	LBLEValueBuffer readCharacterstic(LBLEUuid uuid);
+
+protected:
+	
+
+protected:
+	bt_handle_t m_connection;
+	std::vector<LBLEUuid> m_services;
 };
-
 #endif

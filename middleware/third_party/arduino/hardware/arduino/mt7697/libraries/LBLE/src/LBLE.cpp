@@ -26,7 +26,17 @@ LBLEAddress LBLEClass::getDeviceAddress()
 	// the underlying framework passes an pointer
 	// to global device address.
 	return LBLEAddress(bt_gap_le_get_random_address());
-}      
+}
+
+void LBLEClass::registerForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver)
+{
+	m_dispatcher.addObserver(msg, pObserver);
+}
+
+void LBLEClass::handleEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
+{
+	m_dispatcher.dispatch(msg, status, buff);
+}
 
 LBLEClass LBLE;
 
@@ -128,6 +138,11 @@ LBLEUuid & LBLEUuid::operator = (const char* rhs)
 {
 	str_to_uuid(uuid_data, rhs);
 	return *this;
+}
+
+unsigned char LBLEUuid::equals(const LBLEUuid &rhs) const
+{
+	return bt_uuid_equal(&uuid_data, &rhs.uuid_data);
 }
 
 bool LBLEUuid::isEmpty() const
@@ -279,5 +294,24 @@ void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
 #if 1
 	pr_debug("ard_ble_postAllEvents: %04x : %04x : %08x", msg, status, buff);
 #endif
+	LBLE.handleEvent(msg, status, buff);
     return;
+}
+
+void LBLEEventDispatcher::addObserver(bt_msg_type_t msg, LBLEEventObserver* pObserver)
+{
+	m_table.insert(std::make_pair(msg, pObserver));
+}
+
+void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *buff)
+{
+	EventTable::iterator i = m_table.find(msg);
+
+	// execute observer's callback and pop the element found 
+	while(i != m_table.end())
+	{
+		i->second->onEvent(msg, status, buff);
+		m_table.erase(i);
+		i = m_table.find(msg);
+	}
 }
