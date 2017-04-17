@@ -25,7 +25,11 @@ LBLEAddress LBLEClass::getDeviceAddress()
 {
 	// the underlying framework passes an pointer
 	// to global device address.
-	return LBLEAddress(bt_gap_le_get_random_address());
+	bt_addr_t btAddr = {0};
+	bt_bd_addr_ptr_t randBDAddr = bt_gap_le_get_random_address();
+	btAddr.type = BT_ADDR_RANDOM;
+	memcpy(&btAddr.addr, randBDAddr, BT_BD_ADDR_LEN);
+	return LBLEAddress(btAddr);
 }
 
 void LBLEClass::registerForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver)
@@ -233,19 +237,20 @@ size_t LBLEUuid::printTo(Print& p) const
 // LBLEAddress helper class
 /////////////////////////////////////////////////////////////////////////////
 LBLEAddress::LBLEAddress():
-	m_addr(NULL)
+	m_addr()
 {
-
+	memset(&m_addr, sizeof(m_addr), 0);
 }
 
-LBLEAddress::LBLEAddress(bt_bd_addr_ptr_t addr)
+LBLEAddress::LBLEAddress(const bt_addr_t& btAddr)
 {
-	m_addr = addr;
+	m_addr.type = btAddr.type;
+	memcpy(m_addr.addr, btAddr.addr, BT_BD_ADDR_LEN);
 }
 
 LBLEAddress::~LBLEAddress()
 {
-	m_addr = NULL;
+	
 }
 
 size_t LBLEAddress::printTo(Print& p) const
@@ -258,18 +263,55 @@ size_t LBLEAddress::printTo(Print& p) const
 
 String LBLEAddress::toString() const
 {
-	return convertAddressToString(m_addr);
+	return convertBluetoothAddressToString(m_addr);
 }
 
-String LBLEAddress::convertAddressToString(const bt_bd_addr_ptr_t addr)
+const char* LBLEAddress::getAddressTypeString(bt_addr_type_t addrType)
+{
+	switch(addrType)
+	{
+	case BT_ADDR_PUBLIC:
+		return "PUB";
+	case BT_ADDR_RANDOM:
+		return "RAN";
+	case BT_ADDR_PUBLIC_IDENTITY:
+		return "PID";
+	case BT_ADDR_RANDOM_IDENTITY:
+		return "RID";
+	default:
+		return "---";
+	}
+}
+
+String LBLEAddress::convertBluetoothAddressToString(const bt_addr_t& btAddr)
+{
+	// 6-byte MAC address in HEX with ":" as seperator, 
+	// and 5-byte address type, e.g. "(PUB)",
+	// plus NULL terminator
+    char buf[BT_BD_ADDR_LEN * 2 + BT_BD_ADDR_LEN - 1 + 5 + 1] = {0};
+    sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X(%s)",
+                btAddr.addr[5],
+                btAddr.addr[4],
+                btAddr.addr[3],
+                btAddr.addr[2],
+                btAddr.addr[1],
+                btAddr.addr[0],
+				getAddressTypeString(btAddr.type)
+				);
+
+    return String(buf);
+}
+
+String LBLEAddress::convertDeviceAddressToString(const bt_bd_addr_ptr_t addr)
 {
 	if(NULL == addr)
 	{
 		return String();
 	}
 
-	// 6-byte MAC address in HEX with ":" as seperator, plus NULL terminator
-    char addr_buf[sizeof(bt_bd_addr_t) * 2 + sizeof(bt_bd_addr_t) - 1 + 1] = {0};
+	// 6-byte MAC address in HEX with ":" as seperator, 
+	// plus NULL terminator
+    char addr_buf[BT_BD_ADDR_LEN * 2 + BT_BD_ADDR_LEN - 1 + 1] = {0};
     sprintf(addr_buf, "%02X:%02X:%02X:%02X:%02X:%02X",
                 addr[5],
                 addr[4],
@@ -281,10 +323,29 @@ String LBLEAddress::convertAddressToString(const bt_bd_addr_ptr_t addr)
     return String(addr_buf);
 }
 
+unsigned char LBLEAddress::equals(const LBLEAddress& rhs) const
+{
+	if(this == &rhs)
+	{
+		return 1;
+	}
+
+	return equal_bt_address(this->m_addr, rhs.m_addr);
+}
+
 // returns true if lhs equals rhs address.
-bool equal_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
+bool LBLEAddress::equal_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs)
 {
     return (lhs.type == rhs.type) && (0 == memcmp(lhs.addr, rhs.addr, BT_BD_ADDR_LEN));
+}
+
+LBLEAddress& LBLEAddress::operator = (const LBLEAddress &rhs)
+{
+	if(this == &rhs)
+		return *this;
+
+	m_addr.type = rhs.m_addr.type;
+	memcpy(m_addr.addr, rhs.m_addr.addr, BT_BD_ADDR_LEN);
 }
 
 

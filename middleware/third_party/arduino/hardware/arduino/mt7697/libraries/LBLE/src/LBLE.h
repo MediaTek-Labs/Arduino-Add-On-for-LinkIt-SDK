@@ -15,9 +15,6 @@ extern "C" {
 #include "utility/ard_ble.h"
 }
 
-// returns true if lhs equals rhs address.
-bool equal_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs);
-
 class LBLEUuid : public Printable
 {
 public: // Constructors
@@ -55,18 +52,27 @@ class LBLEAddress : public Printable
 {
 public: // Constructors
 	LBLEAddress();
-	LBLEAddress(bt_bd_addr_ptr_t addr);
+	LBLEAddress(const bt_addr_t& btAddr);
 	~LBLEAddress();
 
 public:	// implementing Pritable
 	String toString() const;
 	virtual size_t printTo(Print& p) const;
 
+	// returns true if lhs equals rhs address.
+	static bool equal_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs);
+	unsigned char equals(const LBLEAddress &rhs) const;
+	unsigned char operator == (const LBLEAddress &rhs) const {return equals(rhs);}
+	LBLEAddress& operator = (const LBLEAddress &rhs);
+
+
 public:	// Helper function
-	static String convertAddressToString(const bt_bd_addr_ptr_t addr);
+	static String convertDeviceAddressToString(const bt_bd_addr_ptr_t addr);
+	static String convertBluetoothAddressToString(const bt_addr_t& addr);
+	static const char* getAddressTypeString(bt_addr_type_t addrType);
 
 public:
-	bt_bd_addr_ptr_t m_addr;
+	bt_addr_t m_addr;
 };
 
 class LBLEEventObserver

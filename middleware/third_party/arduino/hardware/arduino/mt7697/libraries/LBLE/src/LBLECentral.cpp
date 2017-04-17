@@ -288,12 +288,13 @@ int LBLECentralClass::getPeripheralCount()
 
 String LBLECentralClass::getAddress(int index)
 {
-    return LBLEAddress::convertAddressToString(m_peripherals_found[index].address.addr);
+    LBLEAddress addr(m_peripherals_found[index].address);
+    return addr.toString();
 }
 
 LBLEAddress LBLECentralClass::getBLEAddress(int index)
 {
-    return LBLEAddress(m_peripherals_found[index].address.addr);
+    return LBLEAddress(m_peripherals_found[index].address);
 }
 
 String LBLECentralClass::getName(int index)
@@ -386,7 +387,7 @@ void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff
             for(int i = 0; i < peripheralCount; ++i)
             {
                 // check if already found
-                if(equal_bt_address(m_peripherals_found[i].address, pReport->address))
+                if(LBLEAddress::equal_bt_address(m_peripherals_found[i].address, pReport->address))
                 {
                     /*
                     LBLEAddress a(m_peripherals_found[i].address.addr);
@@ -429,10 +430,12 @@ bool LBLEClient::connect(const LBLEAddress& address)
     conn_para.le_scan_window = 0x0010;
     conn_para.initiator_filter_policy = BT_HCI_CONN_FILTER_ASSIGNED_ADDRESS;
 
-    // TODO: we need to combine addresst ype (public/random) into LBLEAddress
-    conn_para.peer_address.type = BT_ADDR_RANDOM;
-
-    memcpy(conn_para.peer_address.addr, address.m_addr, BT_BD_ADDR_LEN);
+    conn_para.peer_address.type = address.m_addr.type;
+    Serial.print("type=");
+    Serial.println(address.m_addr.type);
+    memcpy(conn_para.peer_address.addr, address.m_addr.addr, BT_BD_ADDR_LEN);
+    
+    Serial.println(address);
 
     conn_para.own_address_type = BT_ADDR_RANDOM;
     conn_para.conn_interval_min = 0x0006;
