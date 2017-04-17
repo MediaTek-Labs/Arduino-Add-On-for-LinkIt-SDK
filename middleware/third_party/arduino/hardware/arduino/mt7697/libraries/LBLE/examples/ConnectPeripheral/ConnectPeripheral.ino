@@ -83,6 +83,7 @@ void loop() {
     {
       // wait for a while
       delay(3000);
+      Serial.println("state=SEARCHING");
 
       // enumerate advertisements found.
       Serial.println(LBLECentral.getPeripheralCount());
@@ -92,21 +93,27 @@ void loop() {
         const LBLEUuid serviceId = LBLECentral.getServiceUuid(i);
         if(serviceId == searchId)
         {
-          state = CONNECTING;
           serverAddress = LBLECentral.getBLEAddress(i);
-          Serial.print("Device found & connect to address");
+          Serial.print("Device found & connect to address ");
           Serial.println(serverAddress);
+          // we should stop scan before connecting to devices
+          LBLECentral.stopScan();
+          state = CONNECTING;
         }
       }
     }
     break;
   case CONNECTING:
   {
-    Serial.println("Connecting...");
+    Serial.println("state=CONNECTING");
     client.connect(serverAddress);
     if(client.connected())
     {
       state = CONNECTED;
+    }
+    else
+    {
+      Serial.println("can't connect");
     }
     client.discoverServices();
     const int serviceCount = client.getServiceCount();
@@ -119,7 +126,7 @@ void loop() {
   break;
   case CONNECTED:
   {
-    Serial.println("yeah! connected");
+    Serial.println("state=CONNECTED");
 
     // read the "Battery Level" characteristic
     // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.characteristic.battery_level.xml
