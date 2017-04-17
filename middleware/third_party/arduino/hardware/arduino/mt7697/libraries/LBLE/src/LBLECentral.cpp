@@ -6,6 +6,7 @@
 extern "C" {
 #include "utility/ard_ble.h"
 #include "utility/ard_bt_company_id.h"
+#include <bt_gattc.h>
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +151,8 @@ LBLEUuid LBLEAdvertisements::getServiceUuid() const
 
     // Process "complete" uuid only - since we don't know how to handle partial uuid.
     // A "partial" uuid needs to be defined by the device manufacturer.
-    if(dataLen = getAdvDataWithType(BT_GAP_LE_AD_TYPE_128_BIT_UUID_COMPLETE, dataBuf, MAX_ADV_DATA_LEN))
+    dataLen = getAdvDataWithType(BT_GAP_LE_AD_TYPE_128_BIT_UUID_COMPLETE, dataBuf, MAX_ADV_DATA_LEN);
+    if(dataLen)
     {
         memcpy(uuid_data.uuid, dataBuf, dataLen);
     }
@@ -176,6 +178,9 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
     do
     {
         dataLen = getAdvDataWithType(BT_GAP_LE_AD_TYPE_MANUFACTURER_SPECIFIC, dataBuf, MAX_ADV_DATA_LEN);
+
+        if(dataLen < 4)
+            break;
 
         const unsigned short vendorId = *(unsigned short*)(dataBuf);
 
@@ -389,13 +394,6 @@ void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff
                 // check if already found
                 if(LBLEAddress::equal_bt_address(m_peripherals_found[i].address, pReport->address))
                 {
-                    /*
-                    LBLEAddress a(m_peripherals_found[i].address.addr);
-                    LBLEAddress b(pReport->address.addr);
-                    Serial.print(a);
-                    Serial.print("------");
-                    Serial.println(b);
-                    */
                     m_peripherals_found[i] = *pReport;
                     return;
                 }
@@ -431,11 +429,7 @@ bool LBLEClient::connect(const LBLEAddress& address)
     conn_para.initiator_filter_policy = BT_HCI_CONN_FILTER_ASSIGNED_ADDRESS;
 
     conn_para.peer_address.type = address.m_addr.type;
-    Serial.print("type=");
-    Serial.println(address.m_addr.type);
     memcpy(conn_para.peer_address.addr, address.m_addr.addr, BT_BD_ADDR_LEN);
-    
-    Serial.println(address);
 
     conn_para.own_address_type = BT_ADDR_RANDOM;
     conn_para.conn_interval_min = 0x0006;
@@ -483,7 +477,7 @@ LBLEUuid LBLEClient::getServiceUuid(int index)
         return LBLEUuid();
     }
 
-    return m_services[index];
+    return m_services[index].uuid;
 }
 
 int LBLEClient::discoverServices()
@@ -538,17 +532,25 @@ int LBLEClient::discoverServices()
                         for (int i = 0; i < entryCount; ++i){
                             memcpy(&startIndex, attrDataList + i * entryLength, 2);
                             memcpy(&endIndex, attrDataList + i * entryLength + 2, 2);
+                            
+                            LBLEServiceInfo serviceInfo;
+
                             if (entryLength == 6) {
                                 // 16-bit UUID case
                                 memcpy(&uuid16, attrDataList + i * entryLength + 4, entryLength - 4);
-                                m_services.push_back(LBLEUuid(uuid16));
+                                serviceInfo.uuid = LBLEUuid(uuid16);
                             } else {
                                 // 128-bit UUID case
                                 memcpy(&uuid128.uuid, attrDataList + i * entryLength + 4, entryLength - 4);
-                                m_services.push_back(LBLEUuid(uuid128));
+                                serviceInfo.uuid = LBLEUuid(uuid128);
                             }
+
+                            serviceInfo.startHandle = startIndex;
+                            serviceInfo.endHandle = endIndex;
+
+                            m_services.push_back(serviceInfo);
                         }
-                            
+
                         // check if we need to perform more search
                         shouldContinue = (status == BT_ATT_ERRCODE_CONTINUE);
                         
@@ -561,7 +563,106 @@ int LBLEClient::discoverServices()
     return m_services.size();
 }
 
-LBLEValueBuffer LBLEClient::readCharacterstic(LBLEUuid serviceUuid)
+int LBLEClient::discoverCharacteristics()
+{
+    if(!connected())
+    {
+        return 0;
+    }
+
+    // for each service, find the value handle of each characteristic.
+    for(int i = 0; i < m_services.size(); ++i)
+    {
+      pr_debug("Enumerate charc between handle (%d-%d)", m_services[i].startHandle, m_services[i].endHandle)
+      discoverCharacteristicsOfService(m_services[i]);
+    }
+
+    return m_characteristics.size();
+}
+
+int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
+{
+    // discover all characteristics and store mapping between (UUID -> value handle)
+    // note that this search could require multiple request-response, 
+    // see https://community.nxp.com/thread/332233 for an example.
+
+    if(!connected())
+    {
+        return 0;
+    }
+
+    // Prepare the search request - we will reuse this structure
+    // across multiple requests, by updating the **starting_handle**
+    bt_gattc_discover_charc_req_t searchRequest = {
+        .opcode = BT_ATT_OPCODE_READ_BY_TYPE_REQUEST,
+        .starting_handle = s.startHandle,
+        .ending_handle = s.endHandle,
+    };
+    uint16_t charcUuid = BT_GATT_UUID16_CHARC;
+    bt_uuid_load(&searchRequest.type, (void*)&charcUuid, 2);
+
+    // serviceFound is the output variable,
+    // shouldContinue is the stopping conditon. They will be updated in the event process lambda below.
+    bool shouldContinue = false;
+    bool done = false;
+
+    // start searching from 1
+    do
+    {
+        done = waitAndProcessEvent(
+                    // start characteristic discovery
+                    [this, &searchRequest]()
+                    { 
+                        bt_gattc_discover_charc(m_connection, &searchRequest);
+                    },
+                    // wait for the event...
+                    BT_GATTC_DISCOVER_CHARC,
+                    // and process it in BT task context with this lambda
+                    [this, &searchRequest, &shouldContinue](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    {
+                        pr_debug("discoverCharacteristicsOfService=%d", status);
+
+                        // Parse the response to service UUIDs. It can be 16-bit or 128-bit
+                        const bt_gattc_read_by_type_rsp_t* rsp = (bt_gattc_read_by_type_rsp_t*)buf;
+                        uint16_t attributeHandle = 0, valueHandle = 0;
+                        uint8_t properties = 0;
+                        uint16_t uuid16 = 0;
+                        bt_uuid_t uuid128;
+                        const uint8_t *attrDataList = rsp->att_rsp->attribute_data_list;
+                        const uint32_t entryLength = rsp->att_rsp->length;
+                        // note that att_rsp will always have same length of each uuid-16 service,
+                        // because a response can only represent a single uuid-128 service.
+                        const uint8_t entryCount = (rsp->length - 2) / entryLength;
+                        for (int i = 0; i < entryCount; ++i){
+                            memcpy(&attributeHandle, attrDataList + i * rsp->att_rsp->length, 2);
+                            memcpy(&properties, attrDataList + i * rsp->att_rsp->length + 2, 1);
+                            memcpy(&valueHandle, attrDataList + i * rsp->att_rsp->length + 3, 2);
+                            
+
+                            if (rsp->att_rsp->length < 20) {
+                                // 16-bit UUID case
+                                memcpy(&uuid16, attrDataList + i * rsp->att_rsp->length + 5, 2);
+                                m_characteristics.insert(std::make_pair(LBLEUuid(uuid16), valueHandle));
+                            } else {
+                                // 128-bit UUID case
+                                memcpy(&uuid128.uuid, attrDataList + i * entryLength + 5, 16);
+                                m_characteristics.insert(std::make_pair(LBLEUuid(uuid128), valueHandle));
+                            }
+                        }
+                            
+                        // check if we need to perform more search
+                        shouldContinue = (status == BT_ATT_ERRCODE_CONTINUE) && (entryCount > 0);
+
+                        // update starting handle for next round of search
+                        searchRequest.starting_handle = valueHandle;
+                    }
+        );
+    }while(shouldContinue && done);
+
+    return done;
+}
+
+LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
 {
     if(!connected())
     {
@@ -609,8 +710,7 @@ LBLEValueBuffer LBLEClient::readCharacterstic(LBLEUuid serviceUuid)
 
                             if(BT_ATT_OPCODE_READ_BY_TYPE_RESPONSE != pReadResponse->att_rsp->opcode)
                             {
-                                Serial.print("Op code don't match! Opcode=");
-                                Serial.println(pReadResponse->att_rsp->opcode);
+                                pr_debug("Op code don't match! Opcode=%d", pReadResponse->att_rsp->opcode);
                                 break;
                             }
 
@@ -625,23 +725,86 @@ LBLEValueBuffer LBLEClient::readCharacterstic(LBLEUuid serviceUuid)
     return resultBuffer;
 }
 
+int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer& value)
+{
+    // make sure this is smaller than MTU - header size
+    const uint32_t MAXIMUM_WRITE_SIZE = 20;
+
+    // we need to check if the UUID have a known value handle.
+    // Note that discoverCharacteristic() builds the mapping table.
+    auto found = m_characteristics.find(uuid);
+    if(found == m_characteristics.end())
+    {
+        return 0;
+    }
+
+    // value buffer too big
+    if(value.size() > MAXIMUM_WRITE_SIZE)
+    {
+        return 0;
+    }
+
+    LBLEValueBuffer reqBuf;
+    reqBuf.resize(value.size() + sizeof(bt_att_write_req_t));
+
+    bt_gattc_write_charc_req_t req = {0};
+    req.attribute_value_length = value.size();
+    req.att_req = (bt_att_write_req_t*)&reqBuf[0];
+    req.att_req->opcode = BT_ATT_OPCODE_WRITE_REQUEST;
+    req.att_req->attribute_handle = found->second;
+    memcpy(req.att_req->attribute_value, &value[0], value.size());
+
+    bool done = waitAndProcessEvent(
+                    // start read request
+                    [&]()
+                    { 
+                        bt_gattc_write_charc(m_connection, &req);
+                    },
+                    // wait for event...
+                    BT_GATTC_WRITE_CHARC,
+                    // and parse event result in bt task context
+                    [this](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    {
+                        const bt_gattc_write_rsp_t *pWriteResp = (bt_gattc_write_rsp_t*)buf;
+                        if(BT_GATTC_WRITE_CHARC != msg || pWriteResp->connection_handle != m_connection)
+                        {
+                            // not for our request
+                            return;
+                        }
+                        
+                        do{
+                            // check error case
+                            if(BT_ATT_OPCODE_ERROR_RESPONSE == pWriteResp->att_rsp->opcode)
+                            {
+                                const bt_gattc_error_rsp_t* pErr = (bt_gattc_error_rsp_t*)buf;
+                                pr_debug("error reading attribute");
+                                pr_debug("error_opcode=%d", pErr->att_rsp->error_opcode);
+                                pr_debug("error_code=%d", pErr->att_rsp->error_code);
+                                break;
+                            }
+
+                            if(BT_ATT_OPCODE_WRITE_RESPONSE != pWriteResp->att_rsp->opcode)
+                            {
+                                pr_debug("Op code don't match! Opcode=%d", pWriteResp->att_rsp->opcode);
+                                break;
+                            }
+                        }while(false);
+                    }
+                );
+
+    return done;
+}
+
 
 void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
     if(BT_GATTC_CHARC_VALUE_NOTIFICATION == msg)
     {
-        Serial.println("==============NOTIFICATION COMING===============");
+        pr_debug("==============NOTIFICATION COMING===============");
         bt_gatt_handle_value_notification_t* pNoti = (bt_gatt_handle_value_notification_t*)buff;
-        Serial.print("gatt length=");
-        Serial.println(pNoti->length);
-        Serial.print("Att opcode=");
-        Serial.println(pNoti->att_rsp->opcode);
-        Serial.print("Att handle=");
-        Serial.println(pNoti->att_rsp->handle);
-        Serial.print("Att value=");
-        for(int i = 0; i < 10; ++i)
-        {
-            Serial.println(pNoti->att_rsp->attribute_value[i]);
-        }
+        pr_debug("gatt length=(%d), opcode=(%d), handle=(%d)", 
+                        pNoti->length,
+                        pNoti->att_rsp->opcode,
+                        pNoti->att_rsp->handle);
     }
 }

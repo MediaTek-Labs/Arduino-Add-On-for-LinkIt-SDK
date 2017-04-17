@@ -149,6 +149,33 @@ unsigned char LBLEUuid::equals(const LBLEUuid &rhs) const
 	return bt_uuid_equal(&uuid_data, &rhs.uuid_data);
 }
 
+bool LBLEUuid::operator<(const LBLEUuid &rhs) const
+{
+	if(is16Bit())
+	{
+		return (uuid_data.uuid16 < rhs.uuid_data.uuid16);
+	}
+	else if(bt_uuid_is_uuid32(&uuid_data))
+	{
+		return (uuid_data.uuid32 < rhs.uuid_data.uuid32);
+	}
+	else
+	{
+		// 128-bit: compare from MSB to LSB
+		for(int i = 0; i < 16; ++i)
+		{
+			const uint8_t byteLhs = uuid_data.uuid[15 - i];
+			const uint8_t byteRhs = rhs.uuid_data.uuid[15 - i];
+			if(byteLhs != byteRhs)
+			{
+				return (byteLhs < byteRhs);
+			}
+		}
+	}
+
+	return false;
+}
+
 bool LBLEUuid::isEmpty() const
 {
 	const static bt_uuid_t zero_data = {0};
@@ -194,7 +221,7 @@ String LBLEUuid::toString() const
 	else if(bt_uuid_is_uuid32(&uuid_data))
 	{
 		sprintf(str, 
-			"0x%08x", 
+			"0x%08lx", 
 		    uuid_data.uuid32
 		);
 	}

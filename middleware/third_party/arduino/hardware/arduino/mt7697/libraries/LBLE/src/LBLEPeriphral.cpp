@@ -509,11 +509,6 @@ uint32_t LBLECharacteristicString::onWrite(void *data, uint16_t size, uint16_t o
 {
 	const uint32_t finalStringSize = size + offset;
 
-	Serial.print("onWrite String:");
-	Serial.print(size);
-	Serial.print(",");
-	Serial.print(offset);
-
 	// check if exceeding GATT limit
 	if(finalStringSize > MAX_ATTRIBUTE_DATA_LEN)
 	{
@@ -604,8 +599,6 @@ uint32_t LBLECharacteristicInt::onWrite(void *data, uint16_t size, uint16_t offs
     memcpy(((uint8_t*)(&m_data)) + offset, data, copySize);
 
 	m_updated = true;
-
-	Serial.println("onWrite!");
 
 	return copySize;
 }

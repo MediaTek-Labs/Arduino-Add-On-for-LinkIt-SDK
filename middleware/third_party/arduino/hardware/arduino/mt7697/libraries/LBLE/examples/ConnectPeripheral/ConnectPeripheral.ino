@@ -122,6 +122,9 @@ void loop() {
     {
       Serial.println(client.getServiceUuid(i));
     }
+
+    client.discoverCharacteristics();
+
   }
   break;
   case CONNECTED:
@@ -144,6 +147,13 @@ void loop() {
       Serial.print("battery=");
       Serial.println(value[0]);
     }
+
+    
+    value.resize(18, 0);
+    const char* text ="helloworld!";
+    memcpy(&value[0], (void*)text, 12);
+    client.writeCharacteristic(LBLEUuid((uint16_t)0x2A39), value);
+
 
     // delay for 10 seconds.
     delay(10000);

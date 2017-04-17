@@ -9,6 +9,7 @@
 #include <vector>
 #include <WString.h>
 #include <LBLE.h>
+#include <map>
 
 extern "C"
 {
@@ -163,6 +164,13 @@ private:
 												  const bt_gap_le_advertising_report_ind_t& payload);
 };
 
+struct LBLEServiceInfo
+{
+	LBLEUuid uuid;
+	uint16_t startHandle;
+	uint16_t endHandle;
+};
+
 class LBLEClient
 {
 public:
@@ -185,11 +193,16 @@ public:
 	LBLEUuid getServiceUuid(int index);
 	
 	// Read raw data from a given characteristic
-	LBLEValueBuffer readCharacterstic(LBLEUuid uuid);
+	int discoverCharacteristics();
+	int discoverCharacteristicsOfService(const LBLEServiceInfo& s);
+
+	LBLEValueBuffer readCharacterstic(const LBLEUuid& uuid);
+	int writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer& value);
 
 protected:
 	bt_handle_t m_connection;
-	std::vector<LBLEUuid> m_services;
+	std::vector<LBLEServiceInfo> m_services;
+	std::map<LBLEUuid, uint16_t> m_characteristics;
 };
 
 extern LBLECentralClass LBLECentral;

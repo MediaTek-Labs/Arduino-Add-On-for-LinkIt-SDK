@@ -32,6 +32,7 @@ public:
 
 	unsigned char equals(const LBLEUuid &rhs) const;
 	unsigned char operator == (const LBLEUuid &rhs) const {return equals(rhs);}
+	bool operator<(const LBLEUuid &rhs) const;
 
 
 public:	// implementing Pritable
