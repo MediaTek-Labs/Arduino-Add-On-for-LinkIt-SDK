@@ -1,6 +1,5 @@
 #!/usr/bin/env python2.7
 
-
 from optparse import OptionParser
 import serial
 import xmodem
@@ -150,7 +149,7 @@ m = xmodem.XMODEM(getc, putc, mode='xmodem1k')
 
 stream = open(da_path, 'rb')
 m.send(stream)
-s.baudrate = 115200*2
+s.baudrate = 115200*8
 
 print >> sys.stderr, "DA uploaded, start uploading the user bin"
 time.sleep(1)
