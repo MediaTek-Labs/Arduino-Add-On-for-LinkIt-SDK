@@ -21,7 +21,6 @@ public: // Constructors
 	LBLEUuid();
 	LBLEUuid(const char* uuidString);
 	LBLEUuid(uint16_t uuid16);
-	LBLEUuid(uint32_t uuid32);
 	LBLEUuid(const bt_uuid_t& uuid_data);
 	LBLEUuid(const LBLEUuid& rhs);
 
@@ -130,7 +129,12 @@ public:
     }
 };
 
-// This helper function do ACTION and wait for MSG, if it arrives HANDLER is called.
+// This helper function turns async BT APP event calls into a blocking call.
+// When calling this function, it:
+// 1. Call `action` function
+// 2. Your context will enter a `delay()` loop with a 10-second timeout.
+// 3. In BT task, it wait for `msg`, if it arrives, `handler` is called in BT task.
+// 4. Upon event arrival or timeout, your context exits the loop and continues.
 bool waitAndProcessEvent(std::function<void(void)> action, 
                         bt_msg_type_t msg, 
                         std::function<void(bt_msg_type_t, bt_status_t, void *)> handler);

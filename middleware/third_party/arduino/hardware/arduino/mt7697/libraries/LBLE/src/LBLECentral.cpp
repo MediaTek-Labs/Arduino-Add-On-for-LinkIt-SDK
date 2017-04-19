@@ -2,10 +2,12 @@
 #include "LBLECentral.h"
 #include <stdlib.h>
 #include <vector>
+#include <algorithm>
 
 extern "C" {
 #include "utility/ard_ble.h"
 #include "utility/ard_bt_company_id.h"
+#include "utility/ard_bt_service_id.h"
 #include <bt_gattc.h>
 }
 
@@ -427,10 +429,6 @@ bool LBLEClient::connect(const LBLEAddress& address)
     conn_para.le_scan_interval = 0x0010;
     conn_para.le_scan_window = 0x0010;
     conn_para.initiator_filter_policy = BT_HCI_CONN_FILTER_ASSIGNED_ADDRESS;
-
-    conn_para.peer_address.type = address.m_addr.type;
-    memcpy(conn_para.peer_address.addr, address.m_addr.addr, BT_BD_ADDR_LEN);
-
     conn_para.own_address_type = BT_ADDR_RANDOM;
     conn_para.conn_interval_min = 0x0006;
     conn_para.conn_interval_max = 0x0080;
@@ -439,24 +437,35 @@ bool LBLEClient::connect(const LBLEAddress& address)
     conn_para.minimum_ce_length = 0x0000;
     conn_para.maximum_ce_length = 0x0050;
 
+    conn_para.peer_address.type = address.m_addr.type;
+    memcpy(conn_para.peer_address.addr, address.m_addr.addr, BT_BD_ADDR_LEN);
+
     // call bt_gap_le_connect, wait for BT_GAP_LE_CONNECT_IND
     // and store the connection_handle to this->m_connection
     bool done = waitAndProcessEvent(
-                            [&]()
-                            { 
-                                bt_gap_le_connect(&conn_para);
-                            },
-
-                            BT_GAP_LE_CONNECT_IND,
-
-                            [this](bt_msg_type_t msg, bt_status_t status, void* buf)
-                            {
-                                const bt_gap_le_connection_ind_t *pConnectionInfo = (bt_gap_le_connection_ind_t*)buf;
-                                this->m_connection = pConnectionInfo->connection_handle;
-                                return;
-                            }
+                    // Call connect API
+                    [&]()
+                    { 
+                        bt_gap_le_connect(&conn_para);
+                    },
+                    // wait for connect indication event...
+                    BT_GAP_LE_CONNECT_IND,
+                    // to update the `m_connection` member in BT task
+                    [this](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    {
+                        const bt_gap_le_connection_ind_t *pConnectionInfo = (bt_gap_le_connection_ind_t*)buf;
+                        this->m_connection = pConnectionInfo->connection_handle;
+                        LBLE.registerForEvent(BT_GAP_LE_DISCONNECT_IND, this);
+                        return;
+                    }
                 );
 
+    if(done)
+    {
+        // we populate services in advance for ease of use
+        discoverServices();
+    }
+    
     return done;
 }
 
@@ -465,9 +474,28 @@ bool LBLEClient::connected()
     return (m_connection != 0);
 }
 
+void LBLEClient::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
+{
+    if(BT_GAP_LE_DISCONNECT_IND == msg)
+    {
+        const bt_gap_le_disconnect_ind_t* pInfo = (bt_gap_le_disconnect_ind_t*)buff;
+        if(pInfo->connection_handle == m_connection)
+        {
+            pr_debug("Disconnected with status = 0x%x, reason = 0x%x", status, pInfo->reason);
+            m_connection = NULL;
+        }
+    }
+}
+
 int LBLEClient::getServiceCount()
 {
     return m_services.size();
+}
+
+bool LBLEClient::hasService(const LBLEUuid& uuid)
+{
+    auto found = std::find_if(m_services.begin(), m_services.end(), [&uuid](const LBLEServiceInfo& o){ return (bool)(o.uuid == uuid); });
+    return (m_services.end() != found);
 }
 
 LBLEUuid LBLEClient::getServiceUuid(int index)
@@ -478,6 +506,20 @@ LBLEUuid LBLEClient::getServiceUuid(int index)
     }
 
     return m_services[index].uuid;
+}
+
+String LBLEClient::getServiceName(int index)
+{
+    const LBLEUuid uuid = getServiceUuid(index);
+    if(uuid.is16Bit())
+    {
+        const char* name = getBluetoothServiceName(uuid.getUuid16());
+        if(name)
+        {
+            return String(name);
+        }
+    }
+    return String();
 }
 
 int LBLEClient::discoverServices()
@@ -519,7 +561,8 @@ int LBLEClient::discoverServices()
                     // and process it in BT task context with this lambda
                     [this, &searchRequest, &shouldContinue](bt_msg_type_t msg, bt_status_t status, void* buf)
                     {
-                        // Parse the response to service UUIDs. It can be 16-bit or 128-bit
+                        // Parse the response to service UUIDs. It can be 16-bit or 128-bit UUID.
+                        // We can tell the difference from the response length `att_rsp->length`.
                         const bt_gattc_read_by_group_type_rsp_t* rsp = (bt_gattc_read_by_group_type_rsp_t*)buf;
                         uint16_t endIndex = 0, startIndex = 0;
                         uint16_t uuid16 = 0;
@@ -559,6 +602,11 @@ int LBLEClient::discoverServices()
                     }
         );
     }while(shouldContinue && done);
+
+    if(m_services.size())
+    {
+        discoverCharacteristics();
+    }
 
     return m_services.size();
 }
@@ -662,6 +710,67 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
     return done;
 }
 
+int LBLEClient::readCharacteristicInt(const LBLEUuid& uuid)
+{
+    LBLEValueBuffer b = readCharacterstic(uuid);
+    int ret = 0;
+    if(b.size() < sizeof(ret))
+    {
+        return 0;
+    }
+
+    ret = *((int*)&b[0]);
+
+    return ret;
+}
+
+String LBLEClient::readCharacteristicString(const LBLEUuid& uuid)
+{
+    LBLEValueBuffer b = readCharacterstic(uuid);
+    
+    if(b.size())
+    {
+        // safe guard against missing terminating NULL
+        if(b[b.size() - 1] != NULL)
+        {
+            b.resize(b.size() + 1);
+            b[b.size() - 1] = NULL;
+        }
+
+        return String((const char*)&b[0]);
+    }
+    
+    return String();
+}
+
+char LBLEClient::readCharacteristicChar(const LBLEUuid& uuid)
+{
+    LBLEValueBuffer b = readCharacterstic(uuid);
+    char ret = 0;
+    if(b.size() < sizeof(ret))
+    {
+        return 0;
+    }
+
+    ret = *((char*)&b[0]);
+
+    return ret;
+}
+
+float LBLEClient::readCharacteristicFloat(const LBLEUuid& uuid)
+{
+    LBLEValueBuffer b = readCharacterstic(uuid);
+    float ret = 0;
+    if(b.size() < sizeof(ret))
+    {
+        return 0;
+    }
+
+    ret = *((float*)&b[0]);
+
+    return ret;
+}
+
 LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
 {
     if(!connected())
@@ -716,7 +825,7 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
 
                             // Copy the data buffer content
                             const uint8_t listLength = pReadResponse->att_rsp->length - 2;
-                            resultBuffer.resize(listLength + 1, 0);
+                            resultBuffer.resize(listLength, 0);
                             memcpy(&resultBuffer[0], ((uint8_t*)pReadResponse->att_rsp->attribute_data_list) + 2, listLength);
                         }while(false);
                     }
@@ -795,6 +904,22 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
     return done;
 }
 
+int LBLEClient::writeCharacteristicInt(const LBLEUuid& uuid, int value){
+    LBLEValueBuffer b(value);
+    return writeCharacteristic(uuid, b);
+}
+int LBLEClient::writeCharacteristicString(const LBLEUuid& uuid, const String& value){
+    LBLEValueBuffer b(value);
+    return writeCharacteristic(uuid, b);
+}
+int LBLEClient::writeCharacteristicChar(const LBLEUuid& uuid, char value){
+    LBLEValueBuffer b(value);
+    return writeCharacteristic(uuid, b);
+}
+int LBLEClient::writeCharacteristicFloat(const LBLEUuid& uuid, float value){
+    LBLEValueBuffer b(value);
+    return writeCharacteristic(uuid, b);
+}
 
 void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
@@ -807,4 +932,38 @@ void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t status, void *
                         pNoti->att_rsp->opcode,
                         pNoti->att_rsp->handle);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+//  LBLEValueBuffer
+//////////////////////////////////////////////////////////////////////////
+template<typename T>void LBLEValueBuffer::shallowInit(T value)
+{
+    this->resize(sizeof(value));
+    memcpy(&(*this)[0], &value, sizeof(value));
+}
+
+LBLEValueBuffer::LBLEValueBuffer()
+{
+}
+
+LBLEValueBuffer::LBLEValueBuffer(int intValue)
+{
+    shallowInit(intValue);
+}
+
+LBLEValueBuffer::LBLEValueBuffer(float floatValue)
+{
+    shallowInit(floatValue);
+}
+
+LBLEValueBuffer::LBLEValueBuffer(char charValue)
+{
+    shallowInit(charValue);
+}
+
+LBLEValueBuffer::LBLEValueBuffer(const String& strValue)
+{
+    resize(strValue.length() + 1);
+    strValue.getBytes(&(*this)[0], size());
 }

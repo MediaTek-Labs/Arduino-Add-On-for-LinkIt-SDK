@@ -105,11 +105,6 @@ LBLEUuid::LBLEUuid(uint16_t uuid16)
 	bt_uuid_from_uuid16(&uuid_data, uuid16);
 }
 
-LBLEUuid::LBLEUuid(uint32_t uuid32)
-{
-	bt_uuid_from_uuid16(&uuid_data, uuid32);
-}
-
 LBLEUuid::LBLEUuid(const bt_uuid_t& rhs):
 	uuid_data(rhs)
 {

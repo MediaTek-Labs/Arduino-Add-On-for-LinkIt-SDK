@@ -19,8 +19,6 @@ extern "C"
 extern "C" bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *buff);
 extern "C" void ard_ble_central_onCentralEvents(bt_msg_type_t msg, bt_status_t status, void *buff);
 
-using LBLEValueBuffer = std::vector<uint8_t>;
-
 // This class allows LinkIt 7697 to act as a BLE central device.
 // It can scan nearby BLE peripherals, checking if they are beacons or 
 // devices that provides GATT services.
@@ -171,7 +169,19 @@ struct LBLEServiceInfo
 	uint16_t endHandle;
 };
 
-class LBLEClient
+class LBLEValueBuffer : public std::vector<uint8_t>
+{
+public:
+	LBLEValueBuffer();
+	LBLEValueBuffer(int intValue);
+	LBLEValueBuffer(float floatValue);
+	LBLEValueBuffer(char charValue);
+	LBLEValueBuffer(const String& strValue);
+
+	template<typename T>void shallowInit(T value);
+};
+
+class LBLEClient : public LBLEEventObserver
 {
 public:
 	LBLEClient();
@@ -179,6 +189,10 @@ public:
 	// Connect to a remote peripheral device.
 	// You can use LBLECentralClass to scan nearby devices and 
 	// get their addresses
+	//
+	// This function also implicitly enumerates all the services
+	// and characteristics on the remote device, so it may take a while
+	// for this function to return.
 	bool connect(const LBLEAddress& address);
 
 	// check if connected to remote device.
@@ -187,22 +201,49 @@ public:
 	// disconnect from the remote device
 	void disconnect();
 	
-	// check availalbe services of the connected peripheral
-	int discoverServices();
+	// get number of services available on the connected remote device
 	int getServiceCount();
-	LBLEUuid getServiceUuid(int index);
-	
-	// Read raw data from a given characteristic
-	int discoverCharacteristics();
-	int discoverCharacteristicsOfService(const LBLEServiceInfo& s);
 
+	// get service uuid from index. Index should range from 0 to (getServiceCount() - 1).
+	LBLEUuid getServiceUuid(int index);
+
+	// Helper function that returns name of the service if it is know.
+	String getServiceName(int index);
+
+	// check if a given service is available on the connected remote device.
+	bool hasService(const LBLEUuid& uuid);
+	
+	// Read a characteristic from the remote device.
 	LBLEValueBuffer readCharacterstic(const LBLEUuid& uuid);
+	int readCharacteristicInt(const LBLEUuid& uuid);
+	String readCharacteristicString(const LBLEUuid& uuid);
+	char readCharacteristicChar(const LBLEUuid& uuid);
+	float readCharacteristicFloat(const LBLEUuid& uuid);
+
+	// Write a characteristic of the remote device.
 	int writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer& value);
+	int writeCharacteristicInt(const LBLEUuid& uuid, int value);
+	int writeCharacteristicString(const LBLEUuid& uuid, const String& value);
+	int writeCharacteristicChar(const LBLEUuid& uuid, char value);
+	int writeCharacteristicFloat(const LBLEUuid& uuid, float value);
+
+public:
+	virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void *buff);
 
 protected:
 	bt_handle_t m_connection;
 	std::vector<LBLEServiceInfo> m_services;
 	std::map<LBLEUuid, uint16_t> m_characteristics;
+	
+	// enumerate all service info from remote device
+	int discoverServices();
+
+	// Read all characteristic on remote device.
+	// This could take a while.
+	int discoverCharacteristics();
+
+	// Enumerate all characteristics, given a service ID.
+	int discoverCharacteristicsOfService(const LBLEServiceInfo& s);
 };
 
 extern LBLECentralClass LBLECentral;
