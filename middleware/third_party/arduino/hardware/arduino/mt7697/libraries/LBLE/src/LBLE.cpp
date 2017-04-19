@@ -368,6 +368,8 @@ LBLEAddress& LBLEAddress::operator = (const LBLEAddress &rhs)
 
 	m_addr.type = rhs.m_addr.type;
 	memcpy(m_addr.addr, rhs.m_addr.addr, BT_BD_ADDR_LEN);
+
+	return *this;
 }
 
 
