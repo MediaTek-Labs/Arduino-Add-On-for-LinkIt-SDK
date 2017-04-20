@@ -1,16 +1,17 @@
-# Arduino Add On for LinkIt-SDK v4
+# Arduino Add-On for LinkIt SDK v4
 
-Arduino Add-On for LinkIt 7697 on LinkIt SDK v4. This package allows developers to:
- 1. Build LinkIt 7697 Arduino board support package
- 2. Build LinkIt SDK example projects with Arduino porting library
+This is the Arduino Add-On package for LinkIt 7697 on LinkIt SDK v4.x. This package allows developers to:
 
+ 1. Build LinkIt 7697 board support package for Arduino IDE.
+ 2. Create LinkIt SDK projects that uses core Arduino APIs, and build them with LinkIt SDK.
 
+If you are looking for instructions on using Arduino IDE with LinkIt 7697, visit this [resource page](https://docs.labs.mediatek.com/resource/linkit7697-arduino/en/resources).
 
 ## Prerequisite
  * You need a working LinkIt SDK v4.2 public version. To obtain public version of LinkIt SDK v4.2, visit https://docs.labs.mediatek.com/resource/mt7687-mt7697/en/downloads
  * You must build this package on a Linux machine with `make` and `perl` installed.
 
-## Usage - Build LinkIt 7697 Arduino Supporting Package
+## Usage - Build LinkIt 7697 Arduino Board Supporting Package
 Copy-n-replace into LinkIt SDK v4 public version.
 Use following command to build the board support package:
 ~~~bash
