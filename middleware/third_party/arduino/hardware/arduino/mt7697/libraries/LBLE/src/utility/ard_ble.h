@@ -18,8 +18,9 @@ extern "C" {
 #include <bt_gatts.h>
 #include <log_dump.h>
 
-int ard_ble_begin(void);
-int ard_ble_is_ready(void);
+extern int ard_ble_begin(void);
+extern int ard_ble_is_ready(void);
+extern void generate_random_device_address(bt_bd_addr_t addr);
 
 // implemented by LBLE.cpp
 extern void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff);

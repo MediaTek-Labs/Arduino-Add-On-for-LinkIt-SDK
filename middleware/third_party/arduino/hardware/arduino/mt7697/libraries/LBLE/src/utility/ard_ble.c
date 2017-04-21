@@ -104,38 +104,38 @@ static int read_bt_address_from_efuse(bt_bd_addr_t addr)
     return (HAL_EFUSE_OK == hal_efuse_read(bt_addr_offset, (uint8_t*)addr, 6));
 }
 
-static void generate_random_device_address(bt_bd_addr_t addr)
+void generate_random_device_address(bt_bd_addr_t addr)
 {
     uint32_t ret = 0;
     uint32_t random_seed = 0;
 
     ret = hal_trng_init();
     if (HAL_TRNG_STATUS_OK != ret) {
-        LOG_I(common, "[BT]generate_random_address--error 1");
+        // LOG_I(common, "[BT]generate_random_address--error 1");
     }
     for(int i = 0; i < 30; ++i) {
         ret = hal_trng_get_generated_random_number(&random_seed);
         if (HAL_TRNG_STATUS_OK != ret) {
-            LOG_I(common, "[BT]generate_random_address--error 2");
+            // LOG_I(common, "[BT]generate_random_address--error 2");
         }
-        LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
+        // LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
     }
     /* randomly generate address */
     ret = hal_trng_get_generated_random_number(&random_seed);
     if (HAL_TRNG_STATUS_OK != ret) {
-        LOG_I(common, "[BT]generate_random_address--error 3");
+        // LOG_I(common, "[BT]generate_random_address--error 3");
     }
 
-    LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
+    // LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
     addr[0] = random_seed & 0xFF;
     addr[1] = (random_seed >> 8) & 0xFF;
     addr[2] = (random_seed >> 16) & 0xFF;
     addr[3] = (random_seed >> 24) & 0xFF;
     ret = hal_trng_get_generated_random_number(&random_seed);
     if (HAL_TRNG_STATUS_OK != ret) {
-        LOG_I(common, "[BT]generate_random_address--error 3");
+        // LOG_I(common, "[BT]generate_random_address--error 3");
     }
-    LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
+    // LOG_I(common, "[BT]generate_random_address--trn: 0x%x", random_seed);
     addr[4] = random_seed & 0xFF;
     addr[5] = (random_seed >> 8) & 0xCF;
     hal_trng_deinit();

@@ -36,6 +36,34 @@ struct LBLEAdvDataItem
 	}
 };
 
+// refer to https://github.com/google/eddystone/tree/master/eddystone-url#url-scheme-prefix
+enum EDDYSTONE_URL_PREFIX
+{
+	EDDY_HTTP_WWW = 0,		// "http://www."
+	EDDY_HTTPS_WWW = 1,		// "https://www."
+	EDDY_HTTP = 2,			// "http://"
+	EDDY_HTTPS = 3			// "https://"
+};
+
+// refer to https://github.com/google/eddystone/tree/master/eddystone-url#eddystone-url-http-url-encoding
+enum EDDYSTONE_URL_ENCODING
+{
+	EDDY_URL_NONE = 0xFFFFFFFF,	// No suffix to append
+	EDDY_DOT_COM_SLASH = 0,		// ".com/"
+	EDDY_DOT_ORG_SLASH = 1,		// ".org/"
+	EDDY_DOT_EDU_SLASH = 2,		// ".edu/"
+	EDDY_DOT_NET_SLASH = 3,		// ".net/"
+	EDDY_DOT_INFO_SLASH = 4,	// ".info/"
+	EDDY_DOT_BIZ_SLASH = 5,		// ".biz/"
+	EDDY_DOT_GOV_SLASH = 6,		// ".gov/"
+	EDDY_DOT_COM = 7,			// ".com"
+	EDDY_DOT_ORG = 8,			// ".org"
+	EDDY_DOT_EDU = 9,			// ".edu"
+	EDDY_DOT_NET = 10,			// ".net"
+	EDDY_DOT_INFO = 11,			// ".info"
+	EDDY_DOT_BIZ = 12,			// ".biz"
+	EDDY_DOT_GOV = 13			// ".gov"
+};
 
 class LBLEAdvertisementData
 {
@@ -61,6 +89,19 @@ public:
 							  uint16_t major, 
 							  uint16_t minor, 
 							  int8_t txPower);
+
+	// Configure an Eddystone URL
+	// Note that total length must not exceed 17 bytes.
+	// 
+	// You can use prefix, suffix, and tail parameters to save some bytes.
+	// e.g. "https://www.mediatek.com" 
+	//			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "mediatek", EDDY_DOT_COM)
+	// e.g. "https://www.asp.net/learn"
+	//			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "mediatek", EDDY_DOT_NET_SLASH, "learn")
+    void configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
+							  const String& url,
+							  EDDYSTONE_URL_ENCODING suffix = EDDY_URL_NONE,
+							  const String& tail = String());
 
 	// Create an advertisement that allows smartphones to connect
 	// to this device.
@@ -265,8 +306,18 @@ public:
 	LBLEPeripheralClass();
 	~LBLEPeripheralClass();
 
-	// start advertisement
+	// start advertisement as a connectable device
 	void advertise(const LBLEAdvertisementData& advertisementData);
+
+	// start advertisement as an non-connectable device (such as an iBeacon)
+	//
+	// @param advertisementData The advertisement packet to broadcast.
+	// @param intervalMS The advertisement interval, in milliseconds.
+	// @param txPower This controls the actual advertisement power in dbm. 
+	//        Note: current version does not support adjust txPower.
+	void advertiseAsBeacon(const LBLEAdvertisementData& advertisementData,
+						   uint32_t intervalMS = 700,
+						   uint8_t txPower = -30);
 	
 	// start advertisement based on previous input of advertise
 	void advertiseAgain();
@@ -295,6 +346,7 @@ private:
 	std::vector<LBLEService> m_services;			// container for services in the server
 	
 	std::unique_ptr<LBLEAdvertisementData> m_pAdvData;
+	bt_hci_cmd_le_set_advertising_parameters_t m_advParam;
 	
 };
 
