@@ -100,6 +100,7 @@ sub build_system_libs
 		"middleware/MTK/minicli/lib/libminicli_CM4_GCC.a",
 		"middleware/MTK/nvdm/lib/libnvdm_CM4_GCC.a",
 		"middleware/MTK/bluetooth/lib/libble.a",
+		"middleware/MTK/bluetooth/lib/libble_multi_adv.a",
 		"middleware/MTK/bluetooth/lib/libbtdriver_7697.a",
 	);
 
