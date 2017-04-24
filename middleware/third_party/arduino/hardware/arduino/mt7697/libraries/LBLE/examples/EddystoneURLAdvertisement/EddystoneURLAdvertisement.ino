@@ -1,9 +1,10 @@
 /*
-  This example configures LinkIt 7697 to send iBeacon-compatbile advertisement data.
+  This example configures LinkIt 7697 to send Eddyston-URL advertisement data.
 
-  You should be able to search this device with iOS or Android iBeacon tools.
+  You should be able to search this beacon with tools such as "Beacon Tools" on iOS or 
+  "Physical Web" app on Android.
 
-  created Mar 2017
+  created April 2017
 */
 #include <LBLE.h>
 #include <LBLEPeriphral.h>
@@ -25,7 +26,12 @@ void setup() {
 
   // make an Eddystone-URL beacon that board casts
   // https://www.asp.net/learn
-  beaconData.configAsEddystoneURL(EDDY_HTTPS_WWW, "asp", EDDY_DOT_NET_SLASH, "learn");
+  // Note 1: You can obmit the suffix and tail part, e.g.
+  //        https://goo.gl/Aq18zF
+  //        can be constructed with
+  //        configAsEddystoneURL(EDDY_HTTPS, "goo.gl/Aq18zF");
+  // Note 2: Note that total url length must not exceed 17 bytes.
+  beaconData.configAsEddystoneURL(EDDY_HTTPS, "asp", EDDY_DOT_NET_SLASH, "learn");
 
   Serial.print("Start advertising Eddystone-URL");
 
@@ -37,8 +43,7 @@ void loop() {
   // The underlying framework will advertise periodically.
   // we simply wait here.
   //
-  // You can use iBeacon apps such as
-  // "Locate Beacon" by Radius Networks on iOS devices
-  // to locate this beacon.
+  // You should be able to search this beacon with tools such as "Beacon Tools" on iOS or 
+  // "Physical Web" app on Android.
   delay(3000);
 }

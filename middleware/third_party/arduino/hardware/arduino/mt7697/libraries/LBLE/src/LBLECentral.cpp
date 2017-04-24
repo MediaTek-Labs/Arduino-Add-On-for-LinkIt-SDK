@@ -19,10 +19,8 @@ LBLECentralClass LBLECentral;
 //////////////////////////////////////////////////////////////////////////////////
 // LBLEAdvertisements
 //////////////////////////////////////////////////////////////////////////////////
-LBLEAdvertisements::LBLEAdvertisements(const bt_gap_le_advertising_report_ind_t& adv,
-                                       const bt_gap_le_advertising_report_ind_t& resp):
-    adv_data(adv),
-    resp_data(resp)
+LBLEAdvertisements::LBLEAdvertisements(const bt_gap_le_advertising_report_ind_t& adv):
+    adv_data(adv)
 {
 
 }
@@ -37,7 +35,7 @@ uint32_t LBLEAdvertisements::getAdvDataWithTypeFromPayload(uint8_t type, uint8_t
         ad_data_len = payload.data[cursor];
 
         /* Error handling for data length over 30 bytes. */
-        if (ad_data_len > 0x1F || ad_data_len < 0)
+        if (ad_data_len > 0x1F)
         {
             return 0;
         }
@@ -62,19 +60,9 @@ uint32_t LBLEAdvertisements::getAdvDataWithTypeFromPayload(uint8_t type, uint8_t
 
 uint32_t LBLEAdvertisements::getAdvDataWithType(uint8_t type, uint8_t* dstBuf, uint32_t bufLen) const
 {
-    uint32_t ret = 0;
-
-    // search the ad payload in adv_data first...
-    ret = getAdvDataWithTypeFromPayload(type, dstBuf, bufLen, adv_data);
-    if(ret)
-    {
-        return ret;
-    }
-    else
-    {
-        // then search for the resp_data.
-        return getAdvDataWithTypeFromPayload(type, dstBuf, bufLen, resp_data);
-    }
+    // search the ad payload in adv_data first.
+    // Note that currently we ignore the scan response data.
+    return getAdvDataWithTypeFromPayload(type, dstBuf, bufLen, adv_data);
 }
 
 bool LBLEAdvertisements::isValid() const
@@ -231,8 +219,6 @@ LBLECentralClass::LBLECentralClass()
 
 void LBLECentralClass::scan()
 {
-    bt_status_t result = BT_STATUS_SUCCESS;
-
     bt_hci_cmd_le_set_scan_enable_t enbleSetting;
     enbleSetting.le_scan_enable = BT_HCI_ENABLE;
     enbleSetting.filter_duplicates = BT_HCI_DISABLE;		// Disable driver-level filter for duplicated adv.
@@ -253,15 +239,13 @@ void LBLECentralClass::scan()
     // set_scan is actually asynchronous - but since
     // we don't have anything to check, we keep going
     // without waiting for BT_GAP_LE_SET_SCAN_CNF.
-    result = bt_gap_le_set_scan(&enbleSetting, &scan_para);
+    bt_gap_le_set_scan(&enbleSetting, &scan_para);
 
     return;
 }
 
 void LBLECentralClass::stopScan()
 {
-    bt_status_t result = BT_STATUS_SUCCESS;
-
     bt_hci_cmd_le_set_scan_enable_t enbleSetting;
     enbleSetting.le_scan_enable = BT_HCI_DISABLE;
     enbleSetting.filter_duplicates = BT_HCI_DISABLE;
@@ -269,7 +253,7 @@ void LBLECentralClass::stopScan()
     // set_scan is actually asynchronous - to ensure
     // m_peripherals_found does not get re-polulated,
     // we wait for BT_GAP_LE_SET_SCAN_CNF.
-    bool done = waitAndProcessEvent(
+    waitAndProcessEvent(
                         [&]()
                         { 
                             bt_gap_le_set_scan(&enbleSetting, NULL);
@@ -277,7 +261,7 @@ void LBLECentralClass::stopScan()
 
                         BT_GAP_LE_SET_SCAN_CNF,
 
-                        [this](bt_msg_type_t msg, bt_status_t status, void* buf)
+                        [this](bt_msg_type_t, bt_status_t, void*)
                         {
                             return;
                         }
@@ -306,8 +290,7 @@ LBLEAddress LBLECentralClass::getBLEAddress(int index)
 
 String LBLECentralClass::getName(int index)
 {
-    bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index]);
     return parser.getName();
 }
 
@@ -318,22 +301,19 @@ int32_t LBLECentralClass::getRSSI(int index)
 
 int32_t LBLECentralClass::getTxPower(int index)
 {
-    bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index]);
     return parser.getTxPower();
 }
 
 LBLEUuid LBLECentralClass::getServiceUuid(int index) const
 {
-    bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index]);
     return parser.getServiceUuid();
 }
 
 bool LBLECentralClass::isIBeacon(int index) const
 {
-    bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index]);
 
     LBLEUuid uuid;
     uint16_t major, minor;
@@ -343,22 +323,19 @@ bool LBLECentralClass::isIBeacon(int index) const
 
 bool LBLECentralClass::getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const
 {
-    bt_gap_le_advertising_report_ind_t dummy;
-    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index]);
     return parser.getIBeaconInfo(uuid, major, minor, txPower);
 }
 
 String LBLECentralClass::getManufacturer(int index) const
 {
-    bt_gap_le_advertising_report_ind_t dummy;
-    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index]);
     return parser.getManufacturer();
 }
 
 uint8_t  LBLECentralClass::getAdvertisementFlag(int index) const
 {
-    bt_gap_le_advertising_report_ind_t dummy = {0};
-    LBLEAdvertisements parser(m_peripherals_found[index], dummy);
+    LBLEAdvertisements parser(m_peripherals_found[index]);
     return parser.getAdvertisementFlag();
 }
 
@@ -386,30 +363,39 @@ void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff
     if(BT_GAP_LE_ADVERTISING_REPORT_IND == msg)
     {
         const bt_gap_le_advertising_report_ind_t* pReport = (bt_gap_le_advertising_report_ind_t*)buff;
-        if(BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_IND == pReport->event_type)
-        {
-            // advertising packet - check if we need to update existing entry
-            // or appending new one.
-            const size_t peripheralCount = m_peripherals_found.size();
-            for(int i = 0; i < peripheralCount; ++i)
-            {
-                // check if already found
-                if(LBLEAddress::equal_bt_address(m_peripherals_found[i].address, pReport->address))
-                {
-                    m_peripherals_found[i] = *pReport;
-                    return;
-                }
-            }
 
-            // not found, append
-            m_peripherals_found.push_back(*pReport);
-            return;
-        }
-        else if(BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_SCAN_RSP == pReport->event_type)
+        pr_debug("BT_GAP_LE_ADVERTISING_REPORT_IND with 0x%x", (unsigned int)status);
+        pr_debug("advertisement event = %s", get_event_type(pReport->event_type));
+
+        switch(pReport->event_type)
         {
+        case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_IND:
+            {
+                // advertising packet - check if we need to update existing entry
+                // or appending new one.
+                const size_t peripheralCount = m_peripherals_found.size();
+                for(size_t i = 0; i < peripheralCount; ++i)
+                {
+                    // check if already found
+                    if(LBLEAddress::equal_bt_address(m_peripherals_found[i].address, pReport->address))
+                    {
+                        m_peripherals_found[i] = *pReport;
+                        return;
+                    }
+                }
+
+                // not found, append
+                m_peripherals_found.push_back(*pReport);
+                return;
+            }
+            break;
+        case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_SCAN_RSP:
             // TODO: scan response - this usually carries extra information
             // we need to find matching address in g_peripherals_found list,
             // and insert the scan response info to that entry.
+            break;
+        default:
+            break;
         }
     }
 }
@@ -418,7 +404,7 @@ void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff
 //		LBLEClient
 ///////////////////////////////////////////////////////////////
 LBLEClient::LBLEClient():
-    m_connection(0)
+    m_connection(BT_HANDLE_INVALID)
 {
     
 }
@@ -451,7 +437,7 @@ bool LBLEClient::connect(const LBLEAddress& address)
                     // wait for connect indication event...
                     BT_GAP_LE_CONNECT_IND,
                     // to update the `m_connection` member in BT task
-                    [this](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    [this](bt_msg_type_t, bt_status_t, void* buf)
                     {
                         const bt_gap_le_connection_ind_t *pConnectionInfo = (bt_gap_le_connection_ind_t*)buf;
                         this->m_connection = pConnectionInfo->connection_handle;
@@ -471,7 +457,7 @@ bool LBLEClient::connect(const LBLEAddress& address)
 
 bool LBLEClient::connected()
 {
-    return (m_connection != 0);
+    return (m_connection != BT_HANDLE_INVALID);
 }
 
 void LBLEClient::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
@@ -481,8 +467,8 @@ void LBLEClient::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
         const bt_gap_le_disconnect_ind_t* pInfo = (bt_gap_le_disconnect_ind_t*)buff;
         if(pInfo->connection_handle == m_connection)
         {
-            pr_debug("Disconnected with status = 0x%x, reason = 0x%x", status, pInfo->reason);
-            m_connection = NULL;
+            pr_debug("Disconnected with status = 0x%x, reason = 0x%x", (unsigned int)status, (unsigned int)pInfo->reason);
+            m_connection = BT_HANDLE_INVALID;
         }
     }
 }
@@ -559,7 +545,7 @@ int LBLEClient::discoverServices()
                     // wait for the event...
                     BT_GATTC_DISCOVER_PRIMARY_SERVICE,
                     // and process it in BT task context with this lambda
-                    [this, &searchRequest, &shouldContinue](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    [this, &searchRequest, &shouldContinue](bt_msg_type_t, bt_status_t status, void* buf)
                     {
                         // Parse the response to service UUIDs. It can be 16-bit or 128-bit UUID.
                         // We can tell the difference from the response length `att_rsp->length`.
@@ -619,7 +605,7 @@ int LBLEClient::discoverCharacteristics()
     }
 
     // for each service, find the value handle of each characteristic.
-    for(int i = 0; i < m_services.size(); ++i)
+    for(size_t i = 0; i < m_services.size(); ++i)
     {
       pr_debug("Enumerate charc between handle (%d-%d)", m_services[i].startHandle, m_services[i].endHandle)
       discoverCharacteristicsOfService(m_services[i]);
@@ -645,6 +631,7 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
         .opcode = BT_ATT_OPCODE_READ_BY_TYPE_REQUEST,
         .starting_handle = s.startHandle,
         .ending_handle = s.endHandle,
+        .type = {0}
     };
     uint16_t charcUuid = BT_GATT_UUID16_CHARC;
     bt_uuid_load(&searchRequest.type, (void*)&charcUuid, 2);
@@ -666,9 +653,9 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
                     // wait for the event...
                     BT_GATTC_DISCOVER_CHARC,
                     // and process it in BT task context with this lambda
-                    [this, &searchRequest, &shouldContinue](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    [this, &searchRequest, &shouldContinue](bt_msg_type_t, bt_status_t status, void* buf)
                     {
-                        pr_debug("discoverCharacteristicsOfService=%d", status);
+                        pr_debug("discoverCharacteristicsOfService=0x%x", (unsigned int)status);
 
                         // Parse the response to service UUIDs. It can be 16-bit or 128-bit
                         const bt_gattc_read_by_type_rsp_t* rsp = (bt_gattc_read_by_type_rsp_t*)buf;
@@ -731,10 +718,10 @@ String LBLEClient::readCharacteristicString(const LBLEUuid& uuid)
     if(b.size())
     {
         // safe guard against missing terminating NULL
-        if(b[b.size() - 1] != NULL)
+        if(b[b.size() - 1] != 0)
         {
             b.resize(b.size() + 1);
-            b[b.size() - 1] = NULL;
+            b[b.size() - 1] = 0;
         }
 
         return String((const char*)&b[0]);
@@ -779,7 +766,7 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
     }
 
     // connected, call bt_gattc_read_using_charc_uuid and wait for response event
-    bt_gattc_read_using_charc_uuid_req_t req = {0};
+    bt_gattc_read_using_charc_uuid_req_t req;
     req.opcode = BT_ATT_OPCODE_READ_BY_TYPE_REQUEST;
     req.starting_handle = 0x0001;
     req.ending_handle = 0xffff;
@@ -788,7 +775,7 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
     // results are stored here by the event callback below.
     LBLEValueBuffer resultBuffer;
 
-    bool done = waitAndProcessEvent(
+    waitAndProcessEvent(
                     // start read request
                     [&]()
                     { 
@@ -797,7 +784,7 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
                     // wait for event...
                     BT_GATTC_READ_USING_CHARC_UUID,
                     // and parse event result in bt task context
-                    [this, &resultBuffer](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    [this, &resultBuffer](bt_msg_type_t msg, bt_status_t, void* buf)
                     {
                         const bt_gattc_read_by_type_rsp_t *pReadResponse = (bt_gattc_read_by_type_rsp_t*)buf;
                         if(BT_GATTC_READ_USING_CHARC_UUID != msg || pReadResponse->connection_handle != m_connection)
@@ -856,7 +843,7 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
     LBLEValueBuffer reqBuf;
     reqBuf.resize(value.size() + sizeof(bt_att_write_req_t));
 
-    bt_gattc_write_charc_req_t req = {0};
+    bt_gattc_write_charc_req_t req;
     req.attribute_value_length = value.size();
     req.att_req = (bt_att_write_req_t*)&reqBuf[0];
     req.att_req->opcode = BT_ATT_OPCODE_WRITE_REQUEST;
@@ -872,7 +859,7 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
                     // wait for event...
                     BT_GATTC_WRITE_CHARC,
                     // and parse event result in bt task context
-                    [this](bt_msg_type_t msg, bt_status_t status, void* buf)
+                    [this](bt_msg_type_t msg, bt_status_t, void* buf)
                     {
                         const bt_gattc_write_rsp_t *pWriteResp = (bt_gattc_write_rsp_t*)buf;
                         if(BT_GATTC_WRITE_CHARC != msg || pWriteResp->connection_handle != m_connection)
@@ -921,7 +908,7 @@ int LBLEClient::writeCharacteristicFloat(const LBLEUuid& uuid, float value){
     return writeCharacteristic(uuid, b);
 }
 
-void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t status, void *buff)
+void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t, void *buff)
 {
     if(BT_GATTC_CHARC_VALUE_NOTIFICATION == msg)
     {

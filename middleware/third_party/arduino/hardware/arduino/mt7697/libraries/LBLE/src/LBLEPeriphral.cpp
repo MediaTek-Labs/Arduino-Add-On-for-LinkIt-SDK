@@ -52,11 +52,8 @@ void LBLEAdvertisementData::addName(const char* deviceName)
     
     // note that in AD data the string does name
     // contain NULL-termination character.
-    item.adDataLen = strlen(deviceName);
-
-    // size check
-    if(item.adDataLen > sizeof(item.adData))
-        return;
+    // for size check - we simply truncate the device name
+    item.adDataLen = std::min((size_t)sizeof(item.adData), (size_t)strlen(deviceName));
 
     memcpy(item.adData, deviceName, item.adDataLen);
 
@@ -102,6 +99,7 @@ void LBLEAdvertisementData::configAsConnectableDevice(const char* deviceName, co
     addName(deviceName);
 }
 
+
 void LBLEAdvertisementData::configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
                                                     const String& url,
                                                     EDDYSTONE_URL_ENCODING suffix,
@@ -128,36 +126,32 @@ void LBLEAdvertisementData::configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
     addAdvertisementData(item);
 
     // Service Data - contains "Eddystone frame"
+    // https://github.com/google/eddystone/tree/master/eddystone-url
     item.clear();
     item.adType = BT_GAP_LE_AD_TYPE_SERVICE_DATA;
 
+    // Frame content:
     uint8_t* pData = item.adData;
     *(uint16_t*)pData = 0xFEAA;
     pData += 2;
-
     // frametype 0x10 = URL
-    *pData = 0x10;
-    pData += 1;
-    
+    *pData++ = 0x10;
     // TxPower
-    *pData = (uint8_t)txPower;
-    pData += 1;
-
+    *pData++ = (uint8_t)txPower;
     // URL scheme prefix
     const uint8_t scheme = prefix;
-    *pData = scheme;
-    pData += 1;
+    *pData++ = scheme;
 
     // URL string
-    uint32_t urlBudget = MAX_ENCODED_URL_SIZE;
-    if(url.length() > urlBudget)
+    size_t urlBudget = MAX_ENCODED_URL_SIZE;
+    // truncate if too long
+    const size_t addedURLLength = std::min(urlBudget, (size_t)url.length());
+    if(addedURLLength)
     {
-        // fail to add advertisement data
-        return;
+        memcpy(pData, url.c_str(), addedURLLength);
+        pData += addedURLLength;
+        urlBudget -= addedURLLength;
     }
-    memcpy(pData, url.c_str(), url.length());
-    pData += url.length();
-    urlBudget -= url.length();
     
     // optionally appending suffix & tail
     if(suffix != EDDY_URL_NONE)
@@ -168,8 +162,7 @@ void LBLEAdvertisementData::configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
             return;
         }
 
-        *pData = suffix;
-        pData += 1;
+        *pData++ = suffix;
         urlBudget -= 1;
     }
 
@@ -244,8 +237,8 @@ void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid,
 uint32_t LBLEAdvertisementData::getPayload(uint8_t* buf, uint32_t bufLength) const
 {
     // input check
-    int sizeRequired = 0;
-    for(uint32_t i = 0; i < m_advDataList.size(); ++i)
+    uint32_t sizeRequired = 0;
+    for(size_t i = 0; i < m_advDataList.size(); ++i)
     {
         // data_len + (type + length)
         sizeRequired += (m_advDataList[i].adDataLen + 2);
@@ -258,7 +251,7 @@ uint32_t LBLEAdvertisementData::getPayload(uint8_t* buf, uint32_t bufLength) con
 
     // populate the buffer
     uint8_t *cursor = buf;
-    for(uint32_t i = 0; i < m_advDataList.size(); ++i)
+    for(size_t i = 0; i < m_advDataList.size(); ++i)
     {
         const LBLEAdvDataItem& item = m_advDataList[i];
         // AD length
@@ -327,9 +320,9 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
     m_records.push_back((bt_gatts_service_rec_t*)pRecord);
     
     // Generate characterstics attribute records
-    for(int i = 0; i < m_attributes.size(); ++i)
+    for(size_t i = 0; i < m_attributes.size(); ++i)
     {
-        for(int r = 0; r < m_attributes[i]->getRecordCount(); ++r)
+        for(uint32_t r = 0; r < m_attributes[i]->getRecordCount(); ++r)
         {
             bt_gatts_service_rec_t* pRec = m_attributes[i]->allocRecord(r, currentHandle);
             if(pRec)
@@ -356,8 +349,8 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
 void LBLEService::end()
 {
     // Note: all the records are malloc-ed in begin().
-    const uint32_t size = m_records.size();
-    for(int i = 0; i < size; ++i)
+    const size_t size = m_records.size();
+    for(size_t i = 0; i < size; ++i)
     {
         free(m_records[i]);
     }
@@ -373,7 +366,7 @@ void LBLEService::end()
 // implement trampoline callback as requested in ard_bt_attr_callback.h
 uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset, void* user_data)
 {
-    pr_debug("attribute_callback [%d, %d, %04x, %08x, %d, %d - %08x", rw, handle, data, size, offset, user_data);
+    pr_debug("attribute_callback [%d, %d, 0x%p, %d, %d, 0x%p", rw, handle, data, size, offset, user_data);
 
     if(NULL == user_data)
     {
@@ -401,9 +394,9 @@ uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *dat
 }
 
 LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid, uint32_t permission):
-    m_updated(false),
+    m_uuid(uuid),
     m_perm(permission),
-    m_uuid(uuid)
+    m_updated(false)
 {
 
 }
@@ -754,6 +747,7 @@ void LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData
     m_advParam.advertising_interval_max = advertiseInterval;
 
 #if 1
+    pr_debug("txPower %d is ignored", txPower);
     // use normal advertisement API
     advertiseAgain();
 #else
@@ -849,7 +843,7 @@ void LBLEPeripheralClass::advertiseAgain()
     // note that advertisement parameters (m_advParam) are pre-configured in advertisement() methods.
 
     // populate the advertisement data
-    bt_hci_cmd_le_set_advertising_data_t hci_adv_data = {0};
+    bt_hci_cmd_le_set_advertising_data_t hci_adv_data;
     hci_adv_data.advertising_data_length = m_pAdvData->getPayload(hci_adv_data.advertising_data, 
                                                               sizeof(hci_adv_data.advertising_data));
 
@@ -908,7 +902,7 @@ void LBLEPeripheralClass::begin()
     assert(USER_ATTRIBUTE_HANDLE_START > bt_if_gatt_service_ro.ending_handle);
 
     uint16_t currentHandle = USER_ATTRIBUTE_HANDLE_START;
-    for(uint32_t i = 0; i < m_services.size(); ++i)
+    for(size_t i = 0; i < m_services.size(); ++i)
     {
         currentHandle = m_services[i].begin(currentHandle);
         m_servicePtrTable.push_back(m_services[i].getServiceDataPointer());
@@ -942,31 +936,22 @@ const bt_gatts_service_t * g_gatt_server[] = {
 // when a remote device is connecting to this peripheral.
 const bt_gatts_service_t** bt_get_gatt_server()
 {
-#if 0
-    return g_gatt_server;
-#else
     return LBLEPeripheral.getServiceTable();
-#endif
-}
-
-void ard_ble_peri_onName(const char* str, uint16_t handle)
-{
-    pr_debug("@%s:%04x", str, handle);
 }
 
 void ard_ble_peri_onConnect(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-    if(BT_GAP_LE_CONNECT_IND != msg || BT_STATUS_SUCCESS != status)
+    if(BT_GAP_LE_CONNECT_IND != msg || BT_STATUS_SUCCESS != status || NULL == buff)
     {
         return;
     }
     pr_debug("device connected");
-    const bt_gap_le_connection_ind_t* connect_ind = (bt_gap_le_connection_ind_t*)buff;
+    // const bt_gap_le_connection_ind_t* connect_ind = (bt_gap_le_connection_ind_t*)buff;
 }
 
 void ard_ble_peri_onDisconnect(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-    pr_debug("device disconnected");
+    pr_debug("device disconnected, msg=0x%x, status=0x%x, buff=0x%p", (unsigned int)msg, (unsigned int)status, buff);
 
     // for most cases, we'd like to
     // automatically re-start advertising, so that

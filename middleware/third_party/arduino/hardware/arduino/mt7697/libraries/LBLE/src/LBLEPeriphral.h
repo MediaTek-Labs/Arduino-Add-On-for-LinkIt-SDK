@@ -314,7 +314,7 @@ public:
 	// @param advertisementData The advertisement packet to broadcast.
 	// @param intervalMS The advertisement interval, in milliseconds.
 	// @param txPower This controls the actual advertisement power in dbm. 
-	//        Note: current version does not support adjust txPower.
+	//        Note: current version does not support adjusting txPower.
 	void advertiseAsBeacon(const LBLEAdvertisementData& advertisementData,
 						   uint32_t intervalMS = 700,
 						   uint8_t txPower = -30);
