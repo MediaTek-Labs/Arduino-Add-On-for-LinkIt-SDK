@@ -88,8 +88,7 @@ public:
 class LBLEAdvertisements
 {
 public:
-	LBLEAdvertisements(const bt_gap_le_advertising_report_ind_t& adv,
-					   const bt_gap_le_advertising_report_ind_t& resp);
+	LBLEAdvertisements(const bt_gap_le_advertising_report_ind_t& adv);
 
 	virtual bool isValid() const;
 
@@ -113,8 +112,6 @@ public:
 
 	// returns false if this advertisment is not of iBeacon format.
 	bool getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const;
-
-	
 
 	// Copy the "original" advertisement packet data
 	// bufLen should be the size of dstBuf.
@@ -147,7 +144,6 @@ public:
 private:
 	
 	const bt_gap_le_advertising_report_ind_t& adv_data;
-	const bt_gap_le_advertising_report_ind_t& resp_data;
 
 	// searches if a specific AD Type field exists in advertisement or scan response data.
 	// copy the content if found, and returns the length of the AD data found.

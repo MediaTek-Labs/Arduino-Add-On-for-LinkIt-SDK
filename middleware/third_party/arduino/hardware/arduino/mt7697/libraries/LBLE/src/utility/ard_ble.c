@@ -27,18 +27,12 @@
 #include <lwip/dns.h>
 #include <ethernetif.h>
 
-static int32_t _wifi_event_handler(wifi_event_t event,
-        uint8_t *payload,
-        uint32_t length)
+static int32_t _wifi_event_handler(wifi_event_t event, uint8_t* payload, uint32_t length)
 {
-    struct netif *sta_if;
-
-    //LOG_I(app, "wifi event: %d", event);
-
     switch(event)
     {
     case WIFI_EVENT_IOT_INIT_COMPLETE:
-        //LOG_I(app, "wifi inited complete");
+        pr_debug("event=0x%x, payload=0x%p, length=0x%x", (unsigned int)event, payload, (unsigned int)length);
         break;
     }
 
@@ -49,7 +43,7 @@ static void _connsys_workaround()
 {
     /* Wi-Fi must be initialized for BLE start-up */
 #if 1
-    wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_event_handler);
+    wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE, _wifi_event_handler);
 
     wifi_config_t config = {0};
     config.opmode = WIFI_MODE_STA_ONLY;
@@ -266,9 +260,11 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
 }
 
 static const bt_gatts_primary_service_16_t bt_if_gap_primary_service = {
-    .rec_hdr.uuid_ptr = &BT_GATT_UUID_PRIMARY_SERVICE,
-    .rec_hdr.perm = BT_GATTS_REC_PERM_READABLE,
-    .rec_hdr.value_len = 2,
+    .rec_hdr = {
+        .uuid_ptr = &BT_GATT_UUID_PRIMARY_SERVICE,
+        .perm = BT_GATTS_REC_PERM_READABLE,
+        .value_len = 2,
+    },
     .uuid16 = BT_GATT_UUID16_GAP_SERVICE
 };
 

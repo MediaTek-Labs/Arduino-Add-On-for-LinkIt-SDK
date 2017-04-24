@@ -25,8 +25,8 @@ LBLEAddress LBLEClass::getDeviceAddress()
 {
 	// the underlying framework passes an pointer
 	// to global device address.
-	bt_addr_t btAddr = {0};
 	bt_bd_addr_ptr_t randBDAddr = bt_gap_le_get_random_address();
+	bt_addr_t btAddr;
 	btAddr.type = BT_ADDR_RANDOM;
 	memcpy(&btAddr.addr, randBDAddr, BT_BD_ADDR_LEN);
 	return LBLEAddress(btAddr);

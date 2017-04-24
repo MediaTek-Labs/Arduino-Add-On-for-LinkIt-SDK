@@ -35,8 +35,6 @@ static uint32_t bt_if_gap_dev_name_callback (const uint8_t rw, uint16_t handle, 
     uint32_t buf_size = sizeof(g_gatts_device_name);
     uint32_t copy_size;
 
-    ard_ble_peri_onName(__FUNCTION__, handle);
-
     switch (rw) {
         case BT_GATTS_CALLBACK_READ:
             copy_size = (str_size> offset)?(str_size-offset):0;
@@ -58,8 +56,6 @@ static uint32_t bt_if_gap_dev_name_callback (const uint8_t rw, uint16_t handle, 
 uint16_t gap_appearance=0x1234;//GAP appearance
 static uint32_t bt_if_gap_appearance_callback (const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset)
 {
-    ard_ble_peri_onName(__FUNCTION__, handle);
-    
     if (rw == BT_GATTS_CALLBACK_WRITE){
         if (size != sizeof(gap_appearance)){ //Size check
             return 0;

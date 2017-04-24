@@ -28,7 +28,6 @@ extern void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *b
 // implemented by LBLEPeripheral.cpp
 extern void ard_ble_peri_onConnect(bt_msg_type_t msg, bt_status_t status, void *buff);
 extern void ard_ble_peri_onDisconnect(bt_msg_type_t msg, bt_status_t status, void *buff);
-extern void ard_ble_peri_onName(const char *str, uint16_t handle);
 
 #ifdef __cplusplus
 }
