@@ -32,6 +32,7 @@ linkit_7697.build.lib_wifi=libwifi.a
 linkit_7697.build.lib_kservice_CM4_MT7697_GCC=libkservice_CM4_MT7697_GCC.a
 linkit_7697.build.lib_minisupp_wps=libminisupp_wps.a
 linkit_7697.build.lib_ble=libble.a
+linkit_7697.build.lib_ble_multi_adv=libble_multi_adv.a
 linkit_7697.build.lib_btdriver_7697=libbtdriver_7697.a
 
 linkit_7697.build.chip_mt7697_inc=driver/chip/mt7687/inc/
@@ -53,3 +54,4 @@ linkit_7697.build.nvdm_inc=middleware/MTK/nvdm/inc/
 linkit_7697.build.bootloader=mt7687_bootloader.bin
 linkit_7697.build.wifi_binary=WIFI_RAM_CODE_MT76X7_in_flash.bin
 ################################################################################
+
