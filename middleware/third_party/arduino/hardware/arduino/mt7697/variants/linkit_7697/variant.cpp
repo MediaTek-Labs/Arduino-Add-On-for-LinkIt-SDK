@@ -42,6 +42,18 @@ void post_init(void)
 #endif
 }
 
+static int _wifi_ready = 0;
+void set_wifi_ready()
+{
+	_wifi_ready = 1;
+}
+
+bool wifi_ready()
+{
+	return (_wifi_ready > 0);
+}
+
+
 #ifdef __cplusplus
 }
 #endif
