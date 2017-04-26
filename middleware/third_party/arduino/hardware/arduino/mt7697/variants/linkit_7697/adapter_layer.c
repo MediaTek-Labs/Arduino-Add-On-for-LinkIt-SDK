@@ -4,6 +4,7 @@
 #include <top.h>
 #include <hal_gpio.h>
 #include <hal_pwm.h>
+#include <hal_flash.h>
 #include <hal_platform.h>
 #include <syslog.h>
 #include <FreeRTOS.h>
@@ -153,6 +154,7 @@ void init_system(void)
 
 #if 0
     log_uart_init(HAL_UART_0);
+	log_config_print_switch(BTMM, DEBUG_LOG_OFF);
     log_init(NULL, NULL, syslog_control_blocks);
 #endif
 }

@@ -695,7 +695,8 @@ uint32_t LBLECharacteristicInt::onWrite(void *data, uint16_t size, uint16_t offs
 // The singleton instance
 LBLEPeripheralClass LBLEPeripheral;
 
-LBLEPeripheralClass::LBLEPeripheralClass()
+LBLEPeripheralClass::LBLEPeripheralClass():
+    m_clientCount(0)
 {
     memset(&m_advParam, sizeof(m_advParam), 0);
     // default parameters
@@ -756,9 +757,6 @@ void LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData
 
     // use multi-advertisement API,
     // this API allows setting txPower but can only advertise "non-connectable" random addresses.
-
-    
-
     bt_bd_addr_t randomAddress;
     generate_random_device_address(randomAddress);
     LBLEAddress debugaddr;
@@ -874,13 +872,31 @@ const bt_gatts_service_t** LBLEPeripheralClass::getServiceTable()
     return (const bt_gatts_service_t**)&m_servicePtrTable[0];
 }
 
+////////////////////////////////////////////////////////////////////////
+//	GATT related features
+////////////////////////////////////////////////////////////////////////
 extern "C"
 {
-// This callback is called by BLE GATT framework
-// when a remote device is connecting to this peripheral.
 extern const bt_gatts_service_t bt_if_gap_service;			// 0x0001-
 extern const bt_gatts_service_t bt_if_gatt_service_ro;		// 0x0011-
+extern const bt_gatts_service_t bt_if_ble_smtcn_service;  	// 0x0014-
+
+// Collects all service
+const bt_gatts_service_t * g_gatt_server[] = {
+    &bt_if_gap_service,         //0x0001
+    &bt_if_gatt_service_ro,     //0x0011
+    &bt_if_ble_smtcn_service,   //0x0014-0x0017
+    NULL
+};
+
+// This callback is called by BLE GATT framework
+// when a remote device is connecting to this peripheral.
+const bt_gatts_service_t** bt_get_gatt_server()
+{
+    return LBLEPeripheral.getServiceTable();
 }
+
+} // extern "C"
 
 void LBLEPeripheralClass::begin()
 {
@@ -912,52 +928,35 @@ void LBLEPeripheralClass::begin()
     // as requested by the framework.
     m_servicePtrTable.push_back(NULL);
 
+    // now we start listening to connection events
+    LBLE.registerForEvent(BT_GAP_LE_CONNECT_IND, this);
+    LBLE.registerForEvent(BT_GAP_LE_DISCONNECT_IND, this);
+
     return;
 }
 
-////////////////////////////////////////////////////////////////////////
-//	GATT related features
-////////////////////////////////////////////////////////////////////////
-extern "C"
+bool LBLEPeripheralClass::connected()
 {
-extern const bt_gatts_service_t bt_if_gap_service;			// 0x0001-
-extern const bt_gatts_service_t bt_if_gatt_service_ro;		// 0x0011-
-extern const bt_gatts_service_t bt_if_ble_smtcn_service;  	// 0x0014-
-
-// Collects all service
-const bt_gatts_service_t * g_gatt_server[] = {
-    &bt_if_gap_service,         //0x0001
-    &bt_if_gatt_service_ro,     //0x0011
-    &bt_if_ble_smtcn_service,   //0x0014-0x0017
-    NULL
-};
-
-// This callback is called by BLE GATT framework
-// when a remote device is connecting to this peripheral.
-const bt_gatts_service_t** bt_get_gatt_server()
-{
-    return LBLEPeripheral.getServiceTable();
+    return (m_clientCount > 0);
 }
 
-void ard_ble_peri_onConnect(bt_msg_type_t msg, bt_status_t status, void *buff)
+bool LBLEPeripheralClass::isOnce()
+{ 
+    // keep listening for connection events
+    return false;
+}
+
+void LBLEPeripheralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-    if(BT_GAP_LE_CONNECT_IND != msg || BT_STATUS_SUCCESS != status || NULL == buff)
+    pr_debug("device onEvent, msg=0x%x, status=0x%x, buff=0x%p", (unsigned int)msg, (unsigned int)status, buff);
+    switch(msg)
     {
-        return;
+    case BT_GAP_LE_CONNECT_IND:
+        m_clientCount++;
+        break;
+    case BT_GAP_LE_DISCONNECT_IND:
+        m_clientCount--;
+        advertiseAgain();
+        break;
     }
-    pr_debug("device connected");
-    // const bt_gap_le_connection_ind_t* connect_ind = (bt_gap_le_connection_ind_t*)buff;
 }
-
-void ard_ble_peri_onDisconnect(bt_msg_type_t msg, bt_status_t status, void *buff)
-{
-    pr_debug("device disconnected, msg=0x%x, status=0x%x, buff=0x%p", (unsigned int)msg, (unsigned int)status, buff);
-
-    // for most cases, we'd like to
-    // automatically re-start advertising, so that
-    // this periphera can be found by other central devices.
-    LBLEPeripheral.advertiseAgain();
-}
-
-} // extern "C"
-

@@ -300,7 +300,7 @@ private:
 };
 
 // Singleton class representing the local BLE periphral device
-class LBLEPeripheralClass
+class LBLEPeripheralClass : public LBLEEventObserver
 {
 public:
 	LBLEPeripheralClass();
@@ -333,12 +333,19 @@ public:
 	// you have to call begin make enable the GATT server
 	void begin();
 
+	// returns true if there is a central device connecting to this peripheral.
+	bool connected();
+
 	// configuring GATT Services. You must configure services
 	// before advertising the device. The services cannot change
 	// after being connected.
 	void addService(const LBLEService& service);
 
-	const bt_gatts_service_t** getServiceTable();	
+	const bt_gatts_service_t** getServiceTable();
+
+public:
+	virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void *buff);
+	virtual bool isOnce();
 
 private:
 	const static uint16_t USER_ATTRIBUTE_HANDLE_START = 0x00A0;
@@ -347,6 +354,8 @@ private:
 	
 	std::unique_ptr<LBLEAdvertisementData> m_pAdvData;
 	bt_hci_cmd_le_set_advertising_parameters_t m_advParam;
+
+	uint16_t m_clientCount;
 	
 };
 

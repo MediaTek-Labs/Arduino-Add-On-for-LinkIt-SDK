@@ -32,6 +32,7 @@ static int32_t _wifi_event_handler(wifi_event_t event, uint8_t* payload, uint32_
     switch(event)
     {
     case WIFI_EVENT_IOT_INIT_COMPLETE:
+        set_wifi_ready();
         pr_debug("event=0x%x, payload=0x%p, length=0x%x", (unsigned int)event, payload, (unsigned int)length);
         break;
     }
@@ -42,20 +43,18 @@ static int32_t _wifi_event_handler(wifi_event_t event, uint8_t* payload, uint32_
 static void _connsys_workaround()
 {
     /* Wi-Fi must be initialized for BLE start-up */
-#if 1
-    wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE, _wifi_event_handler);
+    if(!wifi_ready())
+    {
+        wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE, _wifi_event_handler);
 
-    wifi_config_t config = {0};
-    config.opmode = WIFI_MODE_STA_ONLY;
-    wifi_init(&config, NULL);
+        wifi_config_t config = {0};
+        config.opmode = WIFI_MODE_STA_ONLY;
+        wifi_init(&config, NULL);
 
-    lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}, {0}, {0}, {0}};
-    lwip_tcpip_init(&tcpip_config, WIFI_MODE_STA_ONLY);
-#else
-    start_scan_net();
-#endif
+        lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}, {0}, {0}, {0}};
+        lwip_tcpip_init(&tcpip_config, WIFI_MODE_STA_ONLY);
+    }
 }
-
 
 /*
  *	These initialization routines are based on LinkIt SDK v4, iot_sdk_demo::bt_init.c
@@ -241,12 +240,6 @@ bt_status_t bt_app_event_callback(bt_msg_type_t msg, bt_status_t status, void *b
     case BT_GAP_LE_SET_RANDOM_ADDRESS_CNF:
         // initialization complete after setting random address
         ard_ble_set_ready();
-        break;
-    case BT_GAP_LE_CONNECT_IND:
-        ard_ble_peri_onConnect(msg, status, buff);
-        break;
-    case BT_GAP_LE_DISCONNECT_IND:
-        ard_ble_peri_onDisconnect(msg, status, buff);
         break;
 	default:
 		break;

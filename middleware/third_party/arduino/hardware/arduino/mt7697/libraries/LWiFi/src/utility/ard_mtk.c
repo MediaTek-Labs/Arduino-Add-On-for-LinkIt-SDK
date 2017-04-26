@@ -258,7 +258,6 @@ static ip_addr_t static_ip, static_gw, static_netmask;
 static sta_ip_mode_t ipmode_flag = STA_IP_MODE_DHCP;
 //static SemaphoreHandle_t ip_ready;
 static volatile uint8_t ip_ready = 0;
-static volatile uint8_t wifi_ready = 0;
 #define CONFIG_IP	1
 #define CONFIG_DNS	2
 
@@ -387,7 +386,7 @@ static int32_t _wifi_ready_handler(wifi_event_t event,
 		uint32_t length)
 {
 	if (event == WIFI_EVENT_IOT_INIT_COMPLETE) {
-		wifi_ready = 1;
+		set_wifi_ready();
 
 		pr_debug(" wifi_ready_handler exec\r\n");
 	}
@@ -462,7 +461,7 @@ int8_t set_net(char* ssid, uint8_t ssid_len)
 	if (ssid_len == 0)
 		return WL_FAILURE;
 
-	if (!wifi_ready) {
+	if (!wifi_ready()) {
 
 		wifi_config_t config = {0};
 
@@ -509,7 +508,7 @@ int8_t set_key(char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *key, u
 	if (ssid_len == 0 || len == 0)
 		return WL_FAILURE;
 
-	if (!wifi_ready) {
+	if (!wifi_ready()) {
 
 		wifi_config_t config = {0};
 		wifi_config_ext_t config_ext = {0};
@@ -575,7 +574,7 @@ int8_t set_passphrase(char* ssid, uint8_t ssid_len, const char *passphrase, uint
 	if (ssid_len == 0 || len == 0)
 		return WL_FAILURE;
 
-	if (!wifi_ready) {
+	if (!wifi_ready()) {
 
 		wifi_config_t config = {0};
 
@@ -632,7 +631,7 @@ int8_t get_conn_status(void)
 	uint8_t link_status = 0;
 	int8_t ret;
 
-	if (!wifi_ready)
+	if (!wifi_ready())
 		return WL_DISCONNECTED;
 
 	wifi_connection_get_link_status(&link_status);
@@ -827,7 +826,7 @@ int8_t start_scan_net(void)
 	int8_t status = 0, i;
 	//uint8_t scannum = 0;
 
-	if (!wifi_ready) {
+	if (!wifi_ready()) {
 
 		pr_debug("start_scan_net wifi_init\r\n");
 
@@ -843,7 +842,7 @@ int8_t start_scan_net(void)
 
 		lwip_tcpip_init(NULL, wifi_config.opmode);
 
-		while (!wifi_ready);
+		while (!wifi_ready());
 		pr_debug("start_scan_net wifi_init completion\r\n");
 	}
 
