@@ -27,6 +27,10 @@ public:
 
 protected:
     virtual bool _prepareSocket(WiFiClient& socket);
+    virtual void _sendHB(WiFiClient& socket);
+    virtual int _getHBperiod() { return 60*1000; }
+    virtual String _getAPIPath() { return "/mcs/v2";}
+    virtual bool _parsePattern(String& result);
 
     void _keepAlive(void);
 
@@ -65,6 +69,13 @@ public:
 
 protected:
     virtual bool _prepareSocket(WiFiClient& socket);
+    virtual void _sendHB(WiFiClient& socket);
+    virtual int _getHBperiod() { return 10*1000; }
+    virtual String _getAPIPath() { return "/api";}
+    virtual bool _parsePattern(String& result);
+
+private:
+    bool _waitForWSResponse(Client& client);
 };
 
 /* ------------------------------------------------------------------------ */
