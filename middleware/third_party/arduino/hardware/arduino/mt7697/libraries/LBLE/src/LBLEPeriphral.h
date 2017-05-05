@@ -93,11 +93,14 @@ public:
 	// Configure an Eddystone URL
 	// Note that total length must not exceed 17 bytes.
 	// 
-	// You can use prefix, suffix, and tail parameters to save some bytes.
+	// You can use prefix, suffix, and tail parameters to compress common URL parts to a single byte.
 	// e.g. "https://www.mediatek.com" 
 	//			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "mediatek", EDDY_DOT_COM)
 	// e.g. "https://www.asp.net/learn"
-	//			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "mediatek", EDDY_DOT_NET_SLASH, "learn")
+	//			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "asp", EDDY_DOT_NET_SLASH, "learn")
+	//
+	// Please refer to https://github.com/google/eddystone/tree/master/eddystone-url#url-scheme-prefix
+	// to know how the prefix/suffix/tails are expanded.
     void configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
 							  const String& url,
 							  EDDYSTONE_URL_ENCODING suffix = EDDY_URL_NONE,
