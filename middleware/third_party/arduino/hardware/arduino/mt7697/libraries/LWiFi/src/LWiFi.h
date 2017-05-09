@@ -29,6 +29,7 @@ extern "C" {
 #include "IPAddress.h"
 #include "WiFiClient.h"
 #include "WiFiServer.h"
+#include "TLSClient.h"
 
 class WiFiClass
 {
