@@ -312,7 +312,8 @@ int TLSClient::peek()
         return -1;
     }
 
-    // TODO: read peak byte from the databuffer
+    // as of now, we don't support peek() in TLSClient.
+    return -1;
 }
 
 void TLSClient::flush()
