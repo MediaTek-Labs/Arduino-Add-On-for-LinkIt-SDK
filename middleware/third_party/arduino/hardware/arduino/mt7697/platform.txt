@@ -64,7 +64,7 @@ compiler.objcopy.eep.flags=-O ihex
 compiler.elf2hex.cmd=arm-none-eabi-objcopy
 compiler.elf2hex.flags=-O binary
 
-compiler.ldflags= -u _printf_float
+compiler.ldflags=
 compiler.size.cmd=arm-none-eabi-size
 
 # 3 Board Related Extra Compile Flag
@@ -75,7 +75,7 @@ build.extra_flags=
 # ------------------------
 # These can be overridden in platform.local.txt
 compiler.c.extra_flags=-std=gnu99
-compiler.c.elf.extra_flags="-Wl,-T{build.variant.path}/{build.ldscript}" "-Wl,-Map,{build.path}/{build.project_name}.map"
+compiler.c.elf.extra_flags="-Wl,-T{build.variant.path}/{build.ldscript}" "-Wl,-Map,{build.path}/{build.project_name}.map" "-Wl,-u" "-Wl,_printf_float"
 compiler.S.extra_flags=
 compiler.cpp.extra_flags=-std=c++11 -fno-rtti
 compiler.ar.extra_flags=
