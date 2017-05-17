@@ -29,7 +29,7 @@ compiler.warning_flags.all=-Wall -Wdouble-promotion -Wextra -Werror=uninitialize
 # 1.3 Indicate compile flags: FPU flags, HAL flags and Common flags
 # ---------------------
 compiler.fpu_flags=-mlittle-endian -mthumb -mcpu=cortex-m4 -fsingle-precision-constant -mfpu=fpv4-sp-d16 -mfloat-abi=hard
-compiler.hal_flags=-DPRODUCT_VERSION=7697 -DUSE_HAL_DRIVER -DMTK_NVDM_ENABLE -DMTK_DEBUG_LEVEL_INFO -DMTK_DEBUG_LEVEL_WARNING -DMTK_DEBUG_LEVEL_ERROR -DMTK_LWIP_ENABLE -DMBEDTLS_CONFIG_FILE="config-mtk-websocket.h" -DMTK_MINISUPP_ENABLE -DMTK_WIFI_API_TEST_CLI_ENABLE -DMTK_WIFI_REPEATER_ENABLE -DMTK_WIFI_WPS_ENABLE
+compiler.hal_flags=-DPRODUCT_VERSION=7697 -DMTK_BSPEXT_ENABLE -DUSE_HAL_DRIVER -DMTK_NVDM_ENABLE -DMTK_DEBUG_LEVEL_INFO -DMTK_DEBUG_LEVEL_WARNING -DMTK_DEBUG_LEVEL_ERROR -DMTK_LWIP_ENABLE -DMTK_MINISUPP_ENABLE -DMTK_WIFI_API_TEST_CLI_ENABLE -DMTK_WIFI_REPEATER_ENABLE -DMTK_WIFI_WPS_ENABLE -DMBEDTLS_CONFIG_FILE="config-mtk-websocket.h" -DSUPPORT_MBEDTLS -DMTK_MINISUPP_ENABLE -DMTK_WIFI_TGN_VERIFY_ENABLE
 compiler.com_flags=-gdwarf-2 -Os {compiler.warning_flags} -fno-exceptions -ffunction-sections -fdata-sections -fno-builtin -fno-strict-aliasing -fno-common -DPCFG_OS=2 -D_REENT_SMALL
 
 # 2 Define some variables for the following special pattern
