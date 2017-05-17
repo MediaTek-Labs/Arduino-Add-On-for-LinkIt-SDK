@@ -88,7 +88,7 @@ void setup() {
         client.println("Accept: */*");
         client.println("Connection: close");
         client.println();
-        delay(10);
+        delay(300);
     }
 }
 
