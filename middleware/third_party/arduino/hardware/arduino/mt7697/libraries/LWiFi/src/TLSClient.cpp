@@ -10,13 +10,13 @@ extern "C"
 
 static void debugOutput(void *ctx, int level, const char *file, int line, const char *str)
 {
-    pr_debug("%s:%d - %s\r\n", file, line, str);
+    pr_debug("%s:%d - %s\n", file, line, str);
 }
 
 int TLSContext::init(const unsigned char* host)
 {
     // debug log level. 0 means no log.
-    mbedtls_debug_set_threshold(1);
+    mbedtls_debug_set_threshold(0);
 
     // context initialization
     mbedtls_net_init(&net_ctx);
@@ -29,6 +29,7 @@ int TLSContext::init(const unsigned char* host)
     // entropy source init.
     // we pass the host URL/address as a "customization".
     const char *pers = "https";
+    
     int seedResult = mbedtls_ctr_drbg_seed(&ctr_drbg,
                                             mbedtls_entropy_func, 
                                             &entropy,
@@ -144,7 +145,8 @@ int TLSClient::connectImpl(const char* host, uint16_t port, bool isIPAddress)
         memcpy(&profile, m_cntx.ssl_conf.cert_profile, sizeof(mbedtls_x509_crt_profile));
         profile.allowed_mds |= MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_MD5);
         mbedtls_ssl_conf_cert_profile(&m_cntx.ssl_conf, &profile);
-
+        
+        
         // configure root CA if present
         mbedtls_ssl_conf_authmode(&m_cntx.ssl_conf, m_rootCA ? MBEDTLS_SSL_VERIFY_OPTIONAL : MBEDTLS_SSL_VERIFY_NONE);
         if(m_rootCA){
@@ -170,12 +172,15 @@ int TLSClient::connectImpl(const char* host, uint16_t port, bool isIPAddress)
             }
         }
 
-        mbedtls_ssl_set_bio(&m_cntx.ssl_ctx, &m_cntx.net_ctx, mbedtls_net_send, mbedtls_net_recv, NULL);
+        mbedtls_ssl_set_bio(&m_cntx.ssl_ctx, &m_cntx.net_ctx, mbedtls_net_send, NULL, mbedtls_net_recv_timeout);
 
         // waiting for handshaking
         while ((ret = mbedtls_ssl_handshake(&m_cntx.ssl_ctx)) != 0) {
             if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {      
-                pr_debug("mbedtls_ssl_handshake() failed, ret:-0x%x.", -ret);
+                pr_debug("mbedtls_ssl_handshake() failed, ret:-0x%x., verify_result=", -ret);
+                char verificationError[512] = {0};
+                mbedtls_x509_crt_verify_info(verificationError, sizeof(verificationError), "  ! ", m_cntx.ssl_ctx.session_negotiate->verify_result);
+                pr_debug("%s", verificationError);
                 return 0;
             }
         }
