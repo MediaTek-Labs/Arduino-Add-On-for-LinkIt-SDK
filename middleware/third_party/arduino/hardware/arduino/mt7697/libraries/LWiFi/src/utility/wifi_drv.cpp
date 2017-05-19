@@ -61,18 +61,18 @@ void WiFiDrv::wifiDriverInit()
 	init_pBuf();
 }
 
-int8_t WiFiDrv::wifiSetNetwork(char* ssid, uint8_t ssid_len)
+int8_t WiFiDrv::wifiSetNetwork(const char* ssid, uint8_t ssid_len)
 {
 	return set_net(ssid, ssid_len);
 }
 
-int8_t WiFiDrv::wifiSetPassphrase(char* ssid, uint8_t ssid_len, const char *passphrase, const uint8_t len)
+int8_t WiFiDrv::wifiSetPassphrase(const char* ssid, uint8_t ssid_len, const char *passphrase, const uint8_t len)
 {
 	return set_passphrase(ssid, ssid_len, passphrase, len);
 }
 
 
-int8_t WiFiDrv::wifiSetKey(char* ssid, uint8_t ssid_len, uint8_t key_idx, const char *key, const uint8_t len)
+int8_t WiFiDrv::wifiSetKey(const char* ssid, uint8_t ssid_len, uint8_t key_idx, const char *key, const uint8_t len)
 {
 	return set_key(ssid, ssid_len, key_idx, key, len);
 }

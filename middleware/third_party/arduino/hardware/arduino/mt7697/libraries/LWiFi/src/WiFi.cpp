@@ -56,7 +56,7 @@ char* WiFiClass::firmwareVersion()
 	return WiFiDrv::getFwVersion();
 }
 
-int WiFiClass::begin(char* ssid)
+int WiFiClass::begin(const char* ssid)
 {
 	uint8_t status = WL_IDLE_STATUS;
 	uint8_t attempts = WL_MAX_ATTEMPT_CONNECTION;	//retry total 10
@@ -76,7 +76,7 @@ int WiFiClass::begin(char* ssid)
 	return status;
 }
 
-int WiFiClass::begin(char* ssid, uint8_t key_idx, const char *key)
+int WiFiClass::begin(const char* ssid, uint8_t key_idx, const char *key)
 {
 	uint8_t status = WL_IDLE_STATUS;
 	uint8_t attempts = WL_MAX_ATTEMPT_CONNECTION;	//retry total 10
@@ -97,7 +97,7 @@ int WiFiClass::begin(char* ssid, uint8_t key_idx, const char *key)
 	return status;
 }
 
-int WiFiClass::begin(char* ssid, const char *passphrase)
+int WiFiClass::begin(const char* ssid, const char *passphrase)
 {
 	uint8_t status = WL_IDLE_STATUS;
 	uint8_t attempts = WL_MAX_ATTEMPT_CONNECTION;	//retry total 10

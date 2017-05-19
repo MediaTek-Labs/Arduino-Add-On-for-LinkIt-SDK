@@ -98,12 +98,9 @@ extern uint32_t SystemCoreClock;
 #define configTICK_RATE_HZ              ( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES            ( 20 )
 #define configMINIMAL_STACK_SIZE        ( ( unsigned short ) 256 )
-/*This option is to enable homekit under middleware/MTK/homekit folder. If the MTK_HOMEKIT_ENABLE compile option is defined, the sources and header files under middleware/MTK/homekit/inc be included by middleware/MTK/homekit/MakeFile.*/
-#if defined(MTK_HOMEKIT_ENABLE)
-#define configTOTAL_HEAP_SIZE           ( ( size_t ) ( 140 * 1024 ) )
-#else
-#define configTOTAL_HEAP_SIZE           ( ( size_t ) ( 80 * 1024 ) )
-#endif
+/* Arduino projects relies more on heap size - so we use a larger heap, compare to the "default" of 80KB. */
+#define configTOTAL_HEAP_SIZE           ( ( size_t ) (140  * 1024 ) )
+
 
 #define configMAX_TASK_NAME_LEN         ( 6 )
 #define configUSE_TRACE_FACILITY        1

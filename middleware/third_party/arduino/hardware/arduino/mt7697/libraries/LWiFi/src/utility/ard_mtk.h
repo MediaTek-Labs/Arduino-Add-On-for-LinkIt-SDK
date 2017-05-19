@@ -209,7 +209,7 @@ extern "C" {
 	    return >=0: success
 	            <0: failed
 	*/
-	int8_t set_net(char* ssid, uint8_t ssid_len);
+	int8_t set_net(const char* ssid, uint8_t ssid_len);
 
 	/*
 	    WiFiClass::begin()   wifiSetKey
@@ -224,7 +224,7 @@ extern "C" {
 	    return >=0: success
 	            <0: failed
 	*/
-	int8_t set_key(char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *key, uint8_t len);
+	int8_t set_key(const char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *key, uint8_t len);
 
 	/*
 	    WiFiClass::begin()     wifiSetPassphrase
@@ -238,7 +238,7 @@ extern "C" {
 	    return >=0: success
 	            <0: failed
 	*/
-	int8_t set_passphrase(char* ssid, uint8_t ssid_len, const char *passphrase, uint8_t len);
+	int8_t set_passphrase(const char* ssid, uint8_t ssid_len, const char *passphrase, uint8_t len);
 
 	/*
 	    WiFiClass::status()         getConnectionStatus
