@@ -20,8 +20,8 @@
 
 #include <LWiFi.h>
 
-char ssid[] = "MediaTek_Labs";      //  your network SSID (name)
-char pass[] = "84149961";  // your network password (use for WPA, or use as key for WEP)
+char ssid[] = "your_ap_ssid";      //  your network SSID (name)
+char pass[] = "your_ap_password";  // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;               // your network key Index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
