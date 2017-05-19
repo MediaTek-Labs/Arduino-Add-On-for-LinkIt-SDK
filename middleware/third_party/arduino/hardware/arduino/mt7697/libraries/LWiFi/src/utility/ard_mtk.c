@@ -456,7 +456,7 @@ int8_t get_ip_setting(uint8_t *ip, uint8_t *mask, uint8_t *gwip)
 	return 0;
 }
 
-int8_t set_net(char* ssid, uint8_t ssid_len)
+int8_t set_net(const char* ssid, uint8_t ssid_len)
 {
 	if (ssid_len == 0)
 		return WL_FAILURE;
@@ -503,7 +503,7 @@ err:
 	return WL_FAILURE;
 }
 
-int8_t set_key(char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *key, uint8_t len)
+int8_t set_key(const char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *key, uint8_t len)
 {
 	if (ssid_len == 0 || len == 0)
 		return WL_FAILURE;
@@ -569,7 +569,7 @@ err:
 	return WL_FAILURE;
 }
 
-int8_t set_passphrase(char* ssid, uint8_t ssid_len, const char *passphrase, uint8_t len)
+int8_t set_passphrase(const char* ssid, uint8_t ssid_len, const char *passphrase, uint8_t len)
 {
 	if (ssid_len == 0 || len == 0)
 		return WL_FAILURE;
