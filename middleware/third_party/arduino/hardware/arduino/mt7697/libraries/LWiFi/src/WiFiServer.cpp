@@ -74,7 +74,7 @@ WiFiClient WiFiServer::available(byte* status)	//status == NULL
 		}
 	}
 
-	return WiFiClient(255);
+	return WiFiClient(-1);
 }
 
 uint8_t WiFiServer::status() {

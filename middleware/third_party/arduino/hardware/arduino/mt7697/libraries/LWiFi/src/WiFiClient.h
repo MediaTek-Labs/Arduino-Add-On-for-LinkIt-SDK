@@ -29,7 +29,8 @@ class WiFiClient : public Client {
 
 	public:
 		WiFiClient();
-		WiFiClient(uint8_t sock);
+		WiFiClient(int sock);
+		~WiFiClient();
 
 		uint8_t status();
 		virtual int connect(IPAddress ip, uint16_t port);
@@ -50,11 +51,7 @@ class WiFiClient : public Client {
 		using Print::write;
 
 	private:
-		static uint16_t _srcport;
-		uint8_t _sock;   //not used
-		uint16_t  _socket;
-
-		uint8_t getFirstSocket();
+		int m_socket;
 };
 
 #endif

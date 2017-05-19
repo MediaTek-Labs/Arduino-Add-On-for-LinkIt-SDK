@@ -52,6 +52,11 @@
 //for ip display
 #define LWIP_NETIF_STATUS_CALLBACK      1
 
+// Arduino WiFi library (TCP/UDP socket) relies on socket APIs
+#define LWIP_SOCKET                     1
+#define LWIP_COMPAT_SOCKETS             0
+#define LWIP_POSIX_SOCKETS_IO_NAMES     0
+
 #if defined(MTK_HOMEKIT_ENABLE)
 #define LWIP_IPV6                       1
 #define IP_REASS_MAXAGE                 60 // 3 
