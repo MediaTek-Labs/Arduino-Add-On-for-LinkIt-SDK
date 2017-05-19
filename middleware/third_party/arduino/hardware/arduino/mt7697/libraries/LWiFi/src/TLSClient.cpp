@@ -53,11 +53,12 @@ void TLSContext::free()
     mbedtls_entropy_free(&entropy);         
 }
 
-TLSClient::TLSClient()
+TLSClient::TLSClient():
+    m_connected(false)
+    ,m_rootCA(NULL)
+    ,m_rootCALen(0)
+    ,m_peekByte(-1)
 {
-    m_connected = false;
-    m_rootCA = NULL;
-    m_rootCALen = 0;
 }
 
 void TLSClient::setRootCA(const char* rootCA, size_t length)
@@ -107,6 +108,8 @@ int TLSClient::connectImpl(const char* host, uint16_t port, bool isIPAddress)
     // start connection. We'll set SSL/TLS later.
     do
     {
+        // "port" ranges from 0 to 65535, so a buffer of 10 characters
+        // would be sufficient.
         char portStr[10] = {0};
         sprintf(portStr, "%d", port) ;
         pr_debug("connect to %s:%s", host, portStr);
@@ -202,7 +205,7 @@ int TLSClient::connectImpl(const char* host, uint16_t port, bool isIPAddress)
         ret = 0;
         m_connected = true;
 
-        pr_debug("yeah! connected and verified\r\n");
+        pr_debug("TLS socket connected and verified\r\n");
 
     }while(false);
     
@@ -217,18 +220,20 @@ size_t TLSClient::write(uint8_t c)
 
 size_t TLSClient::write(const uint8_t *data, size_t length)
 {
-    pr_debug("%s", data);
-
     size_t written_len = 0;
 
     while (written_len < length) {
         int ret = mbedtls_ssl_write(&m_cntx.ssl_ctx, (unsigned char *)(data + written_len), (length - written_len));
         if (ret > 0) {
+            // loop until we've sent everything
             written_len += ret;
             continue;
         } else if (ret == 0) {
+            // cannot write anymore
             return written_len;
         } else {
+            // something goes wrong...
+            pr_debug("mbedtls_ssl_write returns error 0x%x", ret);
             m_connected = false;
             return 0; /* Connnection error */
         }
@@ -239,6 +244,13 @@ size_t TLSClient::write(const uint8_t *data, size_t length)
 
 int TLSClient::available()
 {
+    // if there's a cached peek byte, we have something available.
+    if(-1 != m_peekByte)
+    {
+        return 1;
+    }
+
+    // check if the read buffer has something.
     int ret = mbedtls_ssl_read( &m_cntx.ssl_ctx, NULL, 0 );
     
     if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
@@ -250,7 +262,7 @@ int TLSClient::available()
 
     if( ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
     {
-        // host closes the connection.
+        // host closes the connection, so we disconnect too.
         pr_debug("peer closed");
         stop();
         return 0;
@@ -258,6 +270,7 @@ int TLSClient::available()
 
     if( ret < 0 )
     {
+        // something goes wrong, disconnect.
         pr_debug("failed\n  ! mbedtls_ssl_read returned %d\n\n", ret );
         stop();
         return 0;
@@ -269,7 +282,16 @@ int TLSClient::available()
 
 int TLSClient::read()
 {
-    uint8_t c;
+    // is there a cached peek?
+    if(-1 != m_peekByte)
+    {
+        int ret = m_peekByte;
+        m_peekByte = -1;
+        return ret;
+    }
+
+    // read from read buffer
+    uint8_t c = 0;
     if(1 == read(&c, 1))
     {
         return c;
@@ -282,13 +304,30 @@ int TLSClient::read()
 
 int TLSClient::read(uint8_t *buf, size_t size)
 {
+    if(NULL == buf || size == 0)
+    {
+        return 0;
+    }
+
+    // is there a cached peek?
+    if(-1 != m_peekByte)
+    {
+        // pop the cached peek byte and early return first.
+        *buf = (uint8_t)m_peekByte;
+        m_peekByte = -1;
+
+        // we "read()" exactly 1 byte
+        return 1;
+    }
+
+    // no cached peek byte, read from the read buffer.
     int ret = mbedtls_ssl_read(&m_cntx.ssl_ctx, buf, size);
     
     if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
     {    
+        // this is "normal" - we just need to wait for the data. 
         pr_debug("want read/write\r\n");
-        // this is "normal" - we just need to wait for the data.
-        return 0;
+        return -1;
     }
 
     if( ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY )
@@ -312,21 +351,31 @@ int TLSClient::read(uint8_t *buf, size_t size)
 
 int TLSClient::peek()
 {
+    // check if we already cached.
+    if(-1 != m_peekByte)
+    {
+        return m_peekByte;
+    }
+
+    // check if there's something in the read buffer
     if(!available())
     {
+        // not available, return -1
         return -1;
     }
 
-    // as of now, we don't support peek() in TLSClient.
-    return -1;
+    // read 1 byte and cache it
+    m_peekByte = read();
+    return m_peekByte;
 }
 
 void TLSClient::flush()
 {
+    uint8_t buf[64] = {0};
     while(available())
     {
-        uint8_t buf[256] = {0};
-        read(buf, sizeof(buf));
+        if(0 >= read(buf, sizeof(buf)))
+            return;
     }
 }
 
@@ -335,6 +384,7 @@ void TLSClient::stop()
     // disconnect
     m_cntx.free();
     m_connected = false;
+    m_peekByte = -1;
 }
 
 uint8_t TLSClient::connected()
