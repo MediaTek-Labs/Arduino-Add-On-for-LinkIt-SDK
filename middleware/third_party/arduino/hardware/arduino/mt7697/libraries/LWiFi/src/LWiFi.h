@@ -37,15 +37,7 @@ class WiFiClass
 
 		static void init();
 	public:
-		static int16_t 	_state[MAX_SOCK_NUM];
-		static uint16_t _server_port[MAX_SOCK_NUM];
-
 		WiFiClass();
-
-		/*
-		 * Get the first socket available
-		 */
-		static uint8_t getSocket();
 
 		/*
 		 * Get firmware version

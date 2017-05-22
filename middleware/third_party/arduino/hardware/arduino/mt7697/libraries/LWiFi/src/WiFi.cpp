@@ -24,10 +24,6 @@ extern "C" {
 #include "delay.h"
 }
 
-// XXX: don't make assumptions about the value of MAX_SOCK_NUM.
-int16_t 	WiFiClass::_state[MAX_SOCK_NUM] = { NA_STATE, NA_STATE, NA_STATE, NA_STATE };
-uint16_t 	WiFiClass::_server_port[MAX_SOCK_NUM] = { 0, 0, 0, 0 };
-
 WiFiClass::WiFiClass()
 {
 	// Driver initialization
@@ -37,18 +33,6 @@ WiFiClass::WiFiClass()
 void WiFiClass::init()
 {
 	WiFiDrv::wifiDriverInit();
-}
-
-uint8_t WiFiClass::getSocket()
-{
-	for (uint8_t i = 0; i < MAX_SOCK_NUM; ++i)
-	{
-		if (WiFiClass::_server_port[i] == 0)
-		{
-			return i;
-		}
-	}
-	return NO_SOCKET_AVAIL;
 }
 
 char* WiFiClass::firmwareVersion()

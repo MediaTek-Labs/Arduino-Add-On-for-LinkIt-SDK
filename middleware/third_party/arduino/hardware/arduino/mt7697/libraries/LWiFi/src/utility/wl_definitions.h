@@ -13,16 +13,10 @@
 #define WL_IPV4_LENGTH			4
 // Maximum size of a SSID list
 #define WL_NETWORKS_LIST_MAXNUM		16
-// Maxmium number of socket
-#define	MAX_SOCK_NUM			4
-// Socket not available constant
-#define SOCK_NOT_AVAIL			255
 // Default state value for Wifi state field
 #define NA_STATE			-1
 //Maximum number of attempts to establish wifi connection
 #define WL_MAX_ATTEMPT_CONNECTION	10
-
-#define NO_SOCKET_AVAIL			255
 
 typedef enum {
 	WL_NO_SHIELD		= 255,
