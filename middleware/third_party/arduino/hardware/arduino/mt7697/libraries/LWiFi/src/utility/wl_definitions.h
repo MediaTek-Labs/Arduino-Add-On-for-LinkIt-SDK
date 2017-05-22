@@ -16,7 +16,7 @@
 // Default state value for Wifi state field
 #define NA_STATE			-1
 //Maximum number of attempts to establish wifi connection
-#define WL_MAX_ATTEMPT_CONNECTION	10
+#define WL_MAX_CONNECTION_WAIT_SECONDS	10
 
 typedef enum {
 	WL_NO_SHIELD		= 255,

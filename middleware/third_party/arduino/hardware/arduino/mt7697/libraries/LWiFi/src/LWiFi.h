@@ -35,6 +35,7 @@ class WiFiClass
 {
 	private:
 
+		uint8_t waitForWiFiConnection();
 		static void init();
 	public:
 		WiFiClass();

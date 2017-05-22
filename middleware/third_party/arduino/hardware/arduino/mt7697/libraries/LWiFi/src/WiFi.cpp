@@ -40,18 +40,26 @@ char* WiFiClass::firmwareVersion()
 	return WiFiDrv::getFwVersion();
 }
 
+uint8_t WiFiClass::waitForWiFiConnection()
+{
+	const uint32_t maxWaitMillis = WL_MAX_CONNECTION_WAIT_SECONDS * 1000;
+	const uint32_t startTime = millis();
+	uint8_t status = WL_IDLE_STATUS;
+	do{
+		status = WiFiDrv::getConnectionStatus();
+		delay(100);
+	} while ((status != WL_CONNECTED) && ((millis() - startTime) < maxWaitMillis));
+
+	return status;
+}
+
 int WiFiClass::begin(const char* ssid)
 {
 	uint8_t status = WL_IDLE_STATUS;
-	uint8_t attempts = WL_MAX_ATTEMPT_CONNECTION;	//retry total 10
 
 	if (WiFiDrv::wifiSetNetwork(ssid, strlen(ssid)) != WL_FAILURE)
 	{
-		do
-		{
-			delay(WL_DELAY_START_CONNECTION);		//delay 5s every time
-			status = WiFiDrv::getConnectionStatus();
-		} while ((status != WL_CONNECTED) && (--attempts>0));
+		status = waitForWiFiConnection();
 	}
 	else
 	{
@@ -63,16 +71,11 @@ int WiFiClass::begin(const char* ssid)
 int WiFiClass::begin(const char* ssid, uint8_t key_idx, const char *key)
 {
 	uint8_t status = WL_IDLE_STATUS;
-	uint8_t attempts = WL_MAX_ATTEMPT_CONNECTION;	//retry total 10
 
 	// set encryption key
 	if (WiFiDrv::wifiSetKey(ssid, strlen(ssid), key_idx, key, strlen(key)) != WL_FAILURE)
 	{
-		do
-		{
-			delay(WL_DELAY_START_CONNECTION);		//delay 5s every time
-			status = WiFiDrv::getConnectionStatus();
-		}while ((status != WL_CONNECTED) && (--attempts>0));
+		status = waitForWiFiConnection();
 	}
 	else
 	{
@@ -84,16 +87,11 @@ int WiFiClass::begin(const char* ssid, uint8_t key_idx, const char *key)
 int WiFiClass::begin(const char* ssid, const char *passphrase)
 {
 	uint8_t status = WL_IDLE_STATUS;
-	uint8_t attempts = WL_MAX_ATTEMPT_CONNECTION;	//retry total 10
 
 	// set passphrase
 	if (WiFiDrv::wifiSetPassphrase(ssid, strlen(ssid), passphrase, strlen(passphrase)) != WL_FAILURE)
 	{
-		do
-		{
-			delay(WL_DELAY_START_CONNECTION);		//delay 5s every time
-			status = WiFiDrv::getConnectionStatus();
-		}while ((status != WL_CONNECTED)&&(--attempts>0));
+		status = waitForWiFiConnection();
 	}
 	else
 	{
