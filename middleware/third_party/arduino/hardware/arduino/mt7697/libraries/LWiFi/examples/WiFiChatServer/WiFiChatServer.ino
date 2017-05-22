@@ -59,7 +59,7 @@ void setup() {
 		status = WiFi.begin(ssid, pass);
 
 		// wait 10 seconds for connection:
-		delay(10000);
+		delay(100);
 	}
 
 	// start the server:

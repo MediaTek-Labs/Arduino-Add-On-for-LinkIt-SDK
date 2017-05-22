@@ -21,17 +21,30 @@
 #define wifiudp_h
 
 #include "Udp.h"
+#include <vector>
+
+extern "C"{
+#include "lwip/sockets.h"
+}
 
 #define UDP_TX_PACKET_MAX_SIZE 24
 
 class WiFiUDP : public UDP {
 	private:
-		uint8_t _sock;  // socket ID for Wiz5100
-		uint16_t _port; // local port to listen on
+		static const size_t MAX_DATAGRAM_SIZE = 1024;	// limit of our receiving buffer for beginPacket().
+		uint8_t m_socket; // socket for both send and recv
+		
+		struct sockaddr_in m_sendAddr;				// address & port to sendto (endPacket())
+		std::vector<uint8_t> m_sendBuffer;	// buffer for sendto (endPacket())
+
+		struct sockaddr_in m_recvAddr;				// address & port of recvfrom (remote ip/port)
+		std::vector<uint8_t> m_recvBuffer;	// data recevied
+		size_t m_recvCursor;
+		int createSocket();
 
 	public:
 		WiFiUDP();  // Constructor
-		virtual uint8_t begin(uint16_t);	// initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
+		virtual uint8_t begin(uint16_t port);	// initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
 		virtual void stop();  // Finish with the UDP socket
 
 		// Sending UDP packets

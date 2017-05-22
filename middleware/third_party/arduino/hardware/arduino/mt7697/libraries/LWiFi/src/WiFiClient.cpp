@@ -32,21 +32,32 @@ extern "C" {
 }
 
 
-WiFiClient::WiFiClient(): m_socket(-1){
+WiFiClient::WiFiClient(): 
+	m_socket(-1),
+	m_externalSocket(false)
+{
 	
 }
 
-WiFiClient::WiFiClient(int sock): m_socket(sock){
-
+WiFiClient::WiFiClient(int sock): 
+	m_socket(sock),
+	m_externalSocket(true)
+{
+	// accepting an externally
+	// allocated socket
 }
 
 WiFiClient::~WiFiClient()
 {
-	stop();
-	if(m_socket != -1)
+	// only auto-close sockets that are created
+	// by the connect() method.
+	// This is designed for WiFiServer::available().
+	// The WiFiClient object returned from WiFiServer::available() should
+	// persist its connection even when the returned client object goes out of scope; 
+    // The user should close it by calling client.stop().
+	if(!m_externalSocket)
 	{
-		lwip_close(m_socket);
-		m_socket = -1;
+		stop();
 	}
 }
 
@@ -66,6 +77,7 @@ int WiFiClient::connect(IPAddress ip, uint16_t port) {
 	}
 
 	m_socket = lwip_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	m_externalSocket = true;
 
 	if( -1 == m_socket)
 	{
@@ -76,7 +88,7 @@ int WiFiClient::connect(IPAddress ip, uint16_t port) {
 	struct sockaddr_in server;
 	server.sin_addr.s_addr = (uint32_t)ip;
     server.sin_family = AF_INET;
-    server.sin_port = htons( port );
+    server.sin_port = lwip_htons( port );
 
 	if(0 > lwip_connect(m_socket, (struct sockaddr*)&server, sizeof(server)))
 	{
@@ -110,7 +122,10 @@ size_t WiFiClient::write(const uint8_t *buf, size_t size) {
 	}
 
 	int ret = lwip_send(m_socket, buf, size, 0);
-	pr_debug("buffered lwip_send returns %d", ret);
+	if(ret < 0)
+	{
+		pr_debug("buffered lwip_send fails with ret= %d", ret);
+	}
 	return ret;
 }
 
@@ -120,13 +135,14 @@ int WiFiClient::available() {
 		return 0;
 	}
 
-#if 0	
+#if 0
+	// Note: to enable FIONREAD, we need to enable lwIP option `LWIP_SO_RCVBUF	1`.
+	// Currently, it is not enabled.
 	int count = 0;
 	int ret = lwip_ioctl(m_socket, FIONREAD, &count);
-
 	pr_debug("lwip_ioctl FIONREAD returns %d with count = %d", ret, count);
 	return count;
-#endif;
+#endif
 
 	if(-1 == peek())
 	{
@@ -175,11 +191,9 @@ int WiFiClient::peek() {
 	int ret = lwip_recv(m_socket, &b, 1, MSG_PEEK | MSG_DONTWAIT);
 	if(ret == 1)
 	{
-		// pr_debug("peek get 1");
 		return b;
 	}
 
-	pr_debug("peek ret =", ret);
 	return -1;
 }
 
@@ -193,10 +207,9 @@ void WiFiClient::stop() {
 		return;
 	}
 
+	pr_debug("lwip_close on socket %d", m_socket);
 	lwip_close(m_socket);
 	m_socket = -1;
-
-	pr_debug("lwip_close-ed");
 }
 
 uint8_t WiFiClient::connected() {
@@ -214,12 +227,10 @@ uint8_t WiFiClient::connected() {
 		(error_code == ECONNRESET) ||
 		(error_code == ETIMEDOUT))
 	{
-		pr_debug("connected() false with error code %d", error_code);
 		return 0;	
 	}
 	else
 	{
-		pr_debug("connected() true with error code %d", error_code);
 		return 1;
 	}
 }

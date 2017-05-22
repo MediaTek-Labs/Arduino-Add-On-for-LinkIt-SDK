@@ -21,37 +21,42 @@
 #define wificlient_h
 
 #include <stdio.h>
-#include "Print.h"
 #include "Client.h"
 #include "IPAddress.h"
 
 class WiFiClient : public Client {
 
-	public:
-		WiFiClient();
-		WiFiClient(int sock);
-		~WiFiClient();
+public:
+    WiFiClient();
 
-		uint8_t status();
-		virtual int connect(IPAddress ip, uint16_t port);
-		virtual int connect(const char *host, uint16_t port);
-		virtual size_t write(uint8_t);
-		virtual size_t write(const uint8_t *buf, size_t size);
-		virtual int available();
-		virtual int read();
-		virtual int read(uint8_t *buf, size_t size);
-		virtual int peek();
-		virtual void flush();
-		virtual void stop();
-		virtual uint8_t connected();
-		virtual operator bool();
+    // This constructor is designed for WiFiServer::available().
+    // The WiFiClient object returned from WiFiServer::available() should
+    // persist its connection even when the returned client object goes out of scope; 
+    // The user should close it by calling client.stop().
+    WiFiClient(int sock);
+    ~WiFiClient();
 
-		friend class WiFiServer;
+    uint8_t status();
+    virtual int connect(IPAddress ip, uint16_t port);
+    virtual int connect(const char *host, uint16_t port);
+    virtual size_t write(uint8_t);
+    virtual size_t write(const uint8_t *buf, size_t size);
+    virtual int available();
+    virtual int read();
+    virtual int read(uint8_t *buf, size_t size);
+    virtual int peek();
+    virtual void flush();
+    virtual void stop();
+    virtual uint8_t connected();
+    virtual operator bool();
 
-		using Print::write;
+    friend class WiFiServer;
 
-	private:
-		int m_socket;
+    using Print::write;
+
+private:
+    int m_socket;
+    bool m_externalSocket;
 };
 
 #endif

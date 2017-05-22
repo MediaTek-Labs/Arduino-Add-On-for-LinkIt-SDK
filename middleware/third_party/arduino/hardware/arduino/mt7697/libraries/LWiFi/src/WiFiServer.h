@@ -22,22 +22,39 @@
 
 #include "Server.h"
 #include "WiFiClient.h"
+#include <set>
 
 class WiFiClient;
 
 class WiFiServer : public Server {
-	private:
-		uint16_t _port;
-		void*     pcb;
-	public:
-		WiFiServer(uint16_t);
-		WiFiClient available(uint8_t* status = NULL);
-		void begin();
-		virtual size_t write(uint8_t);
-		virtual size_t write(const uint8_t *buf, size_t size);
-		uint8_t status();
+private:
+    static const unsigned int MAX_INCOMING_CLIENT = 5;
+    uint16_t m_port;
+    int m_socket;
+    std::set<int> m_clientSockets;
+public:
+    // allocate a TCP listening socket
+    WiFiServer(uint16_t port);
 
-		using Print::write;
+    // start listening on the port
+    void begin();
+
+    // Gets a client that is newly connected to the server **or**
+    // a connected client that has some data available for reading. 
+    // The connection **persists** when the returned client object goes out of scope; 
+    // you can close it by calling client.stop().
+    WiFiClient available(uint8_t* status = NULL);
+
+    // broadcast to all connected clients.
+    virtual size_t write(uint8_t);
+
+    // boardcaste to all connected clients.
+    virtual size_t write(const uint8_t *buf, size_t size);
+
+    // This is internal API for WiFiClient/WiFiSever.
+    uint8_t status();
+
+    using Print::write;
 };
 
 #endif

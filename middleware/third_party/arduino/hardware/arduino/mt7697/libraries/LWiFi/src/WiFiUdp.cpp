@@ -19,51 +19,77 @@
 
 #include "LWiFi.h"
 #include "WiFiUdp.h"
-#include "WiFiClient.h"
-#include "WiFiServer.h"
 #include <string.h>
 
-#include "utility/server_drv.h"
-#include "utility/wifi_drv.h"
+extern "C"
+{
+#include "log_dump.h"
+#include "constants.h"
+#include "delay.h"
+#include "lwip/sockets.h"
+#include "utility/wl_definitions.h"
+}
 
 /* Constructor */
-WiFiUDP::WiFiUDP() : _sock(NO_SOCKET_AVAIL) {}
+WiFiUDP::WiFiUDP() : 
+	m_socket(-1),
+	m_recvCursor(0)
+{
+	memset(&m_sendAddr, 0, sizeof(m_sendAddr));
+	memset(&m_recvAddr, 0, sizeof(m_recvAddr));
+	m_sendBuffer.clear();
+	m_recvBuffer.clear();	
+}
+
+int WiFiUDP::createSocket()
+{
+	m_socket = lwip_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if(-1 == m_socket)
+	{
+		pr_debug("lwip_socket failed");
+		return 0;
+	}
+	return 1;
+}
 
 /* Start WiFiUDP socket, listening at local port PORT */
 uint8_t WiFiUDP::begin(uint16_t port) {
-
-	uint8_t sock = WiFiClass::getSocket();
-	if (sock != NO_SOCKET_AVAIL)
+	// close previous socket
+	if(-1 != m_socket)
 	{
-		ServerDrv::startServer(port, sock, UDP_MODE);
-		WiFiClass::_server_port[sock] = port;
-		_sock = sock;
-		_port = port;
-		return 1;
+		stop();
 	}
-	return 0;
 
-}
-
-/* return number of bytes available in the current packet,
-    will return zero if parsePacket hasn't been called yet */
-int WiFiUDP::available() {
-	if (_sock != NO_SOCKET_AVAIL)
+	// allocate new socket
+	if(!createSocket())
 	{
-		return ServerDrv::availData(_sock);
+		return 0;
 	}
-	return 0;
+
+	// listen on port
+	sockaddr_in si_local;
+	memset(&si_local, 0, sizeof(si_local));
+	si_local.sin_family = AF_INET;
+	si_local.sin_port = lwip_htons(port);
+	si_local.sin_addr.s_addr = lwip_htonl(INADDR_ANY);
+
+	const int bindResult = lwip_bind(m_socket, (struct sockaddr*)&si_local, sizeof(si_local));
+	if(-1 == bindResult)
+	{
+		pr_debug("lwip_bind failed with %d", bindResult);
+		return 0;
+	}
+	return 1;
 }
 
 /* Release any resources being used by this WiFiUDP instance */
 void WiFiUDP::stop()
 {
-	if (_sock == NO_SOCKET_AVAIL)
+	if (m_socket == -1)
 		return;
 
-	ServerDrv::stopClient(_sock);
-
-	_sock = NO_SOCKET_AVAIL;
+	lwip_close(m_socket);
+	m_socket = -1;
 }
 
 int WiFiUDP::beginPacket(const char *host, uint16_t port)
@@ -80,96 +106,163 @@ int WiFiUDP::beginPacket(const char *host, uint16_t port)
 
 int WiFiUDP::beginPacket(IPAddress ip, uint16_t port)
 {
-	if (_sock == NO_SOCKET_AVAIL)
-		_sock = WiFiClass::getSocket();
-	if (_sock != NO_SOCKET_AVAIL)
+	if (m_socket == -1)
 	{
-		ServerDrv::startClient(uint32_t(ip), port, _sock, UDP_MODE);
-		WiFiClass::_state[_sock] = _sock;
-		return 1;
+		createSocket();
 	}
-	return 0;
+
+	if(-1 == m_socket)
+	{
+		return 0;
+	}
+
+	// clear remote buffer and port
+	m_sendBuffer.clear();
+	memset(&m_sendAddr, 0, sizeof(m_sendAddr));
+	m_sendAddr.sin_addr.s_addr = (uint32_t)ip;
+    m_sendAddr.sin_family = AF_INET;
+    m_sendAddr.sin_port = lwip_htons( port );
+
+	return 1;
 }
 
 int WiFiUDP::endPacket()
 {
-	return ServerDrv::sendUdpData(_sock);
+	if(m_sendBuffer.empty())
+	{
+		return 0;
+	}
+	
+	// actually send the data
+	uint8_t* pData = &m_sendBuffer[0];
+	size_t sentBytes = 0;
+	const size_t totalBytes = m_sendBuffer.size();
+	int ret = -1;
+
+	// sendto() may not write out the entire buffer,
+	// so we use a loop to ensure it does.
+	do
+	{
+		ret = lwip_sendto(m_socket, 
+						  pData, 
+						  (totalBytes - sentBytes), 
+						  0, 
+						  (struct sockaddr*)&m_sendAddr, 
+						  sizeof(m_sendAddr));
+		if(-1 == ret)
+		{
+			pr_debug("lwip_sendto failed, sent %d bytes", sentBytes);
+			return 0;
+		}
+		// increase cursors
+		sentBytes += ret;
+		pData += ret;
+	}while(sentBytes < totalBytes);
+
+	return 1;
 }
 
 size_t WiFiUDP::write(uint8_t byte)
 {
-	return write(&byte, 1);
+	m_sendBuffer.push_back(byte);
+	return 1;
 }
 
 size_t WiFiUDP::write(const uint8_t *buffer, size_t size)
 {
-	ServerDrv::insertDataBuf(_sock, buffer, size);
+	size_t endPos = m_sendBuffer.size();
+	m_sendBuffer.resize(m_sendBuffer.size() + size);
+	if(m_sendBuffer.size() < (endPos + size))
+	{
+		pr_debug("m_sendBuffer resize() failed");
+		return 0;
+	}
+	memcpy(&m_sendBuffer[endPos], buffer, size);
 	return size;
 }
 
 int WiFiUDP::parsePacket()
 {
-	return available();
+	if(-1 == m_socket)
+	{
+		createSocket();
+	}
+
+	if(-1 == m_socket)
+	{
+		pr_debug("parsePacket failed due to socket allocation failure");
+		return 0;
+	}
+
+	flush();
+	m_recvBuffer.resize(MAX_DATAGRAM_SIZE);
+	socklen_t addrLen = sizeof(m_recvAddr);
+	int ret = lwip_recvfrom(m_socket, &m_recvBuffer[0], m_recvBuffer.size(), MSG_DONTWAIT, (struct sockaddr*)&m_recvAddr, &addrLen);
+	if(ret <= 0)
+	{
+		pr_debug("lwip_recvfrom failed with %d", ret);
+		return 0;
+	}
+
+	pr_debug("lwip_recvfrom recevied %d bytes", ret);
+	// resize to actual received datagram size.
+	m_recvBuffer.resize(ret);
+
+	return ret;
+}
+
+/* return number of bytes available in the current packet,
+    will return zero if parsePacket hasn't been called yet */
+int WiFiUDP::available() {
+	return m_recvBuffer.size() - m_recvCursor;
 }
 
 int WiFiUDP::read()
 {
-	uint8_t b;
-	if (available())
+	if(m_recvCursor < 0 || m_recvCursor >= m_recvBuffer.size())
 	{
-		ServerDrv::getData(_sock, &b);
-		return b;
-	}else{
-		return -1;
+		return 0;
 	}
+
+	return m_recvBuffer[m_recvCursor++];
 }
 
 int WiFiUDP::read(unsigned char* buffer, size_t len)
 {
-	if (available())
+	const size_t copySize = min(len, (m_recvBuffer.size() - m_recvCursor));
+	if(copySize)
 	{
-		uint16_t size = 0;
-		if (!ServerDrv::getDataBuf(_sock, buffer, &size))
-			return -1;
-		// TODO check if the buffer is too smal respect to buffer size
-		return size;
-	}else{
-		return -1;
+		memcpy(buffer, &m_recvBuffer[m_recvCursor], copySize);
 	}
+
+	m_recvCursor += copySize;
+
+	return (int) copySize;
 }
 
 int WiFiUDP::peek()
 {
-	uint8_t b;
-	if (!available())
-		return -1;
+	if(m_recvCursor < 0 || m_recvCursor >= m_recvBuffer.size())
+	{
+		return 0;
+	}
 
-	ServerDrv::getData(_sock, &b, 1);
-	return b;
+	return m_recvBuffer[m_recvCursor];
 }
 
 void WiFiUDP::flush()
 {
-	while (available())
-		read();
+	m_recvBuffer.clear();
+	m_recvCursor = 0;
 }
 
 IPAddress  WiFiUDP::remoteIP()
 {
-	uint8_t _remoteIp[4] = {0};
-	uint8_t _remotePort[2] = {0};
-
-	WiFiDrv::getRemoteData(_sock, _remoteIp, _remotePort);
-	IPAddress ip(_remoteIp);
+	const IPAddress ip((uint32_t)m_recvAddr.sin_addr.s_addr);
 	return ip;
 }
 
 uint16_t  WiFiUDP::remotePort()
 {
-	uint8_t _remoteIp[4] = {0};
-	uint8_t _remotePort[2] = {0};
-
-	WiFiDrv::getRemoteData(_sock, _remoteIp, _remotePort);
-	uint16_t port = (_remotePort[0]<<8)+_remotePort[1];
-	return port;
+	return m_recvAddr.sin_port;
 }

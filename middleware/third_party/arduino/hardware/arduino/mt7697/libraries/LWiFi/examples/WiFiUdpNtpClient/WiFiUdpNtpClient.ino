@@ -25,7 +25,7 @@ int keyIndex = 0;            // your network key Index number (needed only for W
 unsigned int localPort = 2390;      // local port to listen for UDP packets
 
 IPAddress timeServer(129, 6, 15, 28); // time.nist.gov NTP server
-char *NTP_server = "time-a.nist.gov";
+const char *NTP_server = "time-a.nist.gov";
 
 const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
 
@@ -122,7 +122,7 @@ void loop() {
 }
 
 // send an NTP request to the time server at the given address
-unsigned long sendNTPpacket(char* host) {
+unsigned long sendNTPpacket(const char* host) {
 	//Serial.println("1");
 	// set all bytes in the buffer to 0
 	memset(packetBuffer, 0, NTP_PACKET_SIZE);
