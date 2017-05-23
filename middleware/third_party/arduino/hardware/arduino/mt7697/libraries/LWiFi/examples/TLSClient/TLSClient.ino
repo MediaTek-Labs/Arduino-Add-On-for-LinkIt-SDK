@@ -1,8 +1,8 @@
 /*
-  Web client
+  TLS client
 
-  This sketch connects to a website (http://download.labs.mediatek.com)
-  using LinkIt 7697
+  This sketch connects to a website 
+  using LinkIt 7697 over TLS (HTTPS)
 
   This example is written for a network using WPA encryption. For
   WEP or WPA, change the Wifi.begin() call accordingly.
@@ -69,8 +69,6 @@ void setup() {
         Serial.println(ssid);
         // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
         status = WiFi.begin(ssid, pass);
-        // wait 2 seconds for connection:
-        delay(2000);
     }
     Serial.println("Connected to wifi");
     printWifiStatus();

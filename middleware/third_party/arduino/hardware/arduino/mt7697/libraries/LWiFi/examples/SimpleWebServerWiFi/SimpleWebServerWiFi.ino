@@ -14,11 +14,13 @@
   WEP or WPA, change the Wifi.begin() call accordingly.
 
   Circuit:
-  * WiFi shield attached
+  * LinkIt 7697 HDK
   * LED attached to pin 9
 
   created 25 Nov 2012
   by Tom Igoe
+  modified 23 May 2017
+  by MediaTek Labs
 */
 #include <LWiFi.h>
 
@@ -31,18 +33,7 @@ WiFiServer server(80);
 
 void setup() {
 	Serial.begin(9600);      // initialize serial communication
-	pinMode(9, OUTPUT);      // set the LED pin mode
-
-	// check for the presence of the shield:
-	if (WiFi.status() == WL_NO_SHIELD) {
-		Serial.println("WiFi shield not present");
-		while (true);       // don't continue
-	}
-
-	String fv = WiFi.firmwareVersion();
-	if (fv != "1.1.0") {
-		Serial.println("Please upgrade the firmware");
-	}
+	pinMode(LED_BUILTIN, OUTPUT);      // set the LED pin mode
 
 	// attempt to connect to Wifi network:
 	while (status != WL_CONNECTED) {
@@ -51,8 +42,6 @@ void setup() {
 
 		// Connect to WPA/WPA2 network. Change this line if using open or WEP network:
 		status = WiFi.begin(ssid, pass);
-		// wait 10 seconds for connection:
-		delay(10000);
 	}
 	server.begin();                           // start the web server on port 80
 	printWifiStatus();                        // you're connected now, so print out the status
@@ -81,8 +70,8 @@ void loop() {
 						client.println();
 
 						// the content of the HTTP response follows the header:
-						client.print("Click <a href=\"/H\">here</a> turn the LED on pin 9 on<br>");
-						client.print("Click <a href=\"/L\">here</a> turn the LED on pin 9 off<br>");
+						client.print("Click <a href=\"/H\">here</a> turn the LED on pin 7 on<br>");
+						client.print("Click <a href=\"/L\">here</a> turn the LED on pin 7 off<br>");
 
 						// The HTTP response ends with another blank line:
 						client.println();
@@ -96,11 +85,11 @@ void loop() {
 				}
 
 				// Check to see if the client request was "GET /H" or "GET /L":
-				if (currentLine.endsWith("GET /H")) {
-					digitalWrite(9, HIGH);               // GET /H turns the LED on
+				if (currentLine.startsWith("GET /H")) {
+					digitalWrite(LED_BUILTIN, HIGH);               // GET /H turns the LED on
 				}
-				if (currentLine.endsWith("GET /L")) {
-					digitalWrite(9, LOW);                // GET /L turns the LED off
+				if (currentLine.startsWith("GET /L")) {
+					digitalWrite(LED_BUILTIN, LOW);                // GET /L turns the LED off
 				}
 			}
 		}

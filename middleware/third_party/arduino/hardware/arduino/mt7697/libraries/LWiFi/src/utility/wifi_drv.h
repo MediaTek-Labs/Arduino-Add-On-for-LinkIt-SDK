@@ -1,5 +1,5 @@
 /*
-  wifi_drv.h - Library for Arduino Wifi shield.
+  wifi_drv.h - Library for LinkIt 7697 HDK.
   Copyright (c) 2011-2014 Arduino.  All right reserved.
 
   This library is free software; you can redistribute it and/or

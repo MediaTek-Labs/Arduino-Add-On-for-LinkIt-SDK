@@ -8,13 +8,15 @@
   WEP or WPA, change the Wifi.begin() call accordingly.
 
   Circuit:
-  * WiFi shield attached
+  * LinkIt 7697 HDK
   * Analog inputs attached to pins A0 through A5 (optional)
 
   created 13 July 2010
   by dlf (Metodo2 srl)
   modified 31 May 2012
   by Tom Igoe
+  modified Jan 2017
+  by MediaTek Labs
 */
 
 #include <LWiFi.h>
@@ -35,27 +37,12 @@ void setup() {
 		; // wait for serial port to connect. Needed for native USB port only
 	}
 
-	// check for the presence of the shield:
-	if (WiFi.status() == WL_NO_SHIELD) {
-		Serial.println("WiFi shield not present");
-		// don't continue:
-		while (true);
-	}
-
-	String fv = WiFi.firmwareVersion();
-	if (fv != "1.1.0") {
-		Serial.println("Please upgrade the firmware");
-	}
-
 	// attempt to connect to Wifi network:
 	while (status != WL_CONNECTED) {
 		Serial.print("Attempting to connect to SSID: ");
 		Serial.println(ssid);
 		// Connect to WPA/WPA2 network. Change this line if using open or WEP network:
 		status = WiFi.begin(ssid, pass);
-
-		// wait 10 seconds for connection:
-		delay(10000);
 	}
 	server.begin();
 	// you're connected now, so print out the status:
