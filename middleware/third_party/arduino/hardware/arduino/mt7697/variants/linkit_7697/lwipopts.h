@@ -55,7 +55,7 @@
 // Arduino WiFi library (TCP/UDP socket) relies on socket APIs
 #define LWIP_SOCKET                     1
 #define LWIP_COMPAT_SOCKETS             0
-#define LWIP_POSIX_SOCKETS_IO_NAMES     0
+#define LWIP_POSIX_SOCKETS_IO_NAMES     1
 
 #if defined(MTK_HOMEKIT_ENABLE)
 #define LWIP_IPV6                       1
