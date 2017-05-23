@@ -5,11 +5,27 @@
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
-
 MCSDevice	KEYWORD1
 MCSLiteDevice	KEYWORD1
 MCSControllerOnOff	KEYWORD1
 MCSDisplayOnOff	KEYWORD1
+MCSControllerCategory 	KEYWORD1
+MCSDisplayCategory 	KEYWORD1
+MCSControllerInteger 	KEYWORD1
+MCSDisplayInteger 	KEYWORD1
+MCSControllerFloat 	KEYWORD1
+MCSDisplayFloat 	KEYWORD1
+MCSControllerHex 	KEYWORD1
+MCSDisplayHex 	KEYWORD1
+MCSControllerString 	KEYWORD1
+MCSDisplayString 	KEYWORD1
+MCSControllerGPS 	KEYWORD1
+MCSDisplayGPS 	KEYWORD1
+MCSControllerGPIO 	KEYWORD1
+MCSDisplayGPIO 	KEYWORD1
+MCSControllerPWM 	KEYWORD1
+MCSDisplayPWM 	KEYWORD1
+MCSControllerAnalog 	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
