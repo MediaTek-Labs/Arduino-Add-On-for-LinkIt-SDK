@@ -52,10 +52,22 @@
 //for ip display
 #define LWIP_NETIF_STATUS_CALLBACK      1
 
-// Arduino WiFi library (TCP/UDP socket) relies on socket APIs
+// Certain features in liblinkit.a (TCP/UDP socket and mbedTLS) 
+// relies on overriding socket API names, e.g. connect() in
+// their implementations. For example, "sockets_mbedTLS.h"
+// requires LWIP_COMPAT_SOCKETS to be defined.
+//
+// However, in Arduino libraryWiFiClient.cpp, this causes
+// WiFiClienct::connect() wrongfully replaced by macro.
+// so we turn off the socket name macros in CPP files.
 #define LWIP_SOCKET                     1
+#ifdef __cplusplus
 #define LWIP_COMPAT_SOCKETS             0
+#define LWIP_POSIX_SOCKETS_IO_NAMES     0
+#else
+#define LWIP_COMPAT_SOCKETS             1
 #define LWIP_POSIX_SOCKETS_IO_NAMES     1
+#endif  // #ifdef __cplusplus
 
 #if defined(MTK_HOMEKIT_ENABLE)
 #define LWIP_IPV6                       1
