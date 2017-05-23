@@ -1,5 +1,5 @@
 /*
-  wifi_drv.cpp - Library for Arduino Wifi shield.
+  wifi_drv.cpp - Library for LinkIt 7697 HDK.
   Copyright (c) 2011-2014 Arduino.  All right reserved.
 
   This library is free software; you can redistribute it and/or
@@ -27,7 +27,6 @@ extern "C" {
 #include "log_dump.h"
 #include "delay.h"
 #include "utility/ard_mtk.h"
-#include "utility/ard_utils.h"
 }
 
 // Array of data to cache the information related to the networks discovered
@@ -51,14 +50,8 @@ void WiFiDrv::getNetworkData(uint8_t *ip, uint8_t *mask, uint8_t *gwip)
 	get_ip_setting(ip, mask, gwip);
 }
 
-void WiFiDrv::getRemoteData(uint8_t sock, uint8_t *ip, uint8_t *port)
-{
-	get_reply_remote_data(sock, ip, port);
-}
-
 void WiFiDrv::wifiDriverInit()
 {
-	init_pBuf();
 }
 
 int8_t WiFiDrv::wifiSetNetwork(const char* ssid, uint8_t ssid_len)

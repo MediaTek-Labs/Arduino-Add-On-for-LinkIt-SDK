@@ -1,5 +1,5 @@
 /*
-  wifi_drv.h - Library for Arduino Wifi shield.
+  wifi_drv.h - Library for LinkIt 7697 HDK.
   Copyright (c) 2011-2014 Arduino.  All right reserved.
 
   This library is free software; you can redistribute it and/or
@@ -64,11 +64,6 @@ class WiFiDrv
 		static uint8_t reqHostByName(const char* aHostname);
 
 		static int getHostByName(IPAddress& aResult);
-
-		/*
-		 * Get remote Data information on UDP socket
-		 */
-		static void getRemoteData(uint8_t sock, uint8_t *ip, uint8_t *port);
 
 	public:
 

@@ -10,7 +10,9 @@
   by Michael Margolis
   modified 9 Apr 2012
   by Tom Igoe
-
+  modified Jan 2017
+  by MediaTek Labs
+  
   This code is in the public domain.
 */
 
@@ -25,7 +27,7 @@ int keyIndex = 0;            // your network key Index number (needed only for W
 unsigned int localPort = 2390;      // local port to listen for UDP packets
 
 IPAddress timeServer(129, 6, 15, 28); // time.nist.gov NTP server
-char *NTP_server = "time-a.nist.gov";
+const char *NTP_server = "time-a.nist.gov";
 
 const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
 
@@ -41,27 +43,12 @@ void setup() {
 		; // wait for serial port to connect. Needed for native USB port only
 	}
 
-	// check for the presence of the shield:
-	if (WiFi.status() == WL_NO_SHIELD) {
-		Serial.println("WiFi shield not present");
-		// don't continue:
-		while (true);
-	}
-
-	String fv = WiFi.firmwareVersion();
-	if (fv != "1.1.0") {
-		Serial.println("Please upgrade the firmware");
-	}
-
 	// attempt to connect to Wifi network:
 	while (status != WL_CONNECTED) {
 		Serial.print("Attempting to connect to SSID: ");
 		Serial.println(ssid);
 		// Connect to WPA/WPA2 network. Change this line if using open or WEP network:
 		status = WiFi.begin(ssid, pass);
-
-		// wait 10 seconds for connection:
-		delay(10000);
 	}
 
 	Serial.println("Connected to wifi");
@@ -122,7 +109,7 @@ void loop() {
 }
 
 // send an NTP request to the time server at the given address
-unsigned long sendNTPpacket(char* host) {
+unsigned long sendNTPpacket(const char* host) {
 	//Serial.println("1");
 	// set all bytes in the buffer to 0
 	memset(packetBuffer, 0, NTP_PACKET_SIZE);

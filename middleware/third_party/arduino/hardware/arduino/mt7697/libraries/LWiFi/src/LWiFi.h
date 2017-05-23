@@ -1,5 +1,5 @@
 /*
-  WiFi.h - Library for Arduino Wifi shield.
+  WiFi.h - Library for LinkIt 7697 HDK.
   Copyright (c) 2011-2014 Arduino.  All right reserved.
 
   This library is free software; you can redistribute it and/or
@@ -35,17 +35,10 @@ class WiFiClass
 {
 	private:
 
+		uint8_t waitForWiFiConnection();
 		static void init();
 	public:
-		static int16_t 	_state[MAX_SOCK_NUM];
-		static uint16_t _server_port[MAX_SOCK_NUM];
-
 		WiFiClass();
-
-		/*
-		 * Get the first socket available
-		 */
-		static uint8_t getSocket();
 
 		/*
 		 * Get firmware version

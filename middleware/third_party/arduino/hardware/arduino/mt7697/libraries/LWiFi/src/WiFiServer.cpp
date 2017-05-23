@@ -1,5 +1,5 @@
 /*
-  WiFiServer.cpp - Library for Arduino Wifi shield.
+  WiFiServer.cpp - Library for LinkIt 7697 HDK.
   Copyright (c) 2011-2014 Arduino.  All right reserved.
 
   This library is free software; you can redistribute it and/or
@@ -16,100 +16,134 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
-#include <string.h>
-#include "utility/server_drv.h"
-
+extern "C"{
+#include "lwipopts.h"
+}
+#include <Arduino.h>
 #include "LWiFi.h"
 #include "WiFiClient.h"
 #include "WiFiServer.h"
 
 extern "C" {
+#include "log_dump.h"
+#include "delay.h"
+#include "lwip/sockets.h"
 #include "constants.h"
 }
 
-WiFiServer::WiFiServer(uint16_t port)
+
+WiFiServer::WiFiServer(uint16_t port):
+	m_port(port)
+	,m_socket(-1)
 {
-	_port = port;
+	
 }
 
 void WiFiServer::begin()
 {
-	uint8_t _sock = WiFiClass::getSocket();
-	if (_sock != NO_SOCKET_AVAIL)
+	pr_debug("calling WiFiServer::begin\r\n");
+
+	m_socket = lwip_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if(-1 == m_socket)
 	{
-		ServerDrv::startServer(_port, _sock);
-		WiFiClass::_server_port[_sock] = _port;
-		WiFiClass::_state[_sock] = _sock;
+		pr_debug("lwip_socket fails");
+		return;
+	}
+
+	sockaddr_in serverAddr;
+	memset(&serverAddr, 0, sizeof(serverAddr));
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_addr.s_addr = lwip_htonl(INADDR_ANY);
+	serverAddr.sin_port = lwip_htons(m_port);
+
+	pr_debug("calling lwip_bind");
+
+	int ret = lwip_bind(m_socket, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+	pr_debug("socket %d bind return %d", m_socket, ret);
+
+	// we need accept() to be non-blocking
+	const int flags = lwip_fcntl(m_socket, F_GETFL, 0);
+	ret = lwip_fcntl(m_socket, F_SETFL, flags | O_NONBLOCK);
+
+	// start listening on port
+	ret = lwip_listen(m_socket, MAX_INCOMING_CLIENT);
+	if(ret < 0)
+	{
+		pr_debug("lwip_listen fails with %d", ret)
+		return;
 	}
 }
 
-WiFiClient WiFiServer::available(byte* status)	//status == NULL
+WiFiClient WiFiServer::available(uint8_t* status)
 {
-	static int cycle_server_down = 0;
-	const int TH_SERVER_DOWN = 50;
-
-	for (int sock = 0; sock < MAX_SOCK_NUM; sock++)
+ 	// Gets a client that is newly connected to the server **or**
+	// a connected client that has some data available for reading. 
+    // The connection persists when the returned client object goes out of scope; 
+    // you can close it by calling client.stop().
+	if(-1 == m_socket)
 	{
-		if (WiFiClass::_server_port[sock] == _port)
+		return WiFiClient(-1);
+	}
+
+	// check for new connections first.
+	sockaddr_in remoteAddr;
+	memset(&remoteAddr, 0, sizeof(remoteAddr));
+	socklen_t addrSize = sizeof(remoteAddr);
+	memset(&remoteAddr, 0, sizeof(remoteAddr));
+	int clientSocket = lwip_accept(m_socket, (struct sockaddr*)&remoteAddr, &addrSize);
+	if(-1 != clientSocket)
+	{
+		pr_debug("lwip_accept returns valid socket %d", clientSocket);
+		// register into our "clients" list.
+		m_clientSockets.insert(clientSocket);
+
+		// immediately return our new found socket
+		return WiFiClient(clientSocket);
+	}
+
+	// if there are no new connections,
+	// check if we have some socket that are available to read
+	for(auto i = m_clientSockets.begin(); i != m_clientSockets.end(); ++i)
+	{
+		// simply return the 1st one that has something to read
+		WiFiClient c(*i);	
+		if(c.available())
 		{
-			WiFiClient client(sock);
-			uint8_t _status = client.status();
-			uint8_t _ser_status = this->status();
-
-			if (status != NULL)
-				*status = _status;
-
-			//server not in listen state, restart it
-			if ((_ser_status == 0) && (cycle_server_down++ > TH_SERVER_DOWN))
-			{
-				ServerDrv::startServer(_port, sock);
-				cycle_server_down = 0;
-			}
-
-			if (_status == ESTABLISHED)
-			{
-				return client;  //TODO
-			}
+			return c;
 		}
 	}
 
-	return WiFiClient(255);
+	// found nothing
+	return WiFiClient(-1);
 }
 
-uint8_t WiFiServer::status() {
-	uint8_t sock = 0;
-
-	for (; sock < MAX_SOCK_NUM; sock++) {
-		if (WiFiClass::_server_port[sock] == _port)
-			return ServerDrv::getServerState(sock);
-	}
-
-	return CLOSED;
-}
-
-
-size_t WiFiServer::write(uint8_t b)
+size_t WiFiServer::write(uint8_t c)
 {
-	return write(&b, 1);
-}
-
-size_t WiFiServer::write(const uint8_t *buffer, size_t size)
-{
-	size_t n = 0;
-
-	for (int sock = 0; sock < MAX_SOCK_NUM; sock++)
+	size_t succeedOnce = 0;
+	for(auto i = m_clientSockets.begin(); i != m_clientSockets.end(); ++i)
 	{
-		if (WiFiClass::_server_port[sock] != 0)
+		int ret = lwip_send(*i, &c, 1, 0);
+		pr_debug("send to sock %d returns %d", *i, ret);
+		if(-1 != ret)
 		{
-			WiFiClient client(sock);
-
-			if (WiFiClass::_server_port[sock] == _port &&
-					client.status() == ESTABLISHED)
-			{
-				n+=client.write(buffer, size);
-			}
+			succeedOnce = 1;
 		}
 	}
-	return n;
+	return succeedOnce;
 }
+
+size_t WiFiServer::write(const uint8_t *buf, size_t size)
+{
+	size_t succeedOnce = 0;
+	for(auto i = m_clientSockets.begin(); i != m_clientSockets.end(); ++i)
+	{
+		int ret = lwip_send(*i, buf, size, 0);
+		pr_debug("send to sock %d returns %d", *i, ret);
+		if(-1 != ret)
+		{
+			succeedOnce = ret;
+		}
+	}
+	return succeedOnce;
+}
+

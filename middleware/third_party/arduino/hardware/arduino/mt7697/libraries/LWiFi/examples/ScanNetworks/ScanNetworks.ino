@@ -5,12 +5,14 @@
   connect to any network, so no encryption scheme is specified.
 
   Circuit:
-  * WiFi shield attached
+  * LinkIt 7697 HDK
 
   created 13 July 2010
   by dlf (Metodo2 srl)
   modified 21 Junn 2012
   by Tom Igoe and Jaymes Dec
+  modified 23 May 2017
+  by MediaTek Labs
 */
 
 #include <LWiFi.h>

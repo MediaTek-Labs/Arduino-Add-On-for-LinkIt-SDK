@@ -1,5 +1,5 @@
 /*
-  WiFiClient.cpp - Library for Arduino Wifi shield.
+  WiFiClient.cpp - Library for LinkIt 7697 HDK.
   Copyright (c) 2011-2014 Arduino.  All right reserved.
 
   This library is free software; you can redistribute it and/or
@@ -17,24 +17,48 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+extern "C"{
+#include "lwipopts.h"
+}
+
 #include "LWiFi.h"
 #include "WiFiClient.h"
-#include "WiFiServer.h"
-#include "utility/server_drv.h"
 
 extern "C" {
 #include "log_dump.h"
 #include "delay.h"
+#include "lwip/sockets.h"
 #include "utility/wl_definitions.h"
-#include "string.h"
 }
 
-uint16_t WiFiClient::_srcport = 1024;
 
-WiFiClient::WiFiClient() : _sock(MAX_SOCK_NUM) {
+WiFiClient::WiFiClient(): 
+	m_socket(-1),
+	m_externalSocket(false)
+{
+	
 }
 
-WiFiClient::WiFiClient(uint8_t sock) : _sock(sock) {
+WiFiClient::WiFiClient(int sock): 
+	m_socket(sock),
+	m_externalSocket(true)
+{
+	// accepting an externally
+	// allocated socket
+}
+
+WiFiClient::~WiFiClient()
+{
+	// only auto-close sockets that are created
+	// by the connect() method.
+	// This is designed for WiFiServer::available().
+	// The WiFiClient object returned from WiFiServer::available() should
+	// persist its connection even when the returned client object goes out of scope; 
+    // The user should close it by calling client.stop().
+	if(!m_externalSocket)
+	{
+		stop();
+	}
 }
 
 int WiFiClient::connect(const char* host, uint16_t port) {
@@ -47,146 +71,174 @@ int WiFiClient::connect(const char* host, uint16_t port) {
 }
 
 int WiFiClient::connect(IPAddress ip, uint16_t port) {
-	_sock = getFirstSocket();
-	if (_sock != NO_SOCKET_AVAIL)
+	if(m_socket)
 	{
-		ServerDrv::startClient(uint32_t(ip), port, _sock);
-		WiFiClass::_state[_sock] = _sock;
+		stop();
+	}
 
-		const unsigned long start = millis();
-		// wait for 10 second for the connection
-		while (!connected() && ((millis() - start) < 10000))
-		{
-			// wait 50ms before next check
-			delay(50);
-		}
+	m_socket = lwip_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	m_externalSocket = true;
 
-		if (!connected())
-		{	
-			pr_debug("timeout\n");
-			return 0;
-		}
-	} else {
-		pr_debug("No Socket available\n");
+	if( -1 == m_socket)
+	{
+		pr_debug("socket allocation failed!");
 		return 0;
 	}
+
+	struct sockaddr_in server;
+	server.sin_addr.s_addr = (uint32_t)ip;
+    server.sin_family = AF_INET;
+    server.sin_port = lwip_htons( port );
+
+	if(0 > lwip_connect(m_socket, (struct sockaddr*)&server, sizeof(server)))
+	{
+		lwip_close(m_socket);
+		m_socket = -1;
+		pr_debug("connect failed");
+		return 0;
+	}
+
+	pr_debug("connected! with socket = %d", m_socket);
 	return 1;
 }
 
 size_t WiFiClient::write(uint8_t b) {
-	return write(&b, 1);
+	if(m_socket == -1)
+	{
+		return 0;
+	}
+
+	int ret =  lwip_send(m_socket, &b, 1, 0);
+
+	pr_debug("lwip_send returns %d", ret);
+	return ret;
 }
 
 size_t WiFiClient::write(const uint8_t *buf, size_t size) {
 
-	if (_sock >= MAX_SOCK_NUM)
+	if(m_socket == -1)
+	{
 		return 0;
+	}
 
-	if (size == 0)
-		return 0;
-
-
-	if (!ServerDrv::sendData(_sock, buf, size))
-		return 0;
-
-	if (!ServerDrv::checkDataSent(_sock))
-		return 0;
-
-	return size;
+	int ret = lwip_send(m_socket, buf, size, 0);
+	if(ret < 0)
+	{
+		pr_debug("buffered lwip_send fails with ret= %d", ret);
+	}
+	return ret;
 }
 
 int WiFiClient::available() {
+	if(m_socket == -1)
+	{
+		return 0;
+	}
 
-	if (_sock != 255)
-		return ServerDrv::availData(_sock);
+#if 0
+	// Note: to enable FIONREAD, we need to enable lwIP option `LWIP_SO_RCVBUF	1`.
+	// Currently, it is not enabled.
+	int count = 0;
+	int ret = lwip_ioctl(m_socket, FIONREAD, &count);
+	pr_debug("lwip_ioctl FIONREAD returns %d with count = %d", ret, count);
+	return count;
+#endif
 
-	return 0;
+	if(-1 == peek())
+	{
+		return 0;
+	}
+
+	return 1;
 }
 
 int WiFiClient::read() {
-	uint8_t b;
-
-	if (!available())
+	if(m_socket == -1)
+	{
 		return -1;
+	}
 
-	ServerDrv::getData(_sock, &b);
-	return b;
+	uint8_t b;
+	if(1 == lwip_recv(m_socket, &b, 1, MSG_DONTWAIT))
+	{
+		return b;
+	}
+	else
+	{
+		return -1;
+	}
 }
 
 
 int WiFiClient::read(uint8_t* buf, size_t size) {
-	// sizeof(size_t) is architecture dependent
-	// but we need a 16 bit data type here
-	uint16_t _size = size;
-	if (!ServerDrv::getDataBuf(_sock, buf, &_size))
-		return -1;
-	return 0;
+	if(m_socket == -1)
+	{
+		return 0;
+	}
+	
+	int ret = lwip_recv(m_socket, buf, size, MSG_DONTWAIT);
+	pr_debug("lwip_recv returns %d", ret);
+	return ret;
 }
 
 int WiFiClient::peek() {
-	uint8_t b;
-	if (!available())
+	if(m_socket == -1)
+	{
 		return -1;
+	}
 
-	ServerDrv::getData(_sock, &b, 1);
-	return b;
+	uint8_t b;
+	int ret = lwip_recv(m_socket, &b, 1, MSG_PEEK | MSG_DONTWAIT);
+	if(ret == 1)
+	{
+		return b;
+	}
+
+	return -1;
 }
 
 void WiFiClient::flush() {
-	while (available())
-		read();
+	return;
 }
 
 void WiFiClient::stop() {
-
-	if (_sock == 255)
+	if(m_socket == -1)
+	{
 		return;
+	}
 
-	ServerDrv::stopClient(_sock);
-	WiFiClass::_state[_sock] = NA_STATE;
-
-	int count = 0;
-	// wait maximum 5 secs for the connection to close
-	while (status() != CLOSED && ++count < 50)
-		delay(100);
-
-	_sock = 255;
+	pr_debug("lwip_close on socket %d", m_socket);
+	lwip_close(m_socket);
+	m_socket = -1;
 }
 
 uint8_t WiFiClient::connected() {
-
-	if (_sock == 255) {
+	if(-1 == m_socket)
+	{
 		return 0;
-	} else {
-		uint8_t s = status();
+	}
 
-		return !(s == LISTEN || s == CLOSED || s == FIN_WAIT_1 ||
-				s == FIN_WAIT_2 || s == TIME_WAIT ||
-				s == SYN_SENT || s== SYN_RCVD ||
-				(s == CLOSE_WAIT));
+	int error_code = 0;
+	socklen_t error_code_size = sizeof(error_code);
+	lwip_getsockopt(m_socket, SOL_SOCKET, SO_ERROR, &error_code, &error_code_size);
+
+	if((error_code == ENOTCONN) ||
+		(error_code == ENOTSOCK) ||
+		(error_code == ECONNRESET) ||
+		(error_code == ETIMEDOUT))
+	{
+		return 0;	
+	}
+	else
+	{
+		return 1;
 	}
 }
 
 uint8_t WiFiClient::status() {
-	if (_sock == 255) {
-		return CLOSED;
-	} else {
-		return ServerDrv::getClientState(_sock);
-	}
+	return 0;
 }
 
 WiFiClient::operator bool() {
-	return _sock != 255;
-}
-
-// Private Methods
-uint8_t WiFiClient::getFirstSocket()
-{
-	for (int i = 0; i < MAX_SOCK_NUM; i++) {
-		if (WiFiClass::_state[i] == NA_STATE)
-		{
-			return i;
-		}
-	}
-	return SOCK_NOT_AVAIL;
+	return connected();
 }

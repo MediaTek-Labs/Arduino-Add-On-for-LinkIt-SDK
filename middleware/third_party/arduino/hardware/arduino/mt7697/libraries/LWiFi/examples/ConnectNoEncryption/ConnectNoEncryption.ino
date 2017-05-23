@@ -4,12 +4,14 @@
   the IP address obtained, and other network details.
 
   Circuit:
-  * WiFi shield attached
+  * LinkIt 7697 HDK
 
   created 13 July 2010
   by dlf (Metodo2 srl)
   modified 31 May 2012
   by Tom Igoe
+  modified 23 May 2017
+  by MediaTek Labs
 */
 #include <LWiFi.h>
 
@@ -21,18 +23,6 @@ void setup() {
 	Serial.begin(9600);
 	while (!Serial) {
 		; // wait for serial port to connect. Needed for native USB port only
-	}
-
-	// check for the presence of the shield:
-	if (WiFi.status() == WL_NO_SHIELD) {
-		Serial.println("WiFi shield not present");
-		// don't continue:
-		while (true);
-	}
-
-	String fv = WiFi.firmwareVersion();
-	if (fv != "1.1.0") {
-		Serial.println("Please upgrade the firmware");
 	}
 
 	// attempt to connect to Wifi network:
