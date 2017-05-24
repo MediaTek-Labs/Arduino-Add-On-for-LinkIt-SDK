@@ -103,7 +103,6 @@ int __io_getchar(void)
  * For The System
  *
  */
-
 static void init_sys_clk(void)
 {
 	top_xtal_init();
@@ -119,6 +118,15 @@ static void init_sys_clk(void)
 #endif
 	/* Enable flash clock to 64MHz */
 	cmnSerialFlashClkConfTo64M();
+}
+
+static void init_usr_led(void)
+{
+	// Make sure the USR LED (GPIO36 / pin 7) is OFF 
+	// by system default.
+	hal_pinmux_set_function(HAL_GPIO_36, 8);
+	hal_gpio_set_direction(HAL_GPIO_36, HAL_GPIO_DIRECTION_OUTPUT);
+	hal_gpio_set_output(HAL_GPIO_36, 0);
 }
 
 #if 0
@@ -142,6 +150,9 @@ log_control_block_t *syslog_control_blocks[] = {
 void init_system(void)
 {
 	init_sys_clk();
+
+	// ensure the USR LED is default OFF
+	init_usr_led();
 
 	/* Init the UART for stdio */
 	init_stdio();
