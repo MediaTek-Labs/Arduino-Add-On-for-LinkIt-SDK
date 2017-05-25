@@ -63,7 +63,7 @@ void loop() {
   Serial.print("process(");
   Serial.print(millis());
   Serial.println(")");
-  mcs.process(1000);
+  mcs.process(100);
   
   // updated flag will be cleared in process(), user must check it after process() call.
   if(led.updated())
