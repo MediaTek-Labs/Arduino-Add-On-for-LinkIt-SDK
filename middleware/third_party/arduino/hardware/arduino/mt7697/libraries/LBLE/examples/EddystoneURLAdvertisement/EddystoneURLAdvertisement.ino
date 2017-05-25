@@ -25,13 +25,16 @@ void setup() {
   LBLEAdvertisementData beaconData;
 
   // make an Eddystone-URL beacon that board casts
-  // https://www.asp.net/learn
+  // https://labs.mediatek.com
   // Note 1: You can obmit the suffix and tail part, e.g.
   //        https://goo.gl/Aq18zF
   //        can be constructed with
   //        configAsEddystoneURL(EDDY_HTTPS, "goo.gl/Aq18zF");
   // Note 2: Note that total url length must not exceed 17 bytes.
-  beaconData.configAsEddystoneURL(EDDY_HTTPS, "asp", EDDY_DOT_NET_SLASH, "learn");
+  //
+  // Please refer to https://github.com/google/eddystone/tree/master/eddystone-url#url-scheme-prefix
+	// to know how the prefix/suffix/tails are expanded.
+  beaconData.configAsEddystoneURL(EDDY_HTTPS, "labs.mediatek", EDDY_DOT_COM);
 
   Serial.print("Start advertising Eddystone-URL");
 
