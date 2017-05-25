@@ -1153,7 +1153,7 @@ const char* getBluetoothCompanyName(uint16_t companyId)
     //
     // However, to prevent holes in id list in the future,
     // we still linear search here.
-    for(int i = 0; i < sizeof(company_list) / sizeof(struct BTCompanyEntry); ++i)
+    for(unsigned int i = 0; i < sizeof(company_list) / sizeof(struct BTCompanyEntry); ++i)
     {
         if(company_list[i].id == companyId)
         {

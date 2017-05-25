@@ -219,7 +219,7 @@ int WiFiUDP::available() {
 
 int WiFiUDP::read()
 {
-	if(m_recvCursor < 0 || m_recvCursor >= m_recvBuffer.size())
+	if(m_recvCursor >= m_recvBuffer.size())
 	{
 		return 0;
 	}
@@ -242,7 +242,7 @@ int WiFiUDP::read(unsigned char* buffer, size_t len)
 
 int WiFiUDP::peek()
 {
-	if(m_recvCursor < 0 || m_recvCursor >= m_recvBuffer.size())
+	if(m_recvCursor >= m_recvBuffer.size())
 	{
 		return 0;
 	}

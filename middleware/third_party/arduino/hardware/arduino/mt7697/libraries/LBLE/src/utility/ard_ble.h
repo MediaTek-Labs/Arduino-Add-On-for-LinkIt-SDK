@@ -18,6 +18,12 @@ extern "C" {
 #include <bt_gatts.h>
 #include <log_dump.h>
 
+// we supress missing filed initializer warnings 
+// because GCC incorrectly complains the BT_GATTS_NEW_PRIMARY_SERVICE_16
+// macros failing to initialize the "perm" atrribute - which it does.
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#pragma GCC diagnostic ignored "-Wmissing-braces"
+
 extern int ard_ble_begin(void);
 extern int ard_ble_is_ready(void);
 extern void generate_random_device_address(bt_bd_addr_t addr);

@@ -27,6 +27,10 @@
 #include <lwip/dns.h>
 #include <ethernetif.h>
 
+// declared in Arduino core's "variant.h"
+extern void set_wifi_ready(void);
+extern bool wifi_ready(void);
+
 static int32_t _wifi_event_handler(wifi_event_t event, uint8_t* payload, uint32_t length)
 {
     switch(event)

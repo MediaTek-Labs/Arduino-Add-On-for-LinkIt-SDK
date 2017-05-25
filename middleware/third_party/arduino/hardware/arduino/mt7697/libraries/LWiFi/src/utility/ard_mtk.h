@@ -141,7 +141,7 @@ extern "C" {
 
 	    return ssid pointer
 	*/
-	int8_t *get_curr_ssid(char *_ssid);
+	uint8_t *get_curr_ssid(char *_ssid);
 
 	/*
 	    WiFiClass::BSSID()   getCurrentBSSID

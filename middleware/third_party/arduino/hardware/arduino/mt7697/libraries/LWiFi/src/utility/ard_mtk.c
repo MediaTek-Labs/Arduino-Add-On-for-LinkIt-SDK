@@ -7,6 +7,10 @@
 
 #include "log_dump.h"
 
+// declared in Arduino core's "variant.h"
+extern void set_wifi_ready(void);
+extern bool wifi_ready(void);
+
 static ip_addr_t _hostIpAddr;
 static uint8_t hostIpAddrFound = 0;
 #define DNS_MAX_NAME_LENGTH	256
@@ -20,10 +24,10 @@ void foundHostByName(const char *name, ip_addr_t *ipaddr, void *callback_arg)
 		pr_debug("foundHostByName error, failed get server-ip\r\n");
 }
 
-int req_reply_host_by_name(const char *buf, uint8_t len)
+int req_reply_host_by_name(const char *buf, size_t len)
 {
 	char hostName[DNS_MAX_NAME_LENGTH];
-	if(len < DNS_MAX_NAME_LENGTH){
+	if(len < sizeof(hostName)){
 		memcpy(hostName, buf, len);
 		hostName[len]='\0';
 	}else{
@@ -277,7 +281,7 @@ int8_t set_net(const char* ssid, uint8_t ssid_len)
 		wifi_auth_mode_t auth = WIFI_AUTH_MODE_OPEN;
 		wifi_encrypt_type_t encrypt = WIFI_ENCRYPT_TYPE_WEP_DISABLED;
 
-		if (wifi_config_set_ssid(port, ssid, ssid_len) < 0) {
+		if (wifi_config_set_ssid(port, (uint8_t*)ssid, ssid_len) < 0) {
 			pr_debug("wifi_config_set_ssid failed\r\n");
 			goto err;
 		}
@@ -330,15 +334,15 @@ int8_t set_key(const char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *
 		uint8_t port = WIFI_PORT_STA;
 		wifi_auth_mode_t auth = WIFI_AUTH_MODE_OPEN;
 		wifi_encrypt_type_t encrypt = WIFI_ENCRYPT_TYPE_WEP_ENABLED;
-		char *password = key;
+		const char *password = key;
 		wifi_wep_key_t wep_key;
 		wep_key.wep_tx_key_index = key_idx;
-		strncpy(wep_key.wep_key[0], password, len);
+		strncpy((char*)wep_key.wep_key[0], password, len);
 		wep_key.wep_key[0][len] = '\0';
 		wep_key.wep_key_length[0] = len;
 
 
-		if (wifi_config_set_ssid(port, ssid, ssid_len) < 0) {
+		if (wifi_config_set_ssid(port, (uint8_t*)ssid, ssid_len) < 0) {
 			pr_debug("wifi_config_set_ssid failed\r\n");
 			goto err;
 		}
@@ -393,7 +397,7 @@ int8_t set_passphrase(const char* ssid, uint8_t ssid_len, const char *passphrase
 		wifi_auth_mode_t auth = WIFI_AUTH_MODE_WPA2_PSK;
 		wifi_encrypt_type_t encrypt = WIFI_ENCRYPT_TYPE_AES_ENABLED;
 
-		if (wifi_config_set_ssid(port, ssid, ssid_len) < 0) {
+		if (wifi_config_set_ssid(port, (uint8_t*)ssid, ssid_len) < 0) {
 			pr_debug("wifi_config_set_ssid failed\r\n");
 			goto err;
 		}
@@ -403,7 +407,7 @@ int8_t set_passphrase(const char* ssid, uint8_t ssid_len, const char *passphrase
 			goto err;
 		}
 
-		if (wifi_config_set_wpa_psk_key(port, passphrase, len) < 0) {
+		if (wifi_config_set_wpa_psk_key(port, (uint8_t*)passphrase, len) < 0) {
 			pr_debug("wifi_config_set_wpa_psk_key failed\r\n");
 			goto err;
 		}
@@ -427,7 +431,7 @@ err:
 int8_t get_conn_status(void)
 {
 	uint8_t link_status = 0;
-	int8_t ret;
+	int8_t ret = WL_DISCONNECTED;
 
 	if (!wifi_ready())
 		return WL_DISCONNECTED;
@@ -482,31 +486,33 @@ static void byte_swap(uint8_t *val1, uint8_t *val2)
 }
 uint8_t *get_mac(uint8_t *_mac)
 {
-	int8_t ret = 0;
-
-	ret = wifi_config_get_mac_address(WIFI_PORT_STA, _mac);
-	//pr_debug("mac %02x:%02x:%02x:%02x:%02x:%02x\r\n", _mac[0], _mac[1], _mac[2],
-	//        _mac[3], _mac[4], _mac[5]);
+	const int32_t ret = wifi_config_get_mac_address(WIFI_PORT_STA, _mac);
+	if(ret < 0)
+	{
+		pr_debug("wifi_config_get_mac_address failed with %d", ret);
+	}
 
 	byte_swap(&_mac[0], &_mac[5]);
 	byte_swap(&_mac[1], &_mac[4]);
 	byte_swap(&_mac[2], &_mac[3]);
 
+	pr_debug("get mac %02x:%02x:%02x:%02x:%02x:%02x\r\n", _mac[0], _mac[1], _mac[2], _mac[3], _mac[4], _mac[5]);
+
 	return _mac;
 }
 
-int8_t *get_curr_ssid(char *_ssid)
+uint8_t *get_curr_ssid(char *_ssid)
 {
 	uint8_t ssid_len = 0;
 	memset(_ssid, 0, WL_SSID_MAX_LENGTH);
-	wifi_config_get_ssid(WIFI_PORT_STA, _ssid, &ssid_len);
+	wifi_config_get_ssid(WIFI_PORT_STA, (uint8_t*)_ssid, &ssid_len);
 	//pr_debug("current ssid %s  len = %d\r\n", _ssid, ssid_len);
-	return _ssid;
+	return (uint8_t*)_ssid;
 }
 
 uint8_t *get_curr_bssid(uint8_t *_bssid)
 {
-	wifi_inband_bssid(0, _bssid);
+	wifi_config_get_bssid(_bssid);
 	//pr_debug("bssid %02x:%02x:%02x:%02x:%02x:%02x\r\n", _bssid[0], _bssid[1], _bssid[2],
 	//		_bssid[3], _bssid[4], _bssid[5]);
 
@@ -543,13 +549,12 @@ static uint8_t encrypt_map_arduino(uint8_t encrypt_type)
 			return ENC_TYPE_AUTO;
 	}
 }
+
 uint8_t get_curr_enct(void)
 {
-	uint8_t ret;
 	wifi_auth_mode_t auth_mode;
 	wifi_encrypt_type_t encrypt_type;
-
-	ret = wifi_config_get_security_mode(WIFI_PORT_STA, &auth_mode, &encrypt_type);
+	wifi_config_get_security_mode(WIFI_PORT_STA, &auth_mode, &encrypt_type);
 	return encrypt_map_arduino(encrypt_type);
 }
 
@@ -588,7 +593,7 @@ int32_t get_scan_list(wifi_event_t event, uint8_t *payload, uint32_t length)
 		i = 0;
 		while (number--)
 		{
-			if (strlen((char *)ptr->bssid) != 0 && ssid_checkout(ptr->ssid, i)) {
+			if (strlen((char*)ptr->bssid) != 0 && ssid_checkout((char*)ptr->ssid, i)) {
 #if 0
 				pr_debug("%d\r\n", i);
 				pr_debug("    rssi:%d\r\n", ptr->rssi);

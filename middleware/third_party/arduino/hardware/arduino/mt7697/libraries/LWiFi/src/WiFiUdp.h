@@ -32,7 +32,7 @@ extern "C"{
 class WiFiUDP : public UDP {
 	private:
 		static const size_t MAX_DATAGRAM_SIZE = 1024;	// limit of our receiving buffer for beginPacket().
-		uint8_t m_socket; // socket for both send and recv
+		int32_t m_socket; // socket for both send and recv
 		
 		struct sockaddr_in m_sendAddr;				// address & port to sendto (endPacket())
 		std::vector<uint8_t> m_sendBuffer;	// buffer for sendto (endPacket())

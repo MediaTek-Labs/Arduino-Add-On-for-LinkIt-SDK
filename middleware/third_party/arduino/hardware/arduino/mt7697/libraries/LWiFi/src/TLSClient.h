@@ -104,7 +104,7 @@ private:
 	bool m_connected;		// connection state
 	uint8_t *m_rootCA;		// pointer to the CA buffer. The CA Buffer must be valid for the entire life cycle of TLSClient.
 	size_t m_rootCALen;		// length of the CA buffer content. NULL terminators included.
-	uint32_t m_peekByte;	// cache for the peek() API. -1 means the cache is empty.
+	int32_t m_peekByte;		// cache for the peek() API, which returns a single byte(0x0 ~ 0xFF). -1(0xFFFFFFFF) means the cache is empty.
 };
 
 #endif
