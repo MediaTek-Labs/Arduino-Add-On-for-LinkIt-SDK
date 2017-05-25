@@ -22,9 +22,9 @@ extern "C"{
 // But for LinkIt SDK, we need define them at here.
 #ifndef ARDUINO
 
-#define ARDUINO					"1.7.8"	// FIXME: {runtime.ide.version}
-#define ARDUINO_LINKIT					// FIXME: {build.board} Board Name
-#define ARDUINO_ARCH_CORTEXM4				// FIXME: {build.arch}
+#define ARDUINO					10801	// FIXME: {runtime.ide.version}
+#define ARDUINO_linkit_7697				// FIXME: {build.board} Board Name
+#define ARDUINO_ARCH_LINKIT_RTOS		// FIXME: {build.arch}
 #define __MT7687__
 
 // F_CPU Options:
