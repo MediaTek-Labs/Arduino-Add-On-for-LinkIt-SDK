@@ -8,9 +8,6 @@ bool pin_has_eint(pin_desc_t *pin)
 	if (pin->pin_info_eint_num >= HAL_EINT_NUMBER_MAX)
 		return false;
 
-	if (pin->pin_info_eint_num < 0)
-		return false;
-
 	return true;
 }
 

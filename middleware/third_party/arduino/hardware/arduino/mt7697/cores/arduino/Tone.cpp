@@ -34,7 +34,7 @@ static gpt_channel_t gpt_channel_tab[] = {
 
 static gpt_channel_t *pin_get_gpt_channel(pin_desc_t *pin_desc)
 {
-	int i;
+	size_t i;
 
 	for (i=0; i< max_gpt_channel; i++) {
 		if (gpt_channel_tab[i].pin_desc == pin_desc)
@@ -52,12 +52,15 @@ static void free_gpt_channel(gpt_channel_t *gpt_channel)
 							== HAL_GPT_STATUS_OK) {
 		if (status != HAL_GPT_STOPPED) {
 			hal_gpt_stop_timer(gpt_channel->gpt_port);
-		} else
+		}
+		else{
 			pr_debug("GPT Channel is stop.\r\n");
+		}	
 
 		hal_gpt_deinit(gpt_channel->gpt_port);
-	} else
+	} else {
 		pr_debug("Fail to get GPT Channel state\r\n");
+	}
 
 	gpt_channel->pwm_channel= hal_pwm_channel_t(-1);
 	gpt_channel->pin_desc	= NULL;
@@ -85,14 +88,14 @@ static void gpt_channel_timer_handler(void *user_data)
 static gpt_channel_t *alloc_gpt_channel(pin_desc_t *pin_desc)
 {
 	gpt_channel_t			*gpt_channel;
-	hal_pwm_channel_t		pwm_channel;
+	int						pwm_channel = -1;
 	hal_gpt_running_status_t	status;
-	int				i;
+	size_t				i;
 
 	if (pin_desc == NULL)
 		return NULL;
 
-	pwm_channel = (hal_pwm_channel_t)pin_get_pwm_channel(pin_desc);
+	pwm_channel = pin_get_pwm_channel(pin_desc);
 	if (pwm_channel == -1)
 		return NULL;
 
@@ -129,7 +132,7 @@ static gpt_channel_t *alloc_gpt_channel(pin_desc_t *pin_desc)
 			continue;
 		}
 
-		gpt_channel->pwm_channel= pwm_channel;
+		gpt_channel->pwm_channel= (hal_pwm_channel_t)pwm_channel;
 		gpt_channel->pin_desc	= pin_desc;
 
 		// pr_debug("alloc_gpt: GPT Channel->gpt_port: %d\r\n", gpt_channel->gpt_port);
@@ -150,7 +153,7 @@ void noTone(uint8_t pin)
 {
 	pin_desc_t			*pin_desc;
 	gpt_channel_t			*gpt_channel;
-	hal_pwm_channel_t		pwm_channel;
+	int		pwm_channel = -1;
 	hal_pwm_running_status_t	status;
 
 	// pr_debug("Enter noTone\r\n");
@@ -158,14 +161,14 @@ void noTone(uint8_t pin)
 	if (pin_desc == NULL)
 		return ;
 
-	pwm_channel = (hal_pwm_channel_t)pin_get_pwm_channel(pin_desc);
+	pwm_channel = pin_get_pwm_channel(pin_desc);
 	if (pwm_channel == -1)
 		return;
 
-	if (hal_pwm_get_running_status(pwm_channel, &status)
+	if (hal_pwm_get_running_status((hal_pwm_channel_t)pwm_channel, &status)
 							== HAL_PWM_STATUS_OK) {
 		if (HAL_PWM_BUSY == status) {
-			hal_pwm_stop(pwm_channel);
+			hal_pwm_stop((hal_pwm_channel_t)pwm_channel);
 		}
 	}
 
@@ -182,7 +185,7 @@ void tone(uint8_t pin, unsigned int frequency, unsigned long duration)
 {
 	pin_desc_t			*pin_desc;
 	gpt_channel_t			*gpt_channel;
-	hal_pwm_channel_t		pwm_channel;
+	int		pwm_channel = -1;
 	hal_pwm_running_status_t	status;
 	uint32_t			total_count = 0;
 	static uint8_t			init_flag = 0;
@@ -194,15 +197,15 @@ void tone(uint8_t pin, unsigned int frequency, unsigned long duration)
 	if (pin_desc == NULL)
 		return ;
 
-	pwm_channel = (hal_pwm_channel_t)pin_get_pwm_channel(pin_desc);
+	pwm_channel = pin_get_pwm_channel(pin_desc);
 	if (pwm_channel == -1)
 		return;
 
 	// Step 1: Clear the previous settings
-	if (hal_pwm_get_running_status(pwm_channel, &status)
+	if (hal_pwm_get_running_status((hal_pwm_channel_t)pwm_channel, &status)
 							== HAL_PWM_STATUS_OK) {
 		if (HAL_PWM_BUSY == status) {
-			hal_pwm_stop(pwm_channel);
+			hal_pwm_stop((hal_pwm_channel_t)pwm_channel);
 		}
 	} else
 		return ;
@@ -217,23 +220,24 @@ void tone(uint8_t pin, unsigned int frequency, unsigned long duration)
 	// Precondition:
 	// 1. PWM Should be stopped.
 	if (!pin_enable_pwm(pin_desc))
+	{
+		pr_debug("pin_enable_pwm fails");
 		goto FAIL_PWM;
+	}	
 
 	if (!init_flag) {
-		if (hal_pwm_init(PWM_SRC_CLOCK) == HAL_PWM_STATUS_OK)
+		hal_pwm_init(PWM_SRC_CLOCK);
 			init_flag++;
-		else
-			goto FAIL_PWM;
 	}
 
-	if (hal_pwm_set_frequency(pwm_channel, frequency, &total_count)
+	if (hal_pwm_set_frequency((hal_pwm_channel_t)pwm_channel, frequency, &total_count)
 							!= HAL_PWM_STATUS_OK) {
 		pr_debug("tone: Set frequency Fail\r\n");
 		goto FAIL_PWM;
 	}
 
 	pr_debug("tone: Set frequency: %d, Total_count: %d\r\n", frequency, total_count);
-	if (hal_pwm_set_duty_cycle(pwm_channel, total_count/2)
+	if (hal_pwm_set_duty_cycle((hal_pwm_channel_t)pwm_channel, total_count/2)
 							!= HAL_PWM_STATUS_OK) {
 		pr_debug("tone: Set Duty Cycle Fail\r\n");
 		goto FAIL_PWM;
@@ -256,7 +260,7 @@ void tone(uint8_t pin, unsigned int frequency, unsigned long duration)
 		}
 	}
 
-	if (HAL_PWM_STATUS_OK != hal_pwm_start(pwm_channel)) {
+	if (HAL_PWM_STATUS_OK != hal_pwm_start((hal_pwm_channel_t)pwm_channel)) {
 		pr_debug("tone: Start PWM Fail\r\n");
 		goto FAIL_GPT;
 	}

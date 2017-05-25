@@ -71,7 +71,7 @@ extern void analogReadResolution(int res);
  *
  * \param res
  */
-extern void analogWriteResolution(int res);
+extern void analogWriteResolution(uint32_t res);
 
 
 #ifdef __cplusplus

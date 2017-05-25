@@ -35,18 +35,18 @@ extern uint32_t pulseIn( uint32_t pin, uint32_t state, uint32_t timeout)
 	// Please note that if the pin is already high when the function is
 	// called, it will wait for the pin to go LOW and then HIGH before it
 	// starts counting.
-	while (digitalRead(pin) == state) {
+	while ((uint32_t)digitalRead(pin) == state) {
 		if (time_after(micros(), timeout_micros))
 			return 0;
 	}
 
-	while (digitalRead(pin) != state) {
+	while ((uint32_t)digitalRead(pin) != state) {
 		if (time_after(micros(), timeout_micros))
 			return 0;
 	}
 
 	start_micros = micros();
-	while (digitalRead(pin) == state) {
+	while ((uint32_t)digitalRead(pin) == state) {
 		if (time_after(micros(), timeout_micros))
 			return 0;
 	}

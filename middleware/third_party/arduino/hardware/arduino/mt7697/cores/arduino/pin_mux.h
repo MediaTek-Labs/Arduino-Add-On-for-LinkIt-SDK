@@ -174,7 +174,7 @@ static inline int pin_get_adc_channel(pin_desc_t *pin)
 
 static inline int pin_get_pwm_channel(pin_desc_t *pin)
 {
-	return pin->pin_info_pwm_channel;
+	return (int8_t)pin->pin_info_pwm_channel;
 }
 
 #ifdef __cplusplus

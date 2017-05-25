@@ -50,8 +50,8 @@ static inline uint32_t mapResolution(uint32_t value, uint32_t from, uint32_t to)
 uint32_t analogRead(uint32_t ulPin)
 {
 	pin_desc_t	*pin_desc = NULL;
-	uint16_t	ulValue   = 0;
-	uint8_t		adc_channel;
+	uint32_t	ulValue   = 0;
+	int		adc_channel = -1;
 
 	/*
 	 * FIXME: Currently, hal_adc_init() couldn't take a pin number as a
@@ -94,9 +94,9 @@ uint32_t analogRead(uint32_t ulPin)
 }
 
 
-static int _writeResolution = 8;
+static uint32_t _writeResolution = 8;
 
-void analogWriteResolution(int res) {
+void analogWriteResolution(uint32_t res) {
 	_writeResolution = res;
 }
 
@@ -117,7 +117,7 @@ void analogWrite(uint32_t ulPin, uint32_t ulValue)
 
 	pwm_channel = pin_desc->pin_info_pwm_channel;
 
-	if (ulValue > ((1<<_writeResolution)-1))
+	if (ulValue > (uint32_t)((1<<_writeResolution)-1))
 		ulValue = (1<<_writeResolution)-1;
 
 	if (HAL_PWM_STATUS_OK != hal_pwm_get_running_status(pwm_channel, &status))
