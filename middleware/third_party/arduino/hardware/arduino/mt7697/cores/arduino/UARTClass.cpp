@@ -211,7 +211,7 @@ int UARTClass::available(void)
 		length = hal_uart_receive_dma(_uart_port, buffer, length);
 
 		if (length > 0) {
-			pr_debug("Receive Get: %d bytes.\r\n", length);
+			pr_debug("Receive Get: %lu bytes.\r\n", length);
 
 			for (uint32_t i=0; i<length; i++) {
 				_rx_buffer.store_char(buffer[i]);
@@ -255,13 +255,13 @@ void UARTClass::IrqHandler(hal_uart_callback_event_t event)
 		length = hal_uart_get_available_receive_bytes(_uart_port);
 
 		if (length > 0) {
-			pr_debug("VFIFO Get: %d bytes.\r\n", length);
+			pr_debug("VFIFO Get: %lu bytes.\r\n", length);
 
 			length = hal_uart_receive_dma(_uart_port, buffer, length);
 		}
 
 		if (length > 0) {
-			pr_debug("Receive Get: %d bytes.\r\n", length);
+			pr_debug("Receive Get: %lu bytes.\r\n", length);
 
 			for (uint32_t i=0; i<length; i++) {
 				_rx_buffer.store_char(buffer[i]);

@@ -26,8 +26,8 @@ typedef struct gpt_channel {
 } gpt_channel_t;
 
 static gpt_channel_t gpt_channel_tab[] = {
-	[HAL_GPT_0] = {HAL_GPT_0, NULL},
-	[HAL_GPT_1] = {HAL_GPT_1, NULL}
+	[HAL_GPT_0] = {HAL_GPT_0, NULL, HAL_PWM_MAX},
+	[HAL_GPT_1] = {HAL_GPT_1, NULL, HAL_PWM_MAX}
 };
 
 #define max_gpt_channel			(sizeof(gpt_channel_tab)/sizeof(gpt_channel_t))
@@ -236,7 +236,7 @@ void tone(uint8_t pin, unsigned int frequency, unsigned long duration)
 		goto FAIL_PWM;
 	}
 
-	pr_debug("tone: Set frequency: %d, Total_count: %d\r\n", frequency, total_count);
+	pr_debug("tone: Set frequency: %d, Total_count: %lu\r\n", frequency, total_count);
 	if (hal_pwm_set_duty_cycle((hal_pwm_channel_t)pwm_channel, total_count/2)
 							!= HAL_PWM_STATUS_OK) {
 		pr_debug("tone: Set Duty Cycle Fail\r\n");
