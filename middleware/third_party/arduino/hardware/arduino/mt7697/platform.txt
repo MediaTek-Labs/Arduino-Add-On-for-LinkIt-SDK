@@ -136,4 +136,4 @@ tools.flash_tool.cmd.windows=upload.exe
 tools.flash_tool.upload.params.verbose=
 tools.flash_tool.upload.params.quiet=
 tools.flash_tool.upload.params.verify=
-tools.flash_tool.upload.pattern={path}/{cmd} -n {path}/da97.bin -c {serial.port} -f {build.path}/{build.project_name}.bin
+tools.flash_tool.upload.pattern="{path}/{cmd}" -n "{path}/da97.bin" -c {serial.port} -f "{build.path}/{build.project_name}.bin"
