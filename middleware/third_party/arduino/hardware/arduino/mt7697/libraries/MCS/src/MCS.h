@@ -118,6 +118,15 @@ public:
 
     bool value(void);
 
+    // Call this method to change the server-side value
+    // of the controller channel.
+    // 
+    // Note that the result of value() does not change
+    // until the server-side value is successfully updated,
+    // and MCSDevice::process() has been called to 
+    // parse the incomping server update.
+    bool setServerValue(bool serverValue);
+
 protected:
     // override
     virtual void _dispatch(const String& params);

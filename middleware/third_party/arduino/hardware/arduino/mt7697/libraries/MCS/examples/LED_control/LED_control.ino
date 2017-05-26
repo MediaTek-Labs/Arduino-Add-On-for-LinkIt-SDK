@@ -17,6 +17,7 @@ MCSControllerOnOff led("your_channel1_id");
 MCSDisplayOnOff    remote("your_channel2_id");
 
 #define LED_PIN 7
+#define BTN_PIN 6
 
 void setup() {
   // setup Serial output at 9600
@@ -24,6 +25,8 @@ void setup() {
 
   // setup LED/Button pin
   pinMode(LED_PIN, OUTPUT);
+    // initialize the pushbutton pin as an input:
+  pinMode(BTN_PIN, INPUT);
 
   // setup Wifi connection
   while(WL_CONNECTED != WiFi.status())
@@ -47,6 +50,9 @@ void setup() {
   }
   Serial.println("MCS connected !!");
 
+  // change the LED value on MCS server
+  led.setServerValue(false);
+
   // read LED value from MCS server
   while(!led.valid())
   {
@@ -58,12 +64,30 @@ void setup() {
   digitalWrite(LED_PIN, led.value() ? HIGH : LOW);
 }
 
+
+int buttonState = 0;
+
 void loop() {
   // call process() to allow background processing, add timeout to avoid high cpu usage
   Serial.print("process(");
   Serial.print(millis());
   Serial.println(")");
   mcs.process(100);
+  
+  const int newButtonState = digitalRead(BTN_PIN);
+
+  // detect button state edge change
+  if(buttonState != newButtonState)
+  {
+    // only flip the switch on falling edge
+    // (button release)
+    if(newButtonState == 0){
+      led.setServerValue(!led.value());  
+    }
+
+    // update button state
+    buttonState = newButtonState;
+  }
   
   // updated flag will be cleared in process(), user must check it after process() call.
   if(led.updated())

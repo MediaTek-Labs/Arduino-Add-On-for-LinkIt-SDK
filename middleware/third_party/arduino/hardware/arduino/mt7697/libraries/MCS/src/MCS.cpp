@@ -539,6 +539,12 @@ bool MCSControllerOnOff::value(void)
     return false;
 }
 
+bool MCSControllerOnOff::setServerValue(bool serverValue)
+{
+    bool result = _uploadDataPoint(String(serverValue ? "1": "0"));
+    return result;
+}
+
 void MCSControllerOnOff::_dispatch(const String& params)
 {
     if(_update(params))
