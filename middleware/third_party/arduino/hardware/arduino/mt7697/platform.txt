@@ -107,7 +107,7 @@ recipe.ar.pattern="{compiler.path}{compiler.ar.cmd}" {compiler.ar.flags} {compil
 # 4.5 Generate elf files
 # ------------------------
 # Combine gc-sections, archives, and objects
-recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} -mcpu={build.mcu} {compiler.c.elf.extra_flags} -o "{build.path}/{build.project_name}.elf" -Wl,--start-group "{build.path}/core/syscalls.c.o" {object_files} "{build.path}/{archive_file}" {compiler.path.extra_lib} -Wl,--end-group "-L{build.path}" -lm -lstdc++
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} -mcpu={build.mcu} {compiler.c.elf.extra_flags} -o "{build.path}/{build.project_name}.elf" -Wl,--start-group {object_files} "{build.path}/{archive_file}" {compiler.path.extra_lib} -Wl,--end-group "-L{build.path}" -lm -lstdc++
 
 # 4.5 Generate binary files
 # ------------------------
