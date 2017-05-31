@@ -18,6 +18,11 @@ extern "C"{
 #define MCU_FREQUENCY_64MHZ			64000000
 #define MCU_FREQUENCY_40MHZ			40000000
 
+// Add for the compatibility of some drivers
+#define clockCyclesPerMicrosecond() ( 192L ) //192 is Clock Cycle of LinkIt 7697 in MHz
+#define clockCyclesToMicroseconds(a) ( (a) / clockCyclesPerMicrosecond() )
+#define microsecondsToClockCycles(a) ( (a) * clockCyclesPerMicrosecond() )
+
 // In the Arduino IDE, the following macro have been defined by Arduino IDE.
 // But for LinkIt SDK, we need define them at here.
 #ifndef ARDUINO
