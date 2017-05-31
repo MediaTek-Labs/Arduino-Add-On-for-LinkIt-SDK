@@ -110,13 +110,81 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerOnOff : public MCSDataChannel
+/* These are default, overloaded String <-> value conversion functions used by MCSControllerBase */
+/* ------------------------------------------------------------------------ */
+inline String MCSValueToString(const bool& value)
+{
+    return String(value ? "1": "0");
+}
+
+inline void MCSStringToValue(const String& params, bool& value)
+{
+    int b = params.toInt();
+    value = (b == 1) ? true : false;
+}
+
+inline String MCSValueToString(const String& value)
+{
+    return value;
+}
+
+inline void MCSStringToValue(const String& params, String& value)
+{
+    value = params;
+}
+
+inline String MCSValueToString(const int& value)
+{
+    return String(value);
+}
+
+inline void MCSStringToValue(const String& params, int& value)
+{
+    value = params.toInt();
+}
+
+inline String MCSValueToString(const float& value)
+{
+    return String(value);
+}
+
+inline void MCSStringToValue(const String& params, float& value)
+{
+    value = params.toFloat();
+}
+
+inline String MCSValueToString(const long& value)
+{
+    return String(value, HEX);
+}
+
+inline void MCSStringToValue(const String& params, long& value)
+{
+    value = strtol(params.c_str(), NULL, 16);
+}
+
+/* ------------------------------------------------------------------------ */
+template <typename T> class MCSControllerBase : public MCSDataChannel
 {
 public:
-    MCSControllerOnOff(const String& channel_id);
-    ~MCSControllerOnOff();
+    MCSControllerBase(const String& channel_id):MCSDataChannel(channel_id){
 
-    bool value(void);
+    }
+
+    T value(void){
+        if(valid())
+            return mValue;
+
+        // retrieve latest data point from server
+        String params;
+        if(_getDataPoint(params))
+        {
+            _update(params);
+            return mValue;
+        }
+
+        return T();
+    }
 
     // Call this method to change the server-side value
     // of the controller channel.
@@ -125,17 +193,69 @@ public:
     // until the server-side value is successfully updated,
     // and MCSDevice::process() has been called to 
     // parse the incomping server update.
-    bool setServerValue(bool serverValue);
+    virtual bool setServerValue(T serverValue){
+        // convert mValue to MCS String format,
+        // and then upload to MCS.
+        const bool result = _uploadDataPoint(_valueToString(serverValue));
+        if(result)
+        {
+            // if upload succeeded,
+            // we need to update local values once the server is updated.
+            mValue = serverValue;
+
+            // make the value "updated",
+            // so the next process() call will properly update.
+            _setValid();
+            _setUpdated();
+        }
+        return result;
+    }
 
 protected:
-    // override
-    virtual void _dispatch(const String& params);
+    // default implementation between String <-> Value
+    // Subclasses such as "HEX format" may need 
+    // to override this method.
+    virtual void _valueFromString(const String& param, T& value){
+        MCSStringToValue(param, value);
+    }
 
-private:
-    bool _update(const String& params);
+    // default implementation between String <-> Value
+    // Subclasses such as "HEX format" may need 
+    // to override this method.
+    virtual String _valueToString(const T& value){
+        return MCSValueToString(value);
+    }
 
-private:
-    bool mValue;
+    // most subclasses won't be required to change 
+    // the upload policy
+    virtual void _dispatch(const String& params){
+        if(_update(params))
+            _setUpdated();
+    }
+
+    bool _update(const String& params){
+        T v;
+        _valueFromString(params, v);
+
+        if(!valid() || v != mValue)
+        {
+            mValue = v;
+            _setValid();
+            return true;
+        }
+        return false;
+    }
+
+protected:
+    T mValue;
+};
+
+/* ------------------------------------------------------------------------ */
+class MCSControllerOnOff : public MCSControllerBase<bool>
+{
+public:
+    MCSControllerOnOff(const String& channel_id);
+    ~MCSControllerOnOff();
 };
 
 /* ------------------------------------------------------------------------ */
@@ -157,23 +277,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerCategory : public MCSDataChannel
+class MCSControllerCategory : public MCSControllerBase<String>
 {
 public:
     MCSControllerCategory(const String& channel_id);
     ~MCSControllerCategory();
-
-    String value(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    String mValue;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -195,23 +303,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerInteger : public MCSDataChannel
+class MCSControllerInteger : public MCSControllerBase<int>
 {
 public:
     MCSControllerInteger(const String& channel_id);
     ~MCSControllerInteger();
-
-    int value(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    int mValue;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -233,23 +329,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerFloat : public MCSDataChannel
+class MCSControllerFloat : public MCSControllerBase<float>
 {
 public:
     MCSControllerFloat(const String& channel_id);
     ~MCSControllerFloat();
-
-    float value(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    float mValue;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -271,23 +355,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerHex : public MCSDataChannel
+class MCSControllerHex : public MCSControllerBase<long>
 {
 public:
     MCSControllerHex(const String& channel_id);
     ~MCSControllerHex();
-
-    long value(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    long mValue;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -309,23 +381,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerString : public MCSDataChannel
+class MCSControllerString : public MCSControllerBase<String>
 {
 public:
     MCSControllerString(const String& channel_id);
     ~MCSControllerString();
-
-    String value(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    String mValue;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -347,7 +407,7 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerGPS : public MCSDataChannel
+class MCSControllerGPS : public MCSControllerBase<String>
 {
 public:
     MCSControllerGPS(const String& channel_id);
@@ -357,17 +417,9 @@ public:
     float longitude(void);
     float altitude(void);
 
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    float mLatitude;
-    float mLongitude;
-    float mAltitude;
+    void getGPSValue(float& latitude, float& longitude, float& altitude);
+    
+    virtual bool setServerValue(float latitude, float longitude, float altitude);
 };
 
 /* ------------------------------------------------------------------------ */
@@ -393,23 +445,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerGPIO : public MCSDataChannel
+class MCSControllerGPIO : public MCSControllerBase<int>
 {
 public:
     MCSControllerGPIO(const String& channel_id);
     ~MCSControllerGPIO();
-
-    int value(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    int mValue;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -431,6 +471,7 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
 class MCSControllerPWM : public MCSDataChannel
 {
 public:
@@ -473,23 +514,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerAnalog : public MCSDataChannel
+class MCSControllerAnalog : public MCSControllerBase<int>
 {
 public:
     MCSControllerAnalog(const String& channel_id);
     ~MCSControllerAnalog();
-
-    int value(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    int mValue;
 };
 
 
