@@ -3,6 +3,7 @@
 
 
 #include <Arduino.h>
+#include <Printable.h>
 #include <vector>
 #include "LWiFi.h"
 
@@ -28,7 +29,7 @@ public:
 protected:
     virtual bool _prepareSocket(WiFiClient& socket);
     virtual void _sendHB(WiFiClient& socket);
-    virtual int _getHBperiod() { return 60*1000; }
+    virtual unsigned long _getHBperiod() { return 60*1000; }
     virtual String _getAPIPath() { return "/mcs/v2";}
     virtual bool _parsePattern(String& result);
 
@@ -70,7 +71,7 @@ public:
 protected:
     virtual bool _prepareSocket(WiFiClient& socket);
     virtual void _sendHB(WiFiClient& socket);
-    virtual int _getHBperiod() { return 10*1000; }
+    virtual unsigned long _getHBperiod() { return 10*1000; }
     virtual String _getAPIPath() { return "/api";}
     virtual bool _parsePattern(String& result);
 
@@ -167,7 +168,14 @@ inline void MCSStringToValue(const String& params, long& value)
 template <typename T> class MCSControllerBase : public MCSDataChannel
 {
 public:
-    MCSControllerBase(const String& channel_id):MCSDataChannel(channel_id){
+    MCSControllerBase(const String& channel_id):
+        MCSDataChannel(channel_id),
+        mValue()
+    {
+
+    }
+
+    virtual ~MCSControllerBase(){
 
     }
 
@@ -233,6 +241,8 @@ protected:
             _setUpdated();
     }
 
+    // parse the MCS string data and assign it
+    // to the mValue member.
     bool _update(const String& params){
         T v;
         _valueFromString(params, v);
@@ -254,8 +264,8 @@ protected:
 class MCSControllerOnOff : public MCSControllerBase<bool>
 {
 public:
-    MCSControllerOnOff(const String& channel_id);
-    ~MCSControllerOnOff();
+    MCSControllerOnOff(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -280,8 +290,8 @@ private:
 class MCSControllerCategory : public MCSControllerBase<String>
 {
 public:
-    MCSControllerCategory(const String& channel_id);
-    ~MCSControllerCategory();
+    MCSControllerCategory(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -306,8 +316,8 @@ private:
 class MCSControllerInteger : public MCSControllerBase<int>
 {
 public:
-    MCSControllerInteger(const String& channel_id);
-    ~MCSControllerInteger();
+    MCSControllerInteger(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -332,8 +342,8 @@ private:
 class MCSControllerFloat : public MCSControllerBase<float>
 {
 public:
-    MCSControllerFloat(const String& channel_id);
-    ~MCSControllerFloat();
+    MCSControllerFloat(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -358,8 +368,8 @@ private:
 class MCSControllerHex : public MCSControllerBase<long>
 {
 public:
-    MCSControllerHex(const String& channel_id);
-    ~MCSControllerHex();
+    MCSControllerHex(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -384,8 +394,8 @@ private:
 class MCSControllerString : public MCSControllerBase<String>
 {
 public:
-    MCSControllerString(const String& channel_id);
-    ~MCSControllerString();
+    MCSControllerString(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -407,11 +417,46 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
-class MCSControllerGPS : public MCSControllerBase<String>
+struct MCSGPSValue : public Printable{
+    MCSGPSValue():
+        mLatitude(360.f),
+        mLongitude(360.f),
+        mAltitude(0.f){
+    }
+
+    bool operator==(const MCSGPSValue& rhs)const;
+    bool operator!=(const MCSGPSValue& rhs)const;
+    explicit operator bool()const;
+    bool isValid()const;
+    virtual size_t printTo(Print& p) const;
+
+    // https://mcs.mediatek.com/resources/zh-TW/latest/api_references/
+    float mLatitude;    // ranges from -90.f ~ 90.f
+    float mLongitude;   // ranges from -180.f ~ 180.f
+    float mAltitude;
+};
+
+inline String MCSValueToString(const MCSGPSValue& value)
+{
+    const String payload = String(value.mLatitude)+String(",")+String(value.mLongitude)+String(",")+String(value.mAltitude);
+    return payload;
+}
+
+inline void MCSStringToValue(const String& params, MCSGPSValue& value)
+{
+    // parse the string value
+    const int c1 = params.indexOf(',');
+    const int c2 = params.indexOf(',', c1+1);
+    value.mLatitude = params.substring(0, c1).toFloat();
+    value.mLongitude = params.substring(c1+1, c2).toFloat();
+    value.mAltitude = params.substring(c2+1).toFloat();
+}
+
+class MCSControllerGPS : public MCSControllerBase<MCSGPSValue>
 {
 public:
-    MCSControllerGPS(const String& channel_id);
-    ~MCSControllerGPS();
+    MCSControllerGPS(const String& channel_id):MCSControllerBase(channel_id){
+    }
 
     float latitude(void);
     float longitude(void);
@@ -448,8 +493,8 @@ private:
 class MCSControllerGPIO : public MCSControllerBase<int>
 {
 public:
-    MCSControllerGPIO(const String& channel_id);
-    ~MCSControllerGPIO();
+    MCSControllerGPIO(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -471,26 +516,45 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+struct MCSPWMValue : public Printable{
+    MCSPWMValue():
+        mDutyCycle(0),
+        mPeriod(0){
+    }
 
-class MCSControllerPWM : public MCSDataChannel
+    bool operator==(const MCSPWMValue& rhs)const;
+    bool operator!=(const MCSPWMValue& rhs)const;
+    explicit operator bool()const;
+    bool isValid()const;
+    virtual size_t printTo(Print& p) const;
+
+    // https://mcs.mediatek.com/resources/zh-TW/latest/api_references/
+    int mDutyCycle;  // the "value" in MCS API
+    int mPeriod;   // the "period" in MCS API
+};
+
+inline String MCSValueToString(const MCSPWMValue& value)
+{
+    const String payload = String(value.mDutyCycle)+String(",")+String(value.mPeriod);
+    return payload;
+}
+
+inline void MCSStringToValue(const String& params, MCSPWMValue& value)
+{
+    const int c = params.indexOf(',');
+    value.mDutyCycle = params.substring(0, c).toInt();
+    value.mPeriod = params.substring(c+1).toInt();
+    return;
+}
+
+class MCSControllerPWM : public MCSControllerBase<MCSPWMValue>
 {
 public:
-    MCSControllerPWM(const String& channel_id);
-    ~MCSControllerPWM();
+    MCSControllerPWM(const String& channel_id):MCSControllerBase(channel_id){
+    }
 
-    int value(void);
+    int dutyCycle(void);
     int period(void);
-
-protected:
-    // override
-    virtual void _dispatch(const String& params);
-
-private:
-    bool _update(const String& params);
-
-private:
-    int mValue;
-    int mPeriod;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -517,8 +581,8 @@ private:
 class MCSControllerAnalog : public MCSControllerBase<int>
 {
 public:
-    MCSControllerAnalog(const String& channel_id);
-    ~MCSControllerAnalog();
+    MCSControllerAnalog(const String& channel_id):MCSControllerBase(channel_id){
+    }
 };
 
 

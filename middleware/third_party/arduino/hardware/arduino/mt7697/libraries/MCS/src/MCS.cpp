@@ -325,7 +325,7 @@ bool MCSDevice::_waitForResponse(Client& client, String& responseBody)
                 contentLen = _findHeader(s, "Content-Length: ");
             }
 
-            if(contentLen >= 0 && s.length() >= endOfRsp + contentLen)
+            if(contentLen >= 0 && ((int)s.length()) >= endOfRsp + contentLen)
             {
                 responseBody = s.substring(endOfRsp, endOfRsp+contentLen);
                 return true;
@@ -508,21 +508,6 @@ bool MCSDataChannel::_getDataPoint(String& params)
     return false;
 }
 
-
-/* ----------------------------------------------------------------------------
-class MCSControllerOnOff
----------------------------------------------------------------------------- */
-
-MCSControllerOnOff::MCSControllerOnOff(const String& channel_id):
-    MCSControllerBase(channel_id)
-{
-    mValue = false;
-}
-
-MCSControllerOnOff::~MCSControllerOnOff()
-{
-}
-
 /* ----------------------------------------------------------------------------
 class MCSDisplayOnOff
 ---------------------------------------------------------------------------- */
@@ -559,20 +544,6 @@ bool MCSDisplayOnOff::value(void)
 void MCSDisplayOnOff::_dispatch(const String& params)
 {
     // do nothing for display channel
-}
-
-
-/* ----------------------------------------------------------------------------
-class MCSControllerCategory
----------------------------------------------------------------------------- */
-
-MCSControllerCategory::MCSControllerCategory(const String& channel_id):
-MCSControllerBase(channel_id)
-{
-}
-
-MCSControllerCategory::~MCSControllerCategory()
-{
 }
 
 /* ----------------------------------------------------------------------------
@@ -614,20 +585,6 @@ void MCSDisplayCategory::_dispatch(const String& params)
 }
 
 /* ----------------------------------------------------------------------------
-class MCSControllerInteger
----------------------------------------------------------------------------- */
-
-MCSControllerInteger::MCSControllerInteger(const String& channel_id):
-MCSControllerBase(channel_id)
-{
-    mValue = 0;
-}
-
-MCSControllerInteger::~MCSControllerInteger()
-{
-}
-
-/* ----------------------------------------------------------------------------
 class MCSDisplayInteger
 ---------------------------------------------------------------------------- */
 
@@ -663,20 +620,6 @@ int MCSDisplayInteger::value(void)
 void MCSDisplayInteger::_dispatch(const String& params)
 {
     // do nothing for display channel
-}
-
-/* ----------------------------------------------------------------------------
-class MCSControllerFloat
----------------------------------------------------------------------------- */
-
-MCSControllerFloat::MCSControllerFloat(const String& channel_id):
-MCSControllerBase(channel_id)
-{
-    mValue = 0;
-}
-
-MCSControllerFloat::~MCSControllerFloat()
-{
 }
 
 /* ----------------------------------------------------------------------------
@@ -717,21 +660,6 @@ void MCSDisplayFloat::_dispatch(const String& params)
     // do nothing for display channel
 }
 
-
-/* ----------------------------------------------------------------------------
-class MCSControllerHex
----------------------------------------------------------------------------- */
-
-MCSControllerHex::MCSControllerHex(const String& channel_id):
-MCSControllerBase(channel_id)
-{
-    mValue = 0;
-}
-
-MCSControllerHex::~MCSControllerHex()
-{
-}
-
 /* ----------------------------------------------------------------------------
 class MCSDisplayHex
 ---------------------------------------------------------------------------- */
@@ -768,20 +696,6 @@ long MCSDisplayHex::value(void)
 void MCSDisplayHex::_dispatch(const String& params)
 {
     // do nothing for display channel
-}
-
-
-/* ----------------------------------------------------------------------------
-class MCSControllerString
----------------------------------------------------------------------------- */
-
-MCSControllerString::MCSControllerString(const String& channel_id):
-MCSControllerBase(channel_id)
-{
-}
-
-MCSControllerString::~MCSControllerString()
-{
 }
 
 /* ----------------------------------------------------------------------------
@@ -827,60 +741,81 @@ void MCSDisplayString::_dispatch(const String& params)
 class MCSControllerGPS
 ---------------------------------------------------------------------------- */
 
-MCSControllerGPS::MCSControllerGPS(const String& channel_id):
-MCSControllerBase(channel_id)
+bool MCSGPSValue::operator==(MCSGPSValue const& rhs) const
 {
+    if(this == &rhs)
+    {
+        return true;
+    }
+
+    // TODO: we can use better float equal comparator (epsilon-based)
+    return (mLatitude == rhs.mLatitude) &&
+           (mLongitude == rhs.mLongitude) &&
+           (mAltitude == rhs.mAltitude);
 }
 
-MCSControllerGPS::~MCSControllerGPS()
+bool MCSGPSValue::operator!=(MCSGPSValue const& rhs) const
 {
+    return !(*this == rhs);
+}
+
+bool MCSGPSValue::isValid()const
+{
+    // The Lat/Long values are initialized in 360.f
+    // which should be "invalid" GPS value range.
+    if(( -90.f > mLatitude) ||
+       (  90.f < mLatitude) ||
+       ( 180.f > mLongitude) ||
+       (-180.f < mLongitude))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+MCSGPSValue::operator bool()const
+{
+    return isValid();
+}
+
+size_t MCSGPSValue::printTo(Print& p) const
+{
+    return p.print(MCSValueToString(*this));
 }
 
 void MCSControllerGPS::getGPSValue(float& latitude, float& longitude, float& altitude)
 {
-    const String params = value();
-
-    // parse the string value
-    int c1 = params.indexOf(',');
-    int c2 = params.indexOf(',', c1+1);
-    latitude = params.substring(0, c1).toFloat();
-    longitude = params.substring(c1+1, c2).toFloat();
-    altitude = params.substring(c2+1).toFloat();
+    const MCSGPSValue v = value();
+    latitude = v.mLatitude;
+    longitude = v.mLongitude;
+    altitude = v.mAltitude;
     return;
 }
 
 float MCSControllerGPS::latitude(void)
 {
-    float latitude = 0.0f;
-    float longitude = 0.0f;
-    float altitude = 0.0f;
-    getGPSValue(latitude, longitude, altitude);
-    return latitude;
+    return mValue.mLatitude;
 }
 
 float MCSControllerGPS::longitude(void)
 {
-    float latitude = 0.0f;
-    float longitude = 0.0f;
-    float altitude = 0.0f;
-    getGPSValue(latitude, longitude, altitude);
-    return longitude;
+    return mValue.mLongitude;
 }
 
 float MCSControllerGPS::altitude(void)
 {
-    float latitude = 0.0f;
-    float longitude = 0.0f;
-    float altitude = 0.0f;
-    getGPSValue(latitude, longitude, altitude);
-    return altitude;
+    return mValue.mAltitude;
 }
 
 bool MCSControllerGPS::setServerValue(float latitude, float longitude, float altitude)
 {
-    String payload = String(latitude)+String(",")+String(longitude)+String(",")+String(altitude);
+    MCSGPSValue v;
+    v.mLatitude = latitude;
+    v.mLongitude = longitude;
+    v.mAltitude = altitude;
 
-    return MCSControllerBase::setServerValue(payload);
+    return MCSControllerBase::setServerValue(v);
 }
 
 /* ----------------------------------------------------------------------------
@@ -936,21 +871,6 @@ void MCSDisplayGPS::_dispatch(const String& params)
     // do nothing for display channel
 }
 
-
-/* ----------------------------------------------------------------------------
-class MCSControllerGPIO
----------------------------------------------------------------------------- */
-
-MCSControllerGPIO::MCSControllerGPIO(const String& channel_id):
-MCSControllerBase(channel_id)
-{
-    mValue = 0;
-}
-
-MCSControllerGPIO::~MCSControllerGPIO()
-{
-}
-
 /* ----------------------------------------------------------------------------
 class MCSDisplayGPIO
 ---------------------------------------------------------------------------- */
@@ -993,72 +913,59 @@ void MCSDisplayGPIO::_dispatch(const String& params)
 /* ----------------------------------------------------------------------------
 class MCSControllerPWM
 ---------------------------------------------------------------------------- */
-
-MCSControllerPWM::MCSControllerPWM(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(),
-mPeriod()
+bool MCSPWMValue::operator==(const MCSPWMValue& rhs)const
 {
-}
-
-MCSControllerPWM::~MCSControllerPWM()
-{
-}
-
-int MCSControllerPWM::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
+    if(this == &rhs)
     {
-        _update(params);
-        return mValue;
+        return true;
     }
-    
-    return 0;
+
+    return (mDutyCycle == rhs.mDutyCycle) &&
+           (mPeriod == rhs.mPeriod);
+}
+
+bool MCSPWMValue::operator!=(const MCSPWMValue& rhs)const
+{
+    return !(*this == rhs);
+}
+
+MCSPWMValue::operator bool()const
+{
+    return isValid();
+}
+
+bool MCSPWMValue::isValid()const
+{
+    // cycles and period cannot be zero or negative.
+    if(0 >= mDutyCycle ||
+       0 >= mPeriod)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+size_t MCSPWMValue::printTo(Print& p) const
+{
+    size_t len = 0;
+    len += p.print(mDutyCycle);
+    len += p.print(",");
+    len += p.print(mPeriod);
+    return len;
+}
+
+int MCSControllerPWM::dutyCycle(void)
+{
+    MCSPWMValue v = value();
+    return v.mDutyCycle;
 }
 
 int MCSControllerPWM::period(void)
 {
-    if(valid())
-        return mPeriod;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mPeriod;
-    }
-    
-    return 0;
+    MCSPWMValue v = value();
+    return v.mPeriod;
 }
-
-void MCSControllerPWM::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerPWM::_update(const String& params)
-{
-    int c = params.indexOf(',');
-    float v1 = params.substring(0, c).toInt();
-    float v2 = params.substring(c+1).toInt();
-
-    if(!valid() || v1 != mValue || v2 != mPeriod)
-    {
-        mValue = v1;
-        mPeriod = v2;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
 
 /* ----------------------------------------------------------------------------
 class MCSDisplayPWM
@@ -1103,18 +1010,4 @@ int MCSDisplayPWM::period(void)
 void MCSDisplayPWM::_dispatch(const String& params)
 {
     // do nothing for display channel
-}
-
-/* ----------------------------------------------------------------------------
-class MCSControllerAnalog
----------------------------------------------------------------------------- */
-
-MCSControllerAnalog::MCSControllerAnalog(const String& channel_id):
-MCSControllerBase(channel_id)
-{
-    mValue = 0;
-}
-
-MCSControllerAnalog::~MCSControllerAnalog()
-{
 }
