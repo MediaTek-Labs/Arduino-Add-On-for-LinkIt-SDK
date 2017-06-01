@@ -325,7 +325,7 @@ bool MCSDevice::_waitForResponse(Client& client, String& responseBody)
                 contentLen = _findHeader(s, "Content-Length: ");
             }
 
-            if(contentLen >= 0 && s.length() >= endOfRsp + contentLen)
+            if(contentLen >= 0 && ((int)s.length()) >= endOfRsp + contentLen)
             {
                 responseBody = s.substring(endOfRsp, endOfRsp+contentLen);
                 return true;
@@ -508,58 +508,6 @@ bool MCSDataChannel::_getDataPoint(String& params)
     return false;
 }
 
-
-/* ----------------------------------------------------------------------------
-class MCSControllerOnOff
----------------------------------------------------------------------------- */
-
-MCSControllerOnOff::MCSControllerOnOff(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(false)
-{
-}
-
-MCSControllerOnOff::~MCSControllerOnOff()
-{
-}
-
-bool MCSControllerOnOff::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-
-    return false;
-}
-
-void MCSControllerOnOff::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerOnOff::_update(const String& params)
-{
-    int b = params.toInt();
-    bool v = (b == 1) ? true : false;
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
-
 /* ----------------------------------------------------------------------------
 class MCSDisplayOnOff
 ---------------------------------------------------------------------------- */
@@ -597,58 +545,6 @@ void MCSDisplayOnOff::_dispatch(const String& params)
 {
     // do nothing for display channel
 }
-
-
-/* ----------------------------------------------------------------------------
-class MCSControllerCategory
----------------------------------------------------------------------------- */
-
-MCSControllerCategory::MCSControllerCategory(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue()
-{
-}
-
-MCSControllerCategory::~MCSControllerCategory()
-{
-}
-
-String MCSControllerCategory::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-    
-    return "";
-}
-
-void MCSControllerCategory::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerCategory::_update(const String& params)
-{
-    String b = params;
-    String v = b;
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
 
 /* ----------------------------------------------------------------------------
 class MCSDisplayCategory
@@ -689,57 +585,6 @@ void MCSDisplayCategory::_dispatch(const String& params)
 }
 
 /* ----------------------------------------------------------------------------
-class MCSControllerInteger
----------------------------------------------------------------------------- */
-
-MCSControllerInteger::MCSControllerInteger(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(0)
-{
-}
-
-MCSControllerInteger::~MCSControllerInteger()
-{
-}
-
-int MCSControllerInteger::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-    
-    return 0;
-}
-
-void MCSControllerInteger::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerInteger::_update(const String& params)
-{
-    int b = params.toInt();
-    int v = b;
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
-
-/* ----------------------------------------------------------------------------
 class MCSDisplayInteger
 ---------------------------------------------------------------------------- */
 
@@ -776,56 +621,6 @@ void MCSDisplayInteger::_dispatch(const String& params)
 {
     // do nothing for display channel
 }
-
-/* ----------------------------------------------------------------------------
-class MCSControllerFloat
----------------------------------------------------------------------------- */
-
-MCSControllerFloat::MCSControllerFloat(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(0)
-{
-}
-
-MCSControllerFloat::~MCSControllerFloat()
-{
-}
-
-float MCSControllerFloat::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-    return 0.0f;
-}
-
-void MCSControllerFloat::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerFloat::_update(const String& params)
-{
-    float b = params.toFloat();
-    float v = b;
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
 
 /* ----------------------------------------------------------------------------
 class MCSDisplayFloat
@@ -865,58 +660,6 @@ void MCSDisplayFloat::_dispatch(const String& params)
     // do nothing for display channel
 }
 
-
-/* ----------------------------------------------------------------------------
-class MCSControllerHex
----------------------------------------------------------------------------- */
-
-MCSControllerHex::MCSControllerHex(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue()
-{
-}
-
-MCSControllerHex::~MCSControllerHex()
-{
-}
-
-long MCSControllerHex::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-    
-    return 0;
-}
-
-void MCSControllerHex::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerHex::_update(const String& params)
-{
-    String b = params;
-    long v = strtol(b.c_str(), NULL, 16);
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
-
 /* ----------------------------------------------------------------------------
 class MCSDisplayHex
 ---------------------------------------------------------------------------- */
@@ -954,58 +697,6 @@ void MCSDisplayHex::_dispatch(const String& params)
 {
     // do nothing for display channel
 }
-
-
-/* ----------------------------------------------------------------------------
-class MCSControllerString
----------------------------------------------------------------------------- */
-
-MCSControllerString::MCSControllerString(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue()
-{
-}
-
-MCSControllerString::~MCSControllerString()
-{
-}
-
-String MCSControllerString::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-    
-    return "";
-}
-
-void MCSControllerString::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerString::_update(const String& params)
-{
-    String b = params;
-    String v = b;
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
 
 /* ----------------------------------------------------------------------------
 class MCSDisplayString
@@ -1050,91 +741,82 @@ void MCSDisplayString::_dispatch(const String& params)
 class MCSControllerGPS
 ---------------------------------------------------------------------------- */
 
-MCSControllerGPS::MCSControllerGPS(const String& channel_id):
-MCSDataChannel(channel_id),
-mLatitude(),
-mLongitude(),
-mAltitude()
+bool MCSGPSValue::operator==(MCSGPSValue const& rhs) const
 {
+    if(this == &rhs)
+    {
+        return true;
+    }
+
+    // TODO: we can use better float equal comparator (epsilon-based)
+    return (mLatitude == rhs.mLatitude) &&
+           (mLongitude == rhs.mLongitude) &&
+           (mAltitude == rhs.mAltitude);
 }
 
-MCSControllerGPS::~MCSControllerGPS()
+bool MCSGPSValue::operator!=(MCSGPSValue const& rhs) const
 {
+    return !(*this == rhs);
+}
+
+bool MCSGPSValue::isValid()const
+{
+    // The Lat/Long values are initialized in 360.f
+    // which should be "invalid" GPS value range.
+    if(( -90.f > mLatitude) ||
+       (  90.f < mLatitude) ||
+       ( 180.f > mLongitude) ||
+       (-180.f < mLongitude))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+MCSGPSValue::operator bool()const
+{
+    return isValid();
+}
+
+size_t MCSGPSValue::printTo(Print& p) const
+{
+    return p.print(MCSValueToString(*this));
+}
+
+void MCSControllerGPS::getGPSValue(float& latitude, float& longitude, float& altitude)
+{
+    const MCSGPSValue v = value();
+    latitude = v.mLatitude;
+    longitude = v.mLongitude;
+    altitude = v.mAltitude;
+    return;
 }
 
 float MCSControllerGPS::latitude(void)
 {
-    if(valid())
-        return mLatitude;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mLatitude;
-    }
-    
-    return 0.0f;
+    return mValue.mLatitude;
 }
 
 float MCSControllerGPS::longitude(void)
 {
-    if(valid())
-        return mLongitude;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mLongitude;
-    }
-    
-    return 0.0f;
+    return mValue.mLongitude;
 }
 
 float MCSControllerGPS::altitude(void)
 {
-    if(valid())
-        return mAltitude;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mAltitude;
-    }
-    
-    return 0.0f;
+    return mValue.mAltitude;
 }
 
-void MCSControllerGPS::_dispatch(const String& params)
+bool MCSControllerGPS::setServerValue(float latitude, float longitude, float altitude)
 {
-    if(_update(params))
-        _setUpdated();
+    MCSGPSValue v;
+    v.mLatitude = latitude;
+    v.mLongitude = longitude;
+    v.mAltitude = altitude;
+
+    return MCSControllerBase::setServerValue(v);
 }
-
-bool MCSControllerGPS::_update(const String& params)
-{
-    int c1 = params.indexOf(',');
-    int c2 = params.indexOf(',', c1+1);
-    float v1 = params.substring(0, c1).toFloat();
-    float v2 = params.substring(c1+1, c2).toFloat();
-    float v3 = params.substring(c2+1).toFloat();
-
-    if(!valid() || v1 != mLatitude || v2 != mLongitude || v3 != mAltitude)
-    {
-        mLatitude = v1;
-        mLongitude = v2;
-        mAltitude = v3;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
 
 /* ----------------------------------------------------------------------------
 class MCSDisplayGPS
@@ -1189,58 +871,6 @@ void MCSDisplayGPS::_dispatch(const String& params)
     // do nothing for display channel
 }
 
-
-/* ----------------------------------------------------------------------------
-class MCSControllerGPIO
----------------------------------------------------------------------------- */
-
-MCSControllerGPIO::MCSControllerGPIO(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(0)
-{
-}
-
-MCSControllerGPIO::~MCSControllerGPIO()
-{
-}
-
-int MCSControllerGPIO::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-    
-    return 0;
-}
-
-void MCSControllerGPIO::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerGPIO::_update(const String& params)
-{
-    int b = params.toInt();
-    int v = b;
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
-
 /* ----------------------------------------------------------------------------
 class MCSDisplayGPIO
 ---------------------------------------------------------------------------- */
@@ -1283,72 +913,59 @@ void MCSDisplayGPIO::_dispatch(const String& params)
 /* ----------------------------------------------------------------------------
 class MCSControllerPWM
 ---------------------------------------------------------------------------- */
-
-MCSControllerPWM::MCSControllerPWM(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(),
-mPeriod()
+bool MCSPWMValue::operator==(const MCSPWMValue& rhs)const
 {
-}
-
-MCSControllerPWM::~MCSControllerPWM()
-{
-}
-
-int MCSControllerPWM::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
+    if(this == &rhs)
     {
-        _update(params);
-        return mValue;
+        return true;
     }
-    
-    return 0;
+
+    return (mDutyCycle == rhs.mDutyCycle) &&
+           (mPeriod == rhs.mPeriod);
+}
+
+bool MCSPWMValue::operator!=(const MCSPWMValue& rhs)const
+{
+    return !(*this == rhs);
+}
+
+MCSPWMValue::operator bool()const
+{
+    return isValid();
+}
+
+bool MCSPWMValue::isValid()const
+{
+    // cycles and period cannot be zero or negative.
+    if(0 >= mDutyCycle ||
+       0 >= mPeriod)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+size_t MCSPWMValue::printTo(Print& p) const
+{
+    size_t len = 0;
+    len += p.print(mDutyCycle);
+    len += p.print(",");
+    len += p.print(mPeriod);
+    return len;
+}
+
+int MCSControllerPWM::dutyCycle(void)
+{
+    MCSPWMValue v = value();
+    return v.mDutyCycle;
 }
 
 int MCSControllerPWM::period(void)
 {
-    if(valid())
-        return mPeriod;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mPeriod;
-    }
-    
-    return 0;
+    MCSPWMValue v = value();
+    return v.mPeriod;
 }
-
-void MCSControllerPWM::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerPWM::_update(const String& params)
-{
-    int c = params.indexOf(',');
-    float v1 = params.substring(0, c).toInt();
-    float v2 = params.substring(c+1).toInt();
-
-    if(!valid() || v1 != mValue || v2 != mPeriod)
-    {
-        mValue = v1;
-        mPeriod = v2;
-        _setValid();
-        return true;
-    }
-    return false;
-}
-
 
 /* ----------------------------------------------------------------------------
 class MCSDisplayPWM
@@ -1393,54 +1010,4 @@ int MCSDisplayPWM::period(void)
 void MCSDisplayPWM::_dispatch(const String& params)
 {
     // do nothing for display channel
-}
-
-/* ----------------------------------------------------------------------------
-class MCSControllerAnalog
----------------------------------------------------------------------------- */
-
-MCSControllerAnalog::MCSControllerAnalog(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(0)
-{
-}
-
-MCSControllerAnalog::~MCSControllerAnalog()
-{
-}
-
-int MCSControllerAnalog::value(void)
-{
-    if(valid())
-        return mValue;
-
-    // retrieve latest data point from server
-    String params;
-    if(_getDataPoint(params))
-    {
-        _update(params);
-        return mValue;
-    }
-    
-    return 0;
-}
-
-void MCSControllerAnalog::_dispatch(const String& params)
-{
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerAnalog::_update(const String& params)
-{
-    int b = params.toInt();
-    int v = b;
-
-    if(!valid() || v != mValue)
-    {
-        mValue = v;
-        _setValid();
-        return true;
-    }
-    return false;
 }
