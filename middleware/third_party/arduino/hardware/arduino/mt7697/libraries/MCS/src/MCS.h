@@ -16,6 +16,9 @@ public:
     MCSDevice(const String& device_id, const String& device_key, const String& server, int port);
     ~MCSDevice();
 
+    /// \brief  To add a data channel instance to a MCSDevice instance.
+    ///
+    /// \param channel an instance of a subclass of MCSDataChannel.
     void addChannel(MCSDataChannel& channel);
 
     bool connected(void);
@@ -80,15 +83,60 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/**
+    \brief Base class for all data channel classes. Do not instantiate this class.
+
+    All data channel classes extend MCSDataChannel, which is used to create 
+    a data channel instance mapping to the one created on the MCS server and 
+    provide operations on a data channel, including getting and uploading 
+    data points.
+ 
+    For example, an ON/OFF controller channel can be represented by:
+    ~~~{.cpp}
+    MCSControllerOnOff channelOnOff("channel_id_1");
+    device.addChannel(channelOnOff);    // device is an instance of MCSDevice or MCSLiteDevice.
+    
+    device.connect();
+    bool controllerValue = channel.value();
+    ~~~
+
+    Data channel classes provide set() and value() methods for each data channel as 
+    they have different value types. 
+    
+    Use the extended classes in your sketch to create a specific type of data channels.
+    There are 2 major sub-class categories, **controller channel** and **display channel**. 
+    
+    Controller channels, such as MCSControllerOnOff and MCSControllerInteger, 
+    represents controller channels on MCS. 
+    
+    Display channels such as MCSDisplayFloat and MCSDisplayString, 
+    maps to display channels instead. 
+ */
 class MCSDataChannel
 {
 public:
-    MCSDataChannel(const String& channel_id);
-    ~MCSDataChannel();
 
+    ///
+    /// Creates a data channel that can be added to a device that is an instance of MCSDevice or MCSLiteDevice.
+    ///
+    MCSDataChannel(const String& channel_id);
+
+    /// \cond PRIVATE
+    ~MCSDataChannel();
+    /// \endcond
+
+    /// To check if there is updated data point received for a specified data channel.
+    ///
+    /// @returns true if there is an updated data point received for this data channel, false if there isn't.
     bool updated(void)  { return mUpdated; }
+
+    /// To check if there is valid value received or set from a specified data channel.
+    ///
+    /// @returns true if there is a valid value received or set for this data channel, false if there isn't.
     bool valid(void)    { return mInited; }
 
+    /// \cond PRIVATE
 protected:
     bool _match(const String& channel_id);
     virtual void _dispatch(const String& params) = 0;
@@ -108,8 +156,10 @@ private:
     bool mInited;
 
     friend class MCSDevice;
+    /// \endcond
 };
 
+/// \cond PRIVATE
 /* ------------------------------------------------------------------------ */
 /* These are default, overloaded String <-> value conversion functions used by MCSControllerBase */
 /* ------------------------------------------------------------------------ */
@@ -163,11 +213,17 @@ inline void MCSStringToValue(const String& params, long& value)
 {
     value = strtol(params.c_str(), NULL, 16);
 }
-
+/// \endcond
 /* ------------------------------------------------------------------------ */
+
+/**
+    Template base class for all controller data channel
+ */
 template <typename T> class MCSControllerBase : public MCSDataChannel
 {
 public:
+    /// Instantiate from a channel ID
+    /// Note that the mValue object is initialized with default constructor.
     MCSControllerBase(const String& channel_id):
         MCSDataChannel(channel_id),
         mValue()
@@ -175,10 +231,14 @@ public:
 
     }
 
+    /// \cond PRIVATE
     virtual ~MCSControllerBase(){
 
     }
+    /// \endcond
 
+    /// Get the locally cache value.
+    /// If not present, get value from server.
     T value(void){
         if(valid())
             return mValue;
@@ -194,13 +254,13 @@ public:
         return T();
     }
 
-    // Call this method to change the server-side value
-    // of the controller channel.
-    // 
-    // Note that the result of value() does not change
-    // until the server-side value is successfully updated,
-    // and MCSDevice::process() has been called to 
-    // parse the incomping server update.
+    /// Call this method to change the server-side value
+    /// of the controller channel.
+    /// 
+    /// Note that the result of value() does not change
+    /// until the server-side value is successfully updated,
+    /// and MCSDevice::process() has been called to 
+    /// parse the incomping server update.
     virtual bool setServerValue(T serverValue){
         // convert mValue to MCS String format,
         // and then upload to MCS.
@@ -220,29 +280,29 @@ public:
     }
 
 protected:
-    // default implementation between String <-> Value
-    // Subclasses such as "HEX format" may need 
-    // to override this method.
+    /// default implementation between String <-> Value
+    /// Subclasses such as "HEX format" may need 
+    /// to override this method.
     virtual void _valueFromString(const String& param, T& value){
         MCSStringToValue(param, value);
     }
 
-    // default implementation between String <-> Value
-    // Subclasses such as "HEX format" may need 
-    // to override this method.
+    /// default implementation between String <-> Value
+    /// Subclasses such as "HEX format" may need 
+    /// to override this method.
     virtual String _valueToString(const T& value){
         return MCSValueToString(value);
     }
 
-    // most subclasses won't be required to change 
-    // the upload policy
+    /// most subclasses won't be required to change 
+    /// the upload policy
     virtual void _dispatch(const String& params){
         if(_update(params))
             _setUpdated();
     }
 
-    // parse the MCS string data and assign it
-    // to the mValue member.
+    /// parse the MCS string data and assign it
+    /// to the mValue member.
     bool _update(const String& params){
         T v;
         _valueFromString(params, v);
@@ -261,6 +321,8 @@ protected:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// ON/OFF controller channel. The value type is bool.
 class MCSControllerOnOff : public MCSControllerBase<bool>
 {
 public:
@@ -287,6 +349,8 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// Category controller channel. The value type is String.
 class MCSControllerCategory : public MCSControllerBase<String>
 {
 public:
@@ -313,6 +377,8 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// Integer controller channel. The value type is int.
 class MCSControllerInteger : public MCSControllerBase<int>
 {
 public:
@@ -339,6 +405,8 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// Float controller channel. The value type is float.
 class MCSControllerFloat : public MCSControllerBase<float>
 {
 public:
@@ -365,6 +433,8 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// HEX controller channel. The value type is long(integer).
 class MCSControllerHex : public MCSControllerBase<long>
 {
 public:
@@ -391,6 +461,8 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// String controller channel. The value type is String.
 class MCSControllerString : public MCSControllerBase<String>
 {
 public:
@@ -417,7 +489,11 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// Value type for MCSControllerGPS.
 struct MCSGPSValue : public Printable{
+
+    /// Default constructor of MCSGPSValue.
     MCSGPSValue():
         mLatitude(360.f),
         mLongitude(360.f),
@@ -428,12 +504,16 @@ struct MCSGPSValue : public Printable{
     bool operator!=(const MCSGPSValue& rhs)const;
     explicit operator bool()const;
     bool isValid()const;
+
+    /// Implement Printable interface to support
+    /// ~~~{.cpp}
+    /// Serial.println(MCSGPSValue());
+    /// ~~~
     virtual size_t printTo(Print& p) const;
 
-    // https://mcs.mediatek.com/resources/zh-TW/latest/api_references/
-    float mLatitude;    // ranges from -90.f ~ 90.f
-    float mLongitude;   // ranges from -180.f ~ 180.f
-    float mAltitude;
+    float mLatitude;    ///<  ranges from -90.f ~ 90.f, see https://mcs.mediatek.com/resources/zh-TW/latest/api_references/
+    float mLongitude;   ///<  ranges from -180.f ~ 180.f, see https://mcs.mediatek.com/resources/zh-TW/latest/api_references/
+    float mAltitude;    ///<  see https://mcs.mediatek.com/resources/zh-TW/latest/api_references/
 };
 
 inline String MCSValueToString(const MCSGPSValue& value)
@@ -452,18 +532,27 @@ inline void MCSStringToValue(const String& params, MCSGPSValue& value)
     value.mAltitude = params.substring(c2+1).toFloat();
 }
 
+/// GPS Controller channel. Value type is MCSGPSValue.
 class MCSControllerGPS : public MCSControllerBase<MCSGPSValue>
 {
 public:
     MCSControllerGPS(const String& channel_id):MCSControllerBase(channel_id){
     }
 
+    /// Helper method that returns mLatitude field in mValue.
     float latitude(void);
+
+    /// Helper method that returns mLongitude field in mValue.
     float longitude(void);
+
+    /// Helper method that returns mAltitude field in mValue.
     float altitude(void);
 
+    /// Helper method to get all fields from mValue, which is of type
+    /// MCSGPSValue.
     void getGPSValue(float& latitude, float& longitude, float& altitude);
     
+    /// Helper method to set server value directly without a MCSGPSValue.
     virtual bool setServerValue(float latitude, float longitude, float altitude);
 };
 
@@ -516,6 +605,8 @@ private:
 };
 
 /* ------------------------------------------------------------------------ */
+
+/// Value type for MCSControllerPWM.
 struct MCSPWMValue : public Printable{
     MCSPWMValue():
         mDutyCycle(0),
@@ -529,8 +620,8 @@ struct MCSPWMValue : public Printable{
     virtual size_t printTo(Print& p) const;
 
     // https://mcs.mediatek.com/resources/zh-TW/latest/api_references/
-    int mDutyCycle;  // the "value" in MCS API
-    int mPeriod;   // the "period" in MCS API
+    int mDutyCycle;  ///< the "value" in MCS API
+    int mPeriod;     ///< the "period" in MCS API
 };
 
 inline String MCSValueToString(const MCSPWMValue& value)
