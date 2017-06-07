@@ -190,9 +190,11 @@ struct LBLECharacteristicWrittenInfo
 	uint16_t offset;
 };
 
-// This characteristic is a 512-byte raw buffer initialized to zero
-// When isWritten() is true, you can use getLastWrittenInfo()
-// to check what part of the buffer is updated during the last write.
+/// \brief represents a typeless 512-byte raw buffer GATT attribute.
+///
+/// This characteristic is a 512-byte raw buffer initialized to zero
+/// When isWritten() is true, you can use getLastWrittenInfo()
+/// to check what part of the buffer is updated during the last write.
 class LBLECharacteristicBuffer : public LBLECharacteristicBase
 {
 public:	// method for Arduino users
@@ -242,22 +244,24 @@ private:
 	int m_data;
 };
 
-// This is a "string" attribute. A NULL terminater
-// is always automatically inserted after each write operation.
-//
-// That is, the string value is always "reset" after each write operation, 
-// instead of appending/replacing part of the existing string value.
-//
-// Example:
-//  * the central device sends "YES" (3 bytes)
-//  * the central device then sends "NO"(2 bytes)
-//  * the resulting value is "NO\0" instead of "NOS\0".
-//
-// The reason for this design is to make it more intuitive
-// to use with AppInventor's BluetoothLE.WriteStringValue block.
-//
-// If you need behavior that supports replacing part of the buffer,
-// use LBLECharacteristicBuffer instead.
+/// \brief represents a GATT characterstic that is a NULL-terminated strings.
+///
+/// This is a "string" attribute. A NULL terminater
+/// is always automatically inserted after each write operation.
+///
+/// That is, the string value is always "reset" after each write operation, 
+/// instead of appending/replacing part of the existing string value.
+///
+/// Example:
+///  * the central device sends "YES" (3 bytes)
+///  * the central device then sends "NO"(2 bytes)
+///  * the resulting value is "NO\0" instead of "NOS\0".
+///
+/// The reason for this design is to make it more intuitive
+/// to use with AppInventor's BluetoothLE.WriteStringValue block.
+///
+/// If you need behavior that supports replacing part of the buffer,
+/// use LBLECharacteristicBuffer instead.
 class LBLECharacteristicString : public LBLECharacteristicBase
 {
 public:	// method for Arduino users

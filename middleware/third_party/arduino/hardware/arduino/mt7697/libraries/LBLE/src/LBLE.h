@@ -15,13 +15,55 @@ extern "C" {
 #include "utility/ard_ble.h"
 }
 
+///	\brief Represents a 128-bit or 16-bit BT UUID.
+///
+/// This class represents BT UUIDs that are used
+/// to identifie characteristics and other BLE GATT
+/// attributes.
+/// 
+/// Many GATT Service and characteristic APIs relies on this
+/// class to identify different attributes.
+///
+/// This class supports the Printable interface and therefore
+/// can be passed to `Serial.print`, e.g.
+///
+/// ~~~{.cpp}
+/// // print out address found during LBLECentral.scan().
+/// Serial.print(LBLECentral.getAddress(i));
+/// ~~~
+///
+/// \see LBLECentral, LBLEPeripheral
+/// \see LBLECharacteristicInt, LBLECharacteristicString
 class LBLEUuid : public Printable
 {
 public: // Constructors
+
+	/// \brief Creates an empty UUID.
 	LBLEUuid();
+
+	/// \brief Creates 128-bit UUID
+	///
+	/// Creates UUID from 128-bit string representation, e.g.
+	/// ~~~{.cpp}
+	/// LBLEUuid uuid("E2C56DB5-DFFB-48D2-B060-D0F5A71096E0");
+	/// ~~~
 	LBLEUuid(const char* uuidString);
+
+	/// \brief Creates 16-bit Bluetooth assigned UUID.
+	///
+	/// Creates an assigned 16-bit BT UUID from an unsigned short.
+	/// In the example below, we create an UUID for "Device Information" service.
+	/// See https://www.bluetooth.com/specifications/gatt/services
+	/// for a list of assigned numbers for services.
+	/// ~~~{.cpp}
+	/// LBLEUuid uuid(0x180A);	// create UUID for Device Information service.
+	/// ~~~
 	LBLEUuid(uint16_t uuid16);
+	
+	/// Initialize from MTK BLE framework's bt_uuid_t struct.
 	LBLEUuid(const bt_uuid_t& uuid_data);
+	
+	/// Copy constructor
 	LBLEUuid(const LBLEUuid& rhs);
 
 public:
@@ -34,29 +76,79 @@ public:
 	bool operator<(const LBLEUuid &rhs) const;
 
 
-public:	// implementing Pritable
+public:	
+
+	/// Returns String representation format for UI.
 	String toString() const;
+
+	/// Implements Pritable interface.
 	virtual size_t printTo(Print& p) const;
 
 public:	// Helper function
+
+	/// Convert LBLEUuid object to raw 128-bit buffer
 	void toRawBuffer(uint8_t* uuidBuf, uint32_t bufLength) const;
+
+	/// \brief Check if the UUID is empty (just created).
+	///
+	/// \returns true if the UUID is empty
+	/// \returns false if the UUID is not empty
 	bool isEmpty() const;
+
+	/// \brief Check if this UUID is a 16-bit UUID.
+	///
+	/// Check if the UUID is an 16-bit UUID, which is assigned by BT SIG, or
+	/// a generic, developer-generated 128-bit UUID.
+	///
+	/// \returns true if the UUID is 16-bit assigned number.
+	///			 Note that this method does not check
+	///			 if the 16-bit is actually a BT SIG assigned
+	///			 number; it simply check if it is 16-bit long.
+	/// \returns false if the UUID is 128-bit UUID.
 	bool is16Bit() const;
+
+	/// \brief Get the unsigned short representation of a 16-bit assigned UUID. 
+	/// 
+	/// \returns unsigned short value of the 16-bit assigned UUID.
+	/// \returns 0 if the LBLEUuid is not a 16-bit UUID.
 	uint16_t getUuid16() const;
 
 public:
 	bt_uuid_t uuid_data;
 };
 
+///	\brief Represents the device address of a BLE device.
+///
+/// This class represents Bluetooth device addresses.
+/// The device address are used to identify and to
+/// connect to different BLE devices. Note that
+/// not all BLE devices can be connected.
+///
+/// This class supports the Printable interface and therefore
+/// can be passed to `Serial.print`, e.g.
+///
+/// ~~~{.cpp}
+/// // print out address found during LBLECentral.scan().
+/// Serial.print(LBLECentral.getAddress(i));
+/// ~~~
+///
+/// \see LBLEClient::connect, LBLECentralClass::getBLEAddress
 class LBLEAddress : public Printable
 {
 public: // Constructors
+
+	/// Default constructor creates an invalid address.
 	LBLEAddress();
+
+	/// Initialize from LinkIt SDK's bt_addr_t struct
 	LBLEAddress(const bt_addr_t& btAddr);
+
 	~LBLEAddress();
 
 public:	// implementing Pritable
 	String toString() const;
+
+	/// Implements Printable interface
 	virtual size_t printTo(Print& p) const;
 
 	// returns true if lhs equals rhs address.
@@ -75,15 +167,19 @@ public:
 	bt_addr_t m_addr;
 };
 
+// Interface of an event observer
 class LBLEEventObserver
 {
 public:
-	// true: LBLEEventDispatcher should unregister this event after process it
-	// false: LBLEEventDispatcher should keep this observer
+	// \returns true: LBLEEventDispatcher should unregister this event after process it
+	// \returns false: LBLEEventDispatcher should keep this observer
 	virtual bool isOnce() { return true; };
+
+	// callback function for events
 	virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void *buff) = 0;
 };
 
+// Registration table for BT events and corresponding observers.
 class LBLEEventDispatcher
 {
 public:
@@ -99,6 +195,9 @@ public:
 
 };
 
+// A helper class that taks a bt_msg_type_t event and a generic function
+// object (callback function or lambda) and registers them.
+// The function object is called when the event arrives.
 class EventBlocker : public LBLEEventObserver
 {
 public:
@@ -139,25 +238,52 @@ bool waitAndProcessEvent(std::function<void(void)> action,
                         bt_msg_type_t msg, 
                         std::function<void(bt_msg_type_t, bt_status_t, void *)> handler);
 
+/**
+	\brief LBLEClass is the class for the singleton `LBLE`.
+ 
+	Do not instantiate this class by yourself.
+	Use LBLE instead of instantiating the LBLEClass by yourself.
+	For example, call
+	~~~{.cpp}
+	#include <LBLE.h>
+
+	void setup(){
+		LBLE.begin();
+		while(!LBLE.ready()){delay(10);}
+	}
+	~~~
+ */
 class LBLEClass
 {
 private:
 
 public:
+	/** Constructors for LBLEClass. Do not instantite this class by yourself.
+	 * 
+	 * This class is intended to be used as a singleton. Use the global
+	 * `LBLE` object, instead of instantiate this class by yourself.
+ 	 */
 	LBLEClass();
 
-	/* Initializes the Bluetooth subsystem.
-	 * This should be the called first prior to using other BLE APIs.
+	/** Initializes the Bluetooth subsystem.
+	 * 
+	 * This method should be the called first prior to using other BLE APIs.
 	 * After calling begin() you need to call ready(),
 	 * and check if the subsystem is ready to use.
  	 */
 	int begin();
 
-	/* Returns 0 when BLE subsystem is not ready to use.
-	 * Returns 1 when it is ready to use.
+	/** Check if the BLE subsystem is now ready to use.
+	 *
+	 * \returns 0 when BLE subsystem is not ready to use. 
+	 * \returns 1 when BLE subsystem is ready to use.
 	 */
 	int ready();
 
+	/** Get the device address of LinkIt 7697 device.
+	 *
+	 * \returns an LBLEAddress object representing the device address.
+	 */
 	LBLEAddress getDeviceAddress();
 
 	void registerForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver);
@@ -170,6 +296,20 @@ public:
 	LBLEEventDispatcher m_dispatcher;
 };
 
+/**
+	\addgroup LBLE is the singleton instance for the BLE subsystem
+ 
+	Use LBLE instead of instantiating the LBLEClass by yourself.
+	For example, call
+	~~~{.cpp}
+	#include <LBLE.h>
+
+	void setup(){
+		LBLE.begin();
+		while(!LBLE.ready()){delay(10);}
+	}
+	~~~
+ */
 extern LBLEClass LBLE;
 
 #endif
