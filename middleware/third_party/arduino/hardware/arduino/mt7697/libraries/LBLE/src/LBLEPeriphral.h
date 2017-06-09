@@ -36,6 +36,8 @@ struct LBLEAdvDataItem
 	}
 };
 
+/// Enum for LBLEAdvertisementData::configAsEddystoneURL.
+/// 
 // refer to https://github.com/google/eddystone/tree/master/eddystone-url#url-scheme-prefix
 enum EDDYSTONE_URL_PREFIX
 {
@@ -45,7 +47,9 @@ enum EDDYSTONE_URL_PREFIX
 	EDDY_HTTPS = 3			// "https://"
 };
 
-// refer to https://github.com/google/eddystone/tree/master/eddystone-url#eddystone-url-http-url-encoding
+/// Enum for LBLEAdvertisementData::configAsEddystoneURL.
+/// 
+/// refer to https://github.com/google/eddystone/tree/master/eddystone-url#eddystone-url-http-url-encoding
 enum EDDYSTONE_URL_ENCODING
 {
 	EDDY_URL_NONE = 0xFFFFFFFF,	// No suffix to append
@@ -65,6 +69,24 @@ enum EDDYSTONE_URL_ENCODING
 	EDDY_DOT_GOV = 13			// ".gov"
 };
 
+/// This helper class helps to configure and parse BLE GAP advertisement packets.
+/// 
+/// BLE peripherals advertises information about their capabilities and other information
+/// in advertisement packets. The packet is of finite length, but the format is very flexible.
+/// 
+/// This class helps you to create several common advertisement formats, e.g. ibeacon:
+/// ~~~{.cpp}
+/// LBLEAdvertisementData beaconData;
+/// // This is a common AirLocate example UUID.
+/// LBLEUuid uuid("E2C56DB5-DFFB-48D2-B060-D0F5A71096E0");
+/// beaconData.configAsIBeacon(uuid, 01, 02, -40);
+/// ~~~
+///
+/// You can then simply call `LBLEPeripheral.advertise` to start advertise:
+/// ~~~{.cpp}
+/// // start advertising
+/// LBLEPeripheral.advertise(beaconData);
+/// ~~~
 class LBLEAdvertisementData
 {
 public:
@@ -74,63 +96,74 @@ public:
 	LBLEAdvertisementData(const LBLEAdvertisementData& rhs);
 	~LBLEAdvertisementData();
 
-	// Create an iBeacon advertisement.
-	//
-	// This methods RESETS all the advertisement data fields
-	// and replace them with iBeacon format (flag + manufacturer data)
-	//
-	// if you don't know which UUID to use, 
-	// use LBLEUuid("74278BDA-B644-4520-8F0C-720EAF059935"),
-	// since this is the UUID used by iOS AirLocate example.
-	// (https://developer.apple.com/library/content/samplecode/AirLocate/Introduction/Intro.html)
-	//
-	// major, minor, and txPower are all user defined values.
+	/// Create an iBeacon advertisement.
+	///
+	/// This methods RESETS all the advertisement data fields
+	/// and replace them with iBeacon format (flag + manufacturer data)
+	///
+	/// if you don't know which UUID to use, 
+	/// use LBLEUuid("74278BDA-B644-4520-8F0C-720EAF059935"),
+	/// since this is the UUID used by iOS AirLocate example.
+	/// (https://developer.apple.com/library/content/samplecode/AirLocate/Introduction/Intro.html)
+	///
+	/// major, minor, and txPower are all user defined values.
 	void configAsIBeacon(const LBLEUuid& uuid, 		
 							  uint16_t major, 
 							  uint16_t minor, 
 							  int8_t txPower);
 
-	// Configure an Eddystone URL
-	// Note that total length must not exceed 17 bytes.
-	// 
-	// You can use prefix, suffix, and tail parameters to compress common URL parts to a single byte.
-	// e.g. "https://www.mediatek.com" 
-	//			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "mediatek", EDDY_DOT_COM)
-	// e.g. "https://www.asp.net/learn"
-	//			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "asp", EDDY_DOT_NET_SLASH, "learn")
-	//
-	// Please refer to https://github.com/google/eddystone/tree/master/eddystone-url#url-scheme-prefix
-	// to know how the prefix/suffix/tails are expanded.
+	/// Configure an Eddystone URL
+	/// Note that total length must not exceed 17 bytes.
+	/// 
+	/// You can use prefix, suffix, and tail parameters to compress common URL parts to a single byte.
+	/// e.g. "https://www.mediatek.com" 
+	///			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "mediatek", EDDY_DOT_COM)
+	/// e.g. "https://www.asp.net/learn"
+	///			=>  configAsEddystoneURL(EDDY_HTTPS_WWW, "asp", EDDY_DOT_NET_SLASH, "learn")
+	///
+	/// Please refer to https://github.com/google/eddystone/tree/master/eddystone-url#url-scheme-prefix
+	/// to know how the prefix/suffix/tails are expanded.
     void configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
 							  const String& url,
 							  EDDYSTONE_URL_ENCODING suffix = EDDY_URL_NONE,
 							  const String& tail = String());
 
-	// Create an advertisement that allows smartphones to connect
-	// to this device.
-	//
-	// This methods RESETS all the advertisement data fields
-	//
-	// deviceName must be shorter than 27 bytes.
-	//
-	// You need to define corresponding GATT services
-	// before start advertising your device.
+	/// Create an advertisement that allows BLE centrals, e.g. smartphones, to connect to this device.
+	///
+	/// This methods RESETS all the advertisement data fields
+	///
+	/// Note that you need to define corresponding GATT services with LBLEPeripheral
+	/// before start advertising your device.
+	///
+	/// \param deviceName must be shorter than 27 bytes.
 	void configAsConnectableDevice(const char* deviceName);
+
+	/// Create an advertisement with service UUID that allows BLE centrals, e.g. smartphones, to connect to this device.
+	///
+	/// This methods RESETS all the advertisement data fields
+	/// Note that you need to define corresponding GATT services with LBLEPeripheral
+	/// before start advertising your device.
+	///
+	/// \param deviceName must be shorter than 27 bytes.
+	/// \param uuid service UUID to be included in advertisement
 	void configAsConnectableDevice(const char* deviceName, const LBLEUuid& uuid);
 
-	// Append a AD type flag data
+	/// Append a AD type flag data
+	///
+	/// AD flags are advertisement flags such as BT_GAP_LE_AD_FLAG_GENERAL_DISCOVERABLE.
+	/// You can find valid values in Bluetooth specification.
 	void addFlag(uint8_t flag = DEFAULT_AD_FLAG);
 
-	// Append a Device Name (Complete) flag data
+	/// Helper method that append a Device Name (Complete) data
 	void addName(const char* deviceName);
 
-	// Add a generic AD data
-	//
-	// Note that item.adDataLen is the length of the "adData" item,
-	// not the length of the entire AD data length in the final payload.
+	/// Add a generic AD data
+	///
+	/// Note that item.adDataLen is the length of the "adData" item,
+	/// not the length of the entire AD data length in the final payload.
 	void addAdvertisementData(const LBLEAdvDataItem &item);
 
-	// Convert to a raw advertisement data payload.
+	/// Convert advertisement data into to a continuous raw advertisement data payload.
 	uint32_t getPayload(uint8_t* buf, uint32_t bufLength) const;
 
 private:
@@ -201,14 +234,31 @@ public:	// method for Arduino users
 
 	LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permission);
 
-	// Set value - size must not exceed MAX_ATTRIBUTE_DATA_LEN.
+	/// Set value with raw buffer
+	///
+	/// \param buffer pointer to raw buffer of value. 
+	///               The input buffer is copied to the internal 
+	///				  buffer of the LBLECharacteristicBuffer object.
+	/// \param size must not exceed MAX_ATTRIBUTE_DATA_LEN.
 	void setValueBuffer(const uint8_t* buffer, size_t size);
 
-	// Get value buffer content. (size + offset) must not exceed MAX_ATTRIBUTE_DATA_LEN.
-	// Note that isWritten() flag turns off after calling getValue().
+	/// Get value buffer content. 
+	/// 
+	/// Retrieve buffer content of this LBLECharacteristicBuffer object.
+	/// Note that (size + offset) must not exceed MAX_ATTRIBUTE_DATA_LEN;
+	/// Note that isWritten() returns `false` after calling getValue().
+	///
+	/// \param buffer pointer to the output buffer to be written
+	/// \param size available size of the buffer to write to
+	/// \param offset initial offset to the internal buffer of LBLECharacteristicBuffer.
+	///		   for example, if the internal buffer is {0, 1, 2, 3},
+	///		   ~~~{.cpp}
+	///		   getValue(buf, 4, 2); // offset 2 bytes
+	///		   ~~~
+	///		   will write `buf` with content {2, 3}.
 	void getValue(uint8_t* buffer, uint16_t size, uint16_t offset);
 
-	// Check what part of the buffer is updated during last write operation
+	/// Check what part of the buffer is updated during last write operation
 	const LBLECharacteristicWrittenInfo& getLastWrittenInfo() const;
 
 public:	// for BLE framework
@@ -221,18 +271,25 @@ private:
 	LBLECharacteristicWrittenInfo m_writtenInfo;
 };
 
-// This characterstic is a peristent 4-byte integer initialized to zero.
-// The size is always 4 bytes.
+/// This characterstic is a peristent 4-byte integer initialized to zero.
+/// The size is always 4 bytes.
 class LBLECharacteristicInt : public LBLECharacteristicBase
 {
 public:	// method for Arduino users
 
+	/// Create characteristic
+	///
+	/// In most cases the characteristic should be created in global scope,
+	/// to ensure it is alive after LBLEPeripheral.begin().
+	///
+	/// \param uuid UUID for this characteristic
+	/// \param permission read/write permission. (currently ignored).
 	LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission);
 
-	// Set value
+	/// Set value of the characteristic.
 	void setValue(int value);
 
-	// Retrieve value, note that isWritten() flag turns off after calling getValue()
+	/// Retrieve value, note that isWritten() flag turns off after calling getValue()
 	int getValue();
 
 public:	// for BLE framework
@@ -266,12 +323,19 @@ class LBLECharacteristicString : public LBLECharacteristicBase
 {
 public:	// method for Arduino users
 
+	/// Create characteristic
+	///
+	/// In most cases the characteristic should be created in global scope,
+	/// to ensure it is alive after LBLEPeripheral.begin().
+	///
+	/// \param uuid UUID for this characteristic
+	/// \param permission read/write permission. (currently ignored).
 	LBLECharacteristicString(LBLEUuid uuid, uint32_t permission);
 
-	// Set value
+	/// Set value of the characteristic.
 	void setValue(const String& value);
 
-	// Retrieve value, note that isWritten() flag turns off after calling getValue()
+	/// Retrieve value, note that isWritten() flag turns off after calling getValue()
 	String getValue();
 
 public:	// for BLE framework
@@ -283,6 +347,21 @@ private:
 	String m_data;
 };
 
+/// Represents a BLE service.
+///
+/// This class represents a BLE service in a peripheral device.
+///
+/// This object must be alive across entire BLE framework life cycle.
+/// Therefore, you need to allocate it in global scope, and 
+/// then add characteristics by calling addAttribute().
+///
+/// ~~~{.cpp}
+/// LBLEService myService("UUID_XYZ");
+/// LBLECharacteristicString myCharacteristic("UUID_YZWV");
+/// void setup(){
+/// 	myService.addAttribute(myCharacteristic);
+/// }
+/// ~~~
 class LBLEService
 {
 public:
@@ -306,46 +385,54 @@ private:
 	std::vector<LBLEAttributeInterface*> m_attributes; // pointers to attribute objects
 };
 
-// Singleton class representing the local BLE periphral device
+/// Singleton class representing the local BLE periphral device
 class LBLEPeripheralClass : public LBLEEventObserver
 {
 public:
+	/// Do not instantiate by yourself. Use singleton object `LBLEPeripheral` instead.
 	LBLEPeripheralClass();
+
 	~LBLEPeripheralClass();
 
-	// start advertisement as a connectable device
+	/// start advertisement as a connectable device
+	///
+	/// \param advertisementData The advertisement data to be advertised.
 	void advertise(const LBLEAdvertisementData& advertisementData);
 
-	// start advertisement as an non-connectable device (such as an iBeacon)
-	//
-	// @param advertisementData The advertisement packet to broadcast.
-	// @param intervalMS The advertisement interval, in milliseconds.
-	// @param txPower This controls the actual advertisement power in dbm. 
-	//        Note: current version does not support adjusting txPower.
+	/// start advertisement as an non-connectable device (such as an iBeacon)
+	///
+	/// \param advertisementData The advertisement packet to broadcast.
+	/// \param intervalMS The advertisement interval, in milliseconds.
+	/// \param txPower This controls the actual advertisement power in dbm. 
+	///        Note: current version does not support adjusting txPower.
 	void advertiseAsBeacon(const LBLEAdvertisementData& advertisementData,
 						   uint32_t intervalMS = 700,
 						   uint8_t txPower = -30);
 	
-	// start advertisement based on previous input of advertise
+	/// start advertisement based on previous input of advertise
 	void advertiseAgain();
 
-	// stop advertisement and clears advertisement data
-	// advertiseAgain() fails after stopAdvertise();
+	/// stop advertisement and clears advertisement data
+	/// advertiseAgain() fails after stopAdvertise();
 	void stopAdvertise();
 
-	// Generic Access Profile (GAP) configuration
+	/// Generic Access Profile (GAP) configuration
 	void setName(const char* name);
 
-	// After setup services and characteristics
-	// you have to call begin make enable the GATT server
+	/// After setup services and characteristics
+	/// you have to call begin make enable the GATT server
 	void begin();
 
-	// returns true if there is a central device connecting to this peripheral.
+	/// returns true if there is a central device connecting to this peripheral.
 	bool connected();
 
-	// configuring GATT Services. You must configure services
-	// before advertising the device. The services cannot change
-	// after being connected.
+	/// configuring GATT Services. You must configure services
+	/// before advertising the device. The services cannot change
+	/// after being connected.
+	///
+	/// \param service The service to be added into this peripheral. The service
+	///				   object is referenced instead of copied, so tt must be valid and alive
+	///				   all the time.
 	void addService(const LBLEService& service);
 
 	const bt_gatts_service_t** getServiceTable();
