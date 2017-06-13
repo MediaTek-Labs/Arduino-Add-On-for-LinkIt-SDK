@@ -201,6 +201,8 @@ int WiFiUDP::parsePacket()
 	if(ret <= 0)
 	{
 		pr_debug("lwip_recvfrom failed with %d", ret);
+		// since we got nothing, we need to shrink the buffer back.
+		m_recvBuffer.clear();
 		return 0;
 	}
 
