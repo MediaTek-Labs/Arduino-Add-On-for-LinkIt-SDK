@@ -28,8 +28,8 @@
 #include "hal_gpio.h"
 #include "hal_pwm.h"
 
-#define SERVO_MIN() (MIN_PULSE_WIDTH - this->min * 4)  // minimum value in uS for this servo
-#define SERVO_MAX() (MAX_PULSE_WIDTH - this->max * 4)  // maximum value in uS for this servo
+#define SERVO_MIN() (this->min)  // minimum value in uS for this servo
+#define SERVO_MAX() (this->max)  // maximum value in uS for this servo
 
 #define US_TO_TICK(us)    ((us)*PWM_SOURCE_CLOCK_VALUE/(1000*1000))
 #define TICK_TO_US(t)     ((t)*(1000*1000)/PWM_SOURCE_CLOCK_VALUE)
@@ -55,8 +55,8 @@ uint8_t Servo::attach(int pin, int min, int max)
 
   pinDesc = pin_desc;
 
-  min  = (MIN_PULSE_WIDTH - min)/4; //resolution of min/max is 4 uS
-  max  = (MAX_PULSE_WIDTH - max)/4;
+  this->min  = min/4*4; // resolution of min/max is 4 uS
+  this->max  = max/4*4;
 
   hal_gpio_init(pin_desc->pin_no);
   hal_pinmux_set_function(pin_desc->pin_no, pin_desc->pin_mux_aon_sel_pwm);
@@ -77,12 +77,9 @@ void Servo::detach()
 
 void Servo::write(int value)
 {
-  if(value < MIN_PULSE_WIDTH)
-  {  // treat values less than 544 as angles in degrees (valid values in microseconds are handled as microseconds)
-    if(value < 0) value = 0;
-    if(value > 180) value = 180;
-    value = map(value, 0, 180, SERVO_MIN(),  SERVO_MAX());
-  }
+  if(value < 0) value = 0;
+  if(value > 180) value = 180;
+  value = map(value, 0, 180, SERVO_MIN(),  SERVO_MAX());
   this->writeMicroseconds(value);
 }
 
