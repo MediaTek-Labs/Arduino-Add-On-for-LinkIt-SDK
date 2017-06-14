@@ -144,13 +144,16 @@ include $(SOURCE_DIR)/middleware/third_party/ping/module.mk
 include $(SOURCE_DIR)/middleware/MTK/iperf/module.mk
 
 #include dhcpd
-include $(SOURCE_DIR)/middleware/third_party/dhcpd/module.mk
+include $(SOURCE_DIR)/middleware/MTK/dhcpd/module.mk
 
 # wifi src
-include $(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/module.mk
+# SDK 4.2 include $(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/module.mk
+# SDK 4.3 use these two:
+include $(SOURCE_DIR)/middleware/MTK/connsys/module.mk
+include $(SOURCE_DIR)/middleware/MTK/wifi_service/combo/module.mk
 
 # Minisupp Config
-include $(SOURCE_DIR)/middleware/MTK/minisupp/module.mk
+include $(SOURCE_DIR)/prebuilt/middleware/MTK/minisupp/module.mk
 
 # Arduino middleware
 include $(SOURCE_DIR)/middleware/third_party/arduino/module.mk
@@ -239,9 +242,10 @@ include $(SOURCE_DIR)/middleware/MTK/nvdm/module.mk
 # Bluetooth files
 include $(SOURCE_DIR)/middleware/MTK/bluetooth/module.mk
 
-
 CFLAGS += -I$(SOURCE_DIR)/middleware/MTK/bluetooth/inc
 CXXFLAGS += -I$(SOURCE_DIR)/middleware/MTK/bluetooth/inc
+
+
 
 LIBS += $(OUTPATH)/libarduino.o
 

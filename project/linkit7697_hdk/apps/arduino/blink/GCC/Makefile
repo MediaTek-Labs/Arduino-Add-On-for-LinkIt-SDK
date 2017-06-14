@@ -77,8 +77,16 @@ include $(SOURCE_DIR)/.config
 include $(SOURCE_DIR)/config/chip/$(IC_CONFIG)/chip.mk
 # Board Config
 include $(SOURCE_DIR)/config/board/$(BOARD_CONFIG)/board.mk
+
+# wifi src
+# SDK 4.2 include $(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/module.mk
+# SDK 4.3 use these two:
+include $(SOURCE_DIR)/middleware/MTK/connsys/module.mk
+include $(SOURCE_DIR)/middleware/MTK/wifi_service/combo/module.mk
+
 # HAL driver files
 include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
+
 
 # EPT Config
 #-include $(SOURCE_DIR)/driver/board/mt76x7_hdk/ept/module.mk
@@ -141,10 +149,7 @@ APP_PATH_SRC    = $(APP_PATH)/src
 #include $(SOURCE_DIR)/middleware/MTK/iperf/module.mk
 
 #include dhcpd
-#include $(SOURCE_DIR)/middleware/third_party/dhcpd/module.mk
-
-# wifi src
-include $(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/module.mk
+#include $(SOURCE_DIR)/middleware/MTK/dhcpd/module.mk
 
 # Arduino middleware
 include $(SOURCE_DIR)/middleware/third_party/arduino/module.mk
@@ -229,6 +234,9 @@ include $(SOURCE_DIR)/middleware/MTK/minicli/module.mk
 include $(SOURCE_DIR)/middleware/MTK/nvdm/module.mk
 include $(SOURCE_DIR)/kernel/rtos/FreeRTOS/module.mk
 include $(SOURCE_DIR)/kernel/service/module.mk
+
+# Bluetooth files
+include $(SOURCE_DIR)/middleware/MTK/bluetooth/module.mk
 
 LIBS += $(OUTPATH)/libarduino.o
 
