@@ -57,10 +57,18 @@ include $(SOURCE_DIR)/.config
 include $(SOURCE_DIR)/config/chip/$(IC_CONFIG)/chip.mk
 # Board Config
 include $(SOURCE_DIR)/config/board/$(BOARD_CONFIG)/board.mk
+
+# Connsys files
+include $(SOURCE_DIR)/middleware/MTK/connsys/module.mk
+
 # HAL driver files
 include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
+
 # Bluetooth files
 include $(SOURCE_DIR)/middleware/MTK/bluetooth/module.mk
+
+# WiFi files
+include $(SOURCE_DIR)/middleware/MTK/wifi_service/combo/module.mk
 
 CXXFLAGS += -fno-rtti
 
@@ -118,7 +126,7 @@ all: $(TARGET_LIB).o
 $(TARGET_LIB).o: $(CXX_OBJS) $(C_OBJS) $(S_OBJS)
 	@echo Gen $(TARGET_LIB).o
 	@echo Gen $(TARGET_LIB).o >>$(BUILD_LOG)
-	@$(LD) -r -o $(OUTPATH)/$@ $^ >>$(BUILD_LOG) 2>/dev/null; \
+	@$(BINPATH)/arm-none-eabi-ld -r -o $(OUTPATH)/$@ $^ >>$(BUILD_LOG) 2>/dev/null; \
 	 if [ "$$?" != "0" ]; then \
 		echo "MODULE BUILD $@ FAIL" >> $(BUILD_LOG); \
 	 else \
