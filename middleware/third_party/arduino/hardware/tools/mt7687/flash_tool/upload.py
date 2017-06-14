@@ -125,7 +125,7 @@ while 1:
         pass
     if retry>3:
         print "Exiting"
-        exit()
+        sys.exit(-1)
         pass
 
 statinfo = os.stat(da_path)
