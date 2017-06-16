@@ -5,7 +5,7 @@ before_install:
 install:
 - tar --keep-old-files -zxf LinkIt_SDK_V4.3.1_travis.tar.gz -C .
 script:
-- cd project/linkit_7697/apps/arduino/arduino_lib/GCC/
+- cd project/linkit7697_hdk/apps/arduino/arduino_lib/GCC/
 - echo -en 'travis_fold:start:arduino_lib\\r'
 - make
 - cat Build/err.log
