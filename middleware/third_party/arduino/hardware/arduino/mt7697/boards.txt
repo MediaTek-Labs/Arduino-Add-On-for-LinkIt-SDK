@@ -27,9 +27,8 @@ linkit_7697.build.lib_linkit=liblinkit.a
 linkit_7697.build.lib_hal_core_CM4_GCC=libhal_core_CM4_GCC.a
 linkit_7697.build.lib_nvdm_CM4_GCC=libnvdm_CM4_GCC.a
 linkit_7697.build.lib_hal_protected_CM4_GCC=libhal_protected_CM4_GCC.a
-linkit_7697.build.lib_minicli_CM4_GCC=libminicli_CM4_GCC.a
+linkit_7697.build.lib_minicli_CM4_GCC=libminicli.a
 linkit_7697.build.lib_wifi=libwifi.a
-linkit_7697.build.lib_kservice_CM4_MT7697_GCC=libkservice_CM4_MT7697_GCC.a
 linkit_7697.build.lib_minisupp_wps=libminisupp_wps.a
 linkit_7697.build.lib_ble=libble.a
 linkit_7697.build.lib_ble_multi_adv=libble_multi_adv.a
@@ -47,9 +46,13 @@ linkit_7697.build.lwip_ports_inc=middleware/third_party/lwip/ports/include/
 linkit_7697.build.httpclient_inc=middleware/third_party/httpclient/src/inc/
 linkit_7697.build.mbedtls_inc=middleware/third_party/mbedtls/include
 linkit_7697.build.mbedtls_configs_inc=middleware/third_party/mbedtls/configs
-linkit_7697.build.wifi_inc=driver/board/mt76x7_hdk/wifi/inc/
+linkit_7697.build.connsys_inc=middleware/MTK/connsys/inc/
+linkit_7697.build.wifi_inc=middleware/MTK/wifi_service/combo/inc/
 linkit_7697.build.ble_inc=middleware/MTK/bluetooth/inc/
 linkit_7697.build.nvdm_inc=middleware/MTK/nvdm/inc/
+
+# New in SDK v4.3: prebuilt headers are separated
+linkit_7697.build.prebuilt_ble_inc=prebuilt/middleware/MTK/bluetooth/inc/
 
 linkit_7697.build.bootloader=mt7687_bootloader.bin
 linkit_7697.build.wifi_binary=WIFI_RAM_CODE_MT76X7_in_flash.bin

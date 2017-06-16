@@ -36,9 +36,12 @@ sub build_system_src
 		"middleware/third_party/mbedtls/include",
 		"middleware/third_party/mbedtls/configs",
 		"middleware/third_party/httpclient/inc",
-		"driver/board/mt76x7_hdk/wifi/inc/",
+		"middleware/MTK/wifi_service/combo/inc",
 		"middleware/MTK/bluetooth/inc/",
 		"middleware/MTK/nvdm/inc/",
+		"middleware/MTK/connsys/inc/",
+		"prebuilt/middleware/MTK/nvdm/inc/",
+		"prebuilt/middleware/MTK/bluetooth/inc/",
 		);
     
 	my @remove_list=("driver/chip/mt7687/inc/wifi.h");
@@ -78,7 +81,7 @@ sub build_system_libs
 
 	system("mkdir -p $outpath");
 
-	my $arduino_lib_prj="project/linkit_7697/apps/arduino/arduino_lib/GCC/";
+	my $arduino_lib_prj="project/linkit7697_hdk/apps/arduino/arduino_lib/GCC/";
 
 	system("cd $arduino_lib_prj; make; cd -");
 
@@ -91,17 +94,15 @@ sub build_system_libs
 
 	# copy system libraries
 	my @libs_list=(
-		"driver/chip/mt7687/lib/libhal_core_CM4_GCC.a",
-		"driver/chip/mt7687/lib/libhal_protected_CM4_GCC.a",
-		"driver/board/mt76x7_hdk/lib/libwifi.a",
-		"kernel/service/lib/libkservice_CM4_MT7697_GCC.a",
-
-		"middleware/MTK/minisupp/lib/libminisupp_wps.a",
-		"middleware/MTK/minicli/lib/libminicli_CM4_GCC.a",
-		"middleware/MTK/nvdm/lib/libnvdm_CM4_GCC.a",
-		"middleware/MTK/bluetooth/lib/libble.a",
-		"middleware/MTK/bluetooth/lib/libble_multi_adv.a",
-		"middleware/MTK/bluetooth/lib/libbtdriver_7697.a",
+		"prebuilt/driver/chip/mt7687/lib/libhal_core_CM4_GCC.a",
+		"prebuilt/driver/chip/mt7687/lib/libhal_protected_CM4_GCC.a",
+		"prebuilt/middleware/MTK/wifi_service/combo/lib/wifi_supp/libwifi.a",
+		"prebuilt/middleware/MTK/minisupp/lib/libminisupp_wps.a",
+		"prebuilt/middleware/MTK/minicli/lib/libminicli.a",
+		"prebuilt/middleware/MTK/nvdm/lib/libnvdm_CM4_GCC.a",
+		"prebuilt/middleware/MTK/bluetooth/lib/libble.a",
+		"prebuilt/middleware/MTK/bluetooth/lib/libble_multi_adv.a",
+		"prebuilt/middleware/MTK/bluetooth/lib/libbtdriver_7697.a",
 	);
 
 	foreach $item (@libs_list) {
@@ -115,7 +116,7 @@ sub build_system_fw
 {
 	(my $outpath)=@_;
 
-	my $bootloader_bin="project/linkit_7697/apps/bootloader/GCC/bootloader.bin";
+	my $bootloader_bin="project/linkit7697_hdk/apps/bootloader/GCC/bootloader.bin";
 	my $wifi_fw_bin="driver/chip/mt7687/wifi_n9/WIFI_RAM_CODE_MT76X7_in_flash.bin";
 		
 	$outpath = "$outpath/mt7697/system/linkit_7697/firmwares";
