@@ -55,6 +55,8 @@ public:
     /// \param[in] dataMode Selects the SPI bus data mode. One of RHGenericSPI::DataMode
     RHSoftwareSPI(RHSPIFrequency frequency = Frequency1MHz, RHSPIBitOrder bitOrder = BitOrderMSBFirst, RHSPIDataMode dataMode = DataMode0);
 
+    virtual ~RHSoftwareSPI();
+
     /// Transfer a single octet to and from the SPI interface
     /// \param[in] data The octet to send
     /// \return The octet read from SPI while the data octet was sent.
