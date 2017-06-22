@@ -12,6 +12,11 @@ RHSoftwareSPI::RHSoftwareSPI(RHSPIFrequency frequency, RHSPIBitOrder bitOrder, R
     setPins(RH_MISO_PIN, RH_MOSI_PIN, RH_CLK_PIN);
 }
 
+RHSoftwareSPI::~RHSoftwareSPI()
+{
+
+}
+
 // Caution: on Arduino Uno and many other CPUs, digitalWrite is quite slow, taking about 4us
 // digitalWrite is also slow, taking about 3.5us
 // resulting in very slow SPI bus speeds using this technique, up to about 120us per octet of transfer

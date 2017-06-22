@@ -20,8 +20,9 @@ void foundHostByName(const char *name, ip_addr_t *ipaddr, void *callback_arg)
 	if (_hostIpAddr.addr != 0xffffffffUL) {
 		pr_debug("foundHostByName: Found Host: name=%s ip=0x%x <%s>\r\n", name, _hostIpAddr.addr, inet_ntoa(_hostIpAddr.addr));
 		hostIpAddrFound = 1;
-	} else
-		pr_debug("foundHostByName error, failed get server-ip\r\n");
+	} else{
+		pr_debug("foundHostByName error, failed get server-ip\r\n");		
+	}
 }
 
 int req_reply_host_by_name(const char *buf, size_t len)
@@ -654,15 +655,18 @@ int8_t start_scan_net(void)
 	for (i = 0; i < WL_NETWORKS_LIST_MAXNUM; i++) {
 		memset(&(_ap_list[i]), 0, sizeof(wifi_scan_list_item_t));
 	}
-	if(wifi_connection_scan_init(_ap_list, WL_NETWORKS_LIST_MAXNUM) < 0)
+	if(wifi_connection_scan_init(_ap_list, WL_NETWORKS_LIST_MAXNUM) < 0){
 		pr_debug("wifi_connection_scan_init failed\r\n");
+	}
 
 	if((status = wifi_connection_register_event_notifier(WIFI_EVENT_IOT_SCAN_COMPLETE,
-					get_scan_list)) < 0)
-		pr_debug("register failed\r\n");
+					get_scan_list)) < 0){
+						pr_debug("register failed\r\n");
+					}
 
-	if((status = wifi_connection_start_scan(NULL, 0, NULL, 0, 0)) < 0)
+	if((status = wifi_connection_start_scan(NULL, 0, NULL, 0, 0)) < 0) {
 		pr_debug("start scan failed\r\n");
+	}
 
 
 	//MsgQueue = xQueueCreate(5, sizeof(uint8_t));
