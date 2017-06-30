@@ -10,7 +10,7 @@ The source code is an add-on to LinkIt SDK v4.x. To build the board support pack
  * You must build this package on a Linux machine with `make` and `perl` installed.
 
 ## Building the Board Supporting Package
- * Copy-n-replace LinkIt SDK v4 public version into the source repo. We want to keep existing files, since this is an add-on package. We assume the SDK is unpacked in `Arduino-Add-On-for-LinkIt-SDK`.
+ * Copy LinkIt SDK v4 public version into the source repo. We want to keep existing files, since this is an add-on package. We assume the SDK is unpacked in `Arduino-Add-On-for-LinkIt-SDK`.
     ```bash
     git clone --depth 1 https://github.com/MediaTek-Labs/Arduino-Add-On-for-LinkIt-SDK.git
     tar --keep-old-files -zxf LinkIt_SDK_V4.3.1.tar.gz -C Arduino-Add-On-for-LinkIt-SDK
