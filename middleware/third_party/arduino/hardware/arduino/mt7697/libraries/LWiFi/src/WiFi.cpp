@@ -17,12 +17,22 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include <Arduino.h>
 #include "LWiFi.h"
 #include "utility/wifi_drv.h"
 
 extern "C" {
+#include "log_dump.h"
 #include "delay.h"
+#include "wifi_api.h"
+#include "lwip/dhcp.h"
+#include "lwip/inet.h"
+#include "lwip/dns.h"
+#include "ethernetif.h"
 }
+
+extern bool wifi_ready(void);
+extern void set_wifi_ready(void);
 
 WiFiClass::WiFiClass()
 {
@@ -230,4 +240,55 @@ int WiFiClass::hostByName(const char* aHostname, IPAddress& aResult)
 	return WiFiDrv::getHostByName(aHostname, aResult);
 }
 
+static int32_t _wifi_ready_handler(wifi_event_t event,
+		uint8_t *payload,
+		uint32_t length)
+{
+	if (event == WIFI_EVENT_IOT_INIT_COMPLETE) {
+		set_wifi_ready();
+		pr_debug(" wifi_ready_handler from AP mode exec\r\n");
+	}
+
+	return 0;
+}
+
+int WiFiClass::softAP(const char* ssid)
+{
+	if(!wifi_ready())
+	{
+		pr_debug("wifi_init in SOFT_AP mode")
+		wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_ready_handler);
+
+		wifi_config_t config = {0};
+		config.opmode = WIFI_MODE_AP_ONLY;
+		strncpy((char *)config.ap_config.ssid, ssid, WIFI_MAX_LENGTH_OF_SSID);
+		config.ap_config.ssid_length = strlen((char *)config.ap_config.ssid);
+		config.ap_config.auth_mode = WIFI_AUTH_MODE_OPEN;
+		config.ap_config.encrypt_type = WIFI_ENCRYPT_TYPE_WEP_DISABLED;
+		config.ap_config.channel = 6;
+
+		wifi_init(&config, NULL);
+
+		lwip_tcpip_init(NULL, config.opmode);
+
+		while (!wifi_ready())
+		{
+			delay(100);
+		}
+		pr_debug("start_scan_net wifi_init completion\r\n");
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+int WiFiClass::softAP_maxClient()
+{
+	uint8_t number = 0;
+	const uint8_t status = wifi_connection_get_max_sta_number(&number);
+	return number;
+}
+	
 WiFiClass WiFi;

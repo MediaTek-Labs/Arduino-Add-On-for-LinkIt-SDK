@@ -230,6 +230,17 @@ class WiFiClass
 		 */
 		int hostByName(const char* aHostname, IPAddress& aResult);
 
+		/*
+		 * Start an SoftAP with given SSID and Password. WPA-PSK encryption are used.
+		 */
+		// int softAP(const char* ssid, const char* password);
+
+		int softAP(const char* ssid);
+
+		int softAP_maxClient();
+
+		int softAP_disconnect(const char* ssid, const char* password);
+
 		friend class WiFiClient;
 		friend class WiFiServer;
 };
