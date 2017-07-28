@@ -392,7 +392,7 @@ public:
 	/// Do not instantiate by yourself. Use singleton object `LBLEPeripheral` instead.
 	LBLEPeripheralClass();
 
-	~LBLEPeripheralClass();
+	virtual ~LBLEPeripheralClass();
 
 	/// start advertisement as a connectable device
 	///

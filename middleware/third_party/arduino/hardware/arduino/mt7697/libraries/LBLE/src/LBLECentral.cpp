@@ -212,16 +212,35 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
 //////////////////////////////////////////////////////////////////////////////////
 // LBLECentralClass
 //////////////////////////////////////////////////////////////////////////////////
-LBLECentralClass::LBLECentralClass()
+LBLECentralClass::LBLECentralClass():
+    m_registered(false)
 {
+    // we delay the actual initialization to init(),
+    // since this class is likely to
+    // be instantiated as a static global object,
+    // and we want to make sure the initialization
+    // happens AFTER Wi-Fi initialization.
+}
 
+void LBLECentralClass::init()
+{
+    m_peripherals_found.reserve(MAX_DEVICE_LIST_SIZE);
+    if(!m_registered)
+    {
+        // after scanning we'll receiving BT_GAP_LE_ADVERTISING_REPORT_IND multiple times.
+        // so register and process it.
+        LBLE.registerForEvent(BT_GAP_LE_ADVERTISING_REPORT_IND, this);
+
+        // make sure we only register once
+        m_registered = true;
+    }
 }
 
 void LBLECentralClass::scan()
 {
     bt_hci_cmd_le_set_scan_enable_t enbleSetting;
     enbleSetting.le_scan_enable = BT_HCI_ENABLE;
-    enbleSetting.filter_duplicates = BT_HCI_DISABLE;		// Disable driver-level filter for duplicated adv.
+    enbleSetting.filter_duplicates = BT_HCI_ENABLE;		// Disable driver-level filter for duplicated adv.
                                                             // We'll filter in our onEvent() handler.
     bt_hci_cmd_le_set_scan_parameters_t scan_para;
     scan_para.own_address_type = BT_HCI_SCAN_ADDR_RANDOM;
@@ -232,14 +251,29 @@ void LBLECentralClass::scan()
     scan_para.le_scan_interval = 0x0024;	// Interval between scans
     scan_para.le_scan_window = 0x0011;		// How long a scan keeps
 
-    // after scanning we'll receiving BT_GAP_LE_ADVERTISING_REPORT_IND
-    // so register and process it.
-    LBLE.registerForEvent(BT_GAP_LE_ADVERTISING_REPORT_IND, this);
+    init();
 
-    // set_scan is actually asynchronous - but since
-    // we don't have anything to check, we keep going
-    // without waiting for BT_GAP_LE_SET_SCAN_CNF.
+    // set_scan is actually asynchronous - to ensure
+    // proper calling sequence between scan() and stopScan(),
+    // we wait for BT_GAP_LE_SET_SCAN_CNF.
+    bool done = waitAndProcessEvent(
+                            [&]()
+                            { 
     bt_gap_le_set_scan(&enbleSetting, &scan_para);
+                            },
+
+                            BT_GAP_LE_SET_SCAN_CNF,
+
+                            [this](bt_msg_type_t, bt_status_t, void*)
+                            {
+                                return;
+                            }
+                );
+
+    if(!done)
+    {
+        pr_debug("bt_gap_le_set_scan failed!");
+    }
 
     return;
 }
@@ -248,7 +282,7 @@ void LBLECentralClass::stopScan()
 {
     bt_hci_cmd_le_set_scan_enable_t enbleSetting;
     enbleSetting.le_scan_enable = BT_HCI_DISABLE;
-    enbleSetting.filter_duplicates = BT_HCI_DISABLE;
+    enbleSetting.filter_duplicates = BT_HCI_ENABLE;
 
     // set_scan is actually asynchronous - to ensure
     // m_peripherals_found does not get re-polulated,
@@ -256,6 +290,7 @@ void LBLECentralClass::stopScan()
     waitAndProcessEvent(
                         [&]()
                         { 
+                            pr_debug("calling bt_gap_le_set_scan with disable parameters")
                             bt_gap_le_set_scan(&enbleSetting, NULL);
                         },
 
@@ -364,8 +399,8 @@ void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff
     {
         const bt_gap_le_advertising_report_ind_t* pReport = (bt_gap_le_advertising_report_ind_t*)buff;
 
-        pr_debug("BT_GAP_LE_ADVERTISING_REPORT_IND with 0x%x", (unsigned int)status);
-        pr_debug("advertisement event = %s", get_event_type(pReport->event_type));
+        // pr_debug("BT_GAP_LE_ADVERTISING_REPORT_IND with 0x%x", (unsigned int)status);
+        // pr_debug("advertisement event = %s", get_event_type(pReport->event_type));
 
         switch(pReport->event_type)
         {
@@ -385,7 +420,20 @@ void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff
                 }
 
                 // not found, append
+                if(m_peripherals_found.size() < MAX_DEVICE_LIST_SIZE)
+                {
                 m_peripherals_found.push_back(*pReport);
+
+                    // DEBUG:
+                    #if 1
+                    LBLEAddress newAddr(pReport->address);
+                    pr_debug("new record [%s], total found: %d", newAddr.toString().c_str(), m_peripherals_found.size());
+                    #endif
+                }
+                else
+                {
+                    pr_debug("m_peripherals_found size exceeding %d, drop.", MAX_DEVICE_LIST_SIZE);
+                }
                 return;
             }
             break;
@@ -407,6 +455,12 @@ LBLEClient::LBLEClient():
     m_connection(BT_HANDLE_INVALID)
 {
     
+}
+
+LBLEClient::~LBLEClient()
+{
+    // ensure we are removed from the global table
+    LBLE.unregisterForEvent(BT_GAP_LE_DISCONNECT_IND, this);
 }
 
 bool LBLEClient::connect(const LBLEAddress& address)
@@ -432,13 +486,18 @@ bool LBLEClient::connect(const LBLEAddress& address)
                     // Call connect API
                     [&]()
                     { 
-                        bt_gap_le_connect(&conn_para);
+                        bt_status_t result = bt_gap_le_connect(&conn_para);
+                        if(BT_STATUS_SUCCESS != result)
+                        {
+                            pr_debug("bt_gap_le_connect() failed with ret=0x%x", result);
+                        }
                     },
                     // wait for connect indication event...
                     BT_GAP_LE_CONNECT_IND,
                     // to update the `m_connection` member in BT task
                     [this](bt_msg_type_t, bt_status_t, void* buf)
                     {
+                        pr_debug("bt_gap_le_connect() recieves BT_GAP_LE_CONNECT_IND");
                         const bt_gap_le_connection_ind_t *pConnectionInfo = (bt_gap_le_connection_ind_t*)buf;
                         this->m_connection = pConnectionInfo->connection_handle;
                         LBLE.registerForEvent(BT_GAP_LE_DISCONNECT_IND, this);
@@ -460,15 +519,71 @@ bool LBLEClient::connected()
     return (m_connection != BT_HANDLE_INVALID);
 }
 
+/// Disconnect from the remote device
+void LBLEClient::disconnect()
+{
+    if(!connected())
+    {
+        return;
+    }
+
+    pr_debug("disconect handle = %d", m_connection);
+
+    // actively remove event handler - we are going to
+    // disconnect by ourselves, so there is no need
+    // to listen anymore.
+    LBLE.unregisterForEvent(BT_GAP_LE_DISCONNECT_IND, this);
+
+    bt_hci_cmd_disconnect_t disconn_para = {0};
+    disconn_para.connection_handle = m_connection;
+    disconn_para.reason = 0x13; //  REMOTE USER TERMINATED CONNECTION
+
+    // call bt_gap_le_connect, wait for BT_GAP_LE_CONNECT_IND
+    // and store the connection_handle to this->m_connection
+    bool done = waitAndProcessEvent(
+                    // Call connect API
+                    [&disconn_para]()
+                    { 
+                        bt_gap_le_disconnect(&disconn_para);
+                    },
+                    // wait for connect indication event...
+                    BT_GAP_LE_DISCONNECT_IND,
+                    // to update the `m_connection` member in BT task
+                    [this](bt_msg_type_t, bt_status_t, void* buf)
+                    {
+                        const bt_gap_le_disconnect_ind_t *pDisconnectInfo = (bt_gap_le_disconnect_ind_t*)buf;
+                        if(this->m_connection == pDisconnectInfo->connection_handle)
+                        {
+                            this->m_connection = BT_HANDLE_INVALID;
+                            // sucess or not, we proceed to resource clean up
+                            m_connection = BT_HANDLE_INVALID;
+                            m_services.clear();
+                            m_characteristics.clear();
+                        }
+                        return;
+                    }
+                );
+    
+    if(!done)
+    {
+        pr_debug("bt_gap_le_disconnect() called but fails to receive BT_GAP_LE_DISCONNECT_IND");
+    }
+}
+
 void LBLEClient::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
+    // note that we rely on the "isOnce()" behavior
+    // to remove this event handler after invocation.
     if(BT_GAP_LE_DISCONNECT_IND == msg)
     {
         const bt_gap_le_disconnect_ind_t* pInfo = (bt_gap_le_disconnect_ind_t*)buff;
         if(pInfo->connection_handle == m_connection)
         {
             pr_debug("Disconnected with status = 0x%x, reason = 0x%x", (unsigned int)status, (unsigned int)pInfo->reason);
+            // clear up scanned services and characteristics 
             m_connection = BT_HANDLE_INVALID;
+            m_services.clear();
+            m_characteristics.clear();
         }
     }
 }

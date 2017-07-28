@@ -8,12 +8,17 @@
 #include <inttypes.h>
 #include <WString.h>
 #include <Printable.h>
+#include <delay.h>
 #include <map>
-#include <functional>
 
 extern "C" {
+/* FreeRTOS headers */
+#include <FreeRTOS.h>
+#include <task.h>
+#include <semphr.h>
 #include "utility/ard_ble.h"
 }
+
 
 ///	\brief Represents a 128-bit or 16-bit BT UUID.
 ///
@@ -72,7 +77,9 @@ public:
 	LBLEUuid & operator = (const char* rhs);
 
 	unsigned char equals(const LBLEUuid &rhs) const;
-	unsigned char operator == (const LBLEUuid &rhs) const {return equals(rhs);}
+    unsigned char operator == (const LBLEUuid &rhs) const {
+        return equals(rhs);
+    }
 	bool operator<(const LBLEUuid &rhs) const;
 
 
@@ -154,7 +161,9 @@ public:	// implementing Pritable
 	// returns true if lhs equals rhs address.
 	static bool equal_bt_address(const bt_addr_t& lhs, const bt_addr_t&rhs);
 	unsigned char equals(const LBLEAddress &rhs) const;
-	unsigned char operator == (const LBLEAddress &rhs) const {return equals(rhs);}
+    unsigned char operator == (const LBLEAddress &rhs) const {
+        return equals(rhs);
+    }
 	LBLEAddress& operator = (const LBLEAddress &rhs);
 
 
@@ -171,9 +180,13 @@ public:
 class LBLEEventObserver
 {
 public:
+    virtual ~LBLEEventObserver() {};
+
 	// \returns true: LBLEEventDispatcher should unregister this event after process it
 	// \returns false: LBLEEventDispatcher should keep this observer
-	virtual bool isOnce() { return true; };
+    virtual bool isOnce() {
+        return true;
+    };
 
 	// callback function for events
 	virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void *buff) = 0;
@@ -189,54 +202,14 @@ public:
 	// insert an observer to the registration table.
 	void addObserver(bt_msg_type_t msg, LBLEEventObserver* pObserver);
 
+    // remove an observer from the registration table.
+    void removeObserver(bt_msg_type_t msg, LBLEEventObserver* pObserver);
+
 public:
 	typedef std::multimap<bt_msg_type_t, LBLEEventObserver*> EventTable;
 	EventTable m_table;
 
 };
-
-// A helper class that taks a bt_msg_type_t event and a generic function
-// object (callback function or lambda) and registers them.
-// The function object is called when the event arrives.
-class EventBlocker : public LBLEEventObserver
-{
-public:
-    const bt_msg_type_t m_event;
-    bool m_eventArrived;
-    std::function<void(bt_msg_type_t , bt_status_t , void *)> m_handler;
-
-    EventBlocker(bt_msg_type_t e, std::function<void(bt_msg_type_t , bt_status_t , void *)>& handler):
-        m_event(e),
-        m_eventArrived(false),
-        m_handler(handler)
-    {
-
-    }
-
-    bool done() const
-    {
-        return m_eventArrived;
-    }
-
-    virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void* buff)
-    {
-        if(m_event == msg)
-        {
-            m_eventArrived = true;
-            m_handler(msg, status, buff);
-        }
-    }
-};
-
-// This helper function turns async BT APP event calls into a blocking call.
-// When calling this function, it:
-// 1. Call `action` function
-// 2. Your context will enter a `delay()` loop with a 10-second timeout.
-// 3. In BT task, it wait for `msg`, if it arrives, `handler` is called in BT task.
-// 4. Upon event arrival or timeout, your context exits the loop and continues.
-bool waitAndProcessEvent(std::function<void(void)> action, 
-                        bt_msg_type_t msg, 
-                        std::function<void(bt_msg_type_t, bt_status_t, void *)> handler);
 
 /**
 	\brief LBLEClass is the class for the singleton `LBLE`.
@@ -287,13 +260,16 @@ public:
 	LBLEAddress getDeviceAddress();
 
 	void registerForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver);
+    void unregisterForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver);
 	void handleEvent(bt_msg_type_t msg, bt_status_t status, void *buff);
 
 	friend class LBLECentral;
 	friend class LBLEPeripheral;
 
-public:
+protected:
 	LBLEEventDispatcher m_dispatcher;
+    SemaphoreHandle_t m_dispatcherSemaphore;
+
 };
 
 /**
@@ -312,4 +288,66 @@ public:
  */
 extern LBLEClass LBLE;
 
+// A helper class that taks a bt_msg_type_t event and a templated function
+// object (callback function or lambda) and registers them.
+// The function object is called when the event arrives.
+template<typename F> class EventBlocker : public LBLEEventObserver
+{
+public:
+    EventBlocker(bt_msg_type_t e, const F& handler):
+        m_handler(handler),
+		m_event(e),
+        m_eventArrived(false)
+    {
+
+    }
+
+    bool done() const
+    {
+        return m_eventArrived;
+    }
+
+    virtual bool isOnce()
+    {
+        return true;
+    };
+
+    virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void* buff)
+    {
+        if(m_event == msg)
+        {
+            m_handler(msg, status, buff);
+            m_eventArrived = true;
+        }
+    }
+
+private:
+    const F& m_handler;
+    const bt_msg_type_t m_event;
+    bool m_eventArrived;
+};
+
+// This helper function turns async BT APP event calls into a blocking call.
+// When calling this function, it:
+// 1. Call `action` function
+// 2. Your context will enter a `delay()` loop with a 10-second timeout.
+// 3. In BT task, it wait for `msg`, if it arrives, `handler` is called in BT task.
+// 4. Upon event arrival or timeout, your context exits the loop and continues.
+template<typename A, typename F> bool waitAndProcessEvent(const A& action, bt_msg_type_t msg, const F& handler)
+{
+    EventBlocker<F> h(msg, handler);
+    LBLE.registerForEvent(msg, &h);
+
+    action();
+
+    uint32_t start = millis();
+    while(!h.done() && (millis() - start) < 10 * 1000)
+    {
+        delay(50);
+    }
+
+	LBLE.unregisterForEvent(msg, &h);
+
+    return h.done();
+}
 #endif

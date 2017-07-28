@@ -1,18 +1,57 @@
-#include "LBLE.h"
-#include <Arduino.h>
 #include <stdio.h>
 #include <Print.h>
+#include <vector>
+#include "LBLE.h"
+
 
 extern "C" {
 #include "utility/ard_ble.h"
 }
 
-LBLEClass::LBLEClass()
+///////////////////////////////////////////////
+//  Helper "auto lock" class. To be used in function scope.
+//////////////////////////////////////////////
+class LBLEAutoLock
+{
+public:
+	LBLEAutoLock(SemaphoreHandle_t sem):
+		m_sem(sem)
+	{
+		// keep waiting for the lock
+		while(pdFALSE == xSemaphoreTakeRecursive(m_sem, 10))
+		{
+			pr_debug("spin wait sem=0x%x", (int)m_sem);
+		}
+	}
+
+	~LBLEAutoLock()
+	{
+		xSemaphoreGiveRecursive(m_sem);
+	}
+private:
+	SemaphoreHandle_t m_sem;
+
+	// forbid copy
+	LBLEAutoLock(const LBLEAutoLock& rhs){};
+};
+
+///////////////////////////////////////////////
+//  LBLE Class implmentations
+//////////////////////////////////////////////
+
+LBLEClass::LBLEClass():
+	m_dispatcherSemaphore(NULL)
 {
 }
 
 int LBLEClass::begin()
 {
+	m_dispatcherSemaphore = xSemaphoreCreateRecursiveMutex();
+	if(NULL == m_dispatcherSemaphore)
+	{
+		pr_debug("failed to create semaphore for dispatcher!");
+		return 0;
+	}
 	return ard_ble_begin();
 }
 
@@ -34,11 +73,23 @@ LBLEAddress LBLEClass::getDeviceAddress()
 
 void LBLEClass::registerForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver)
 {
+	LBLEAutoLock lock(m_dispatcherSemaphore);
+	if( (((int)pObserver) & 0xF0000000) == 0)
+	{
+		pr_debug("abnormal observer added: msg:0x%x, pobserver:0x%x", (int)msg, (int)pObserver);
+	}
 	m_dispatcher.addObserver(msg, pObserver);
+}
+
+void LBLEClass::unregisterForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver)
+{
+	LBLEAutoLock lock(m_dispatcherSemaphore);
+	m_dispatcher.removeObserver(msg, pObserver);
 }
 
 void LBLEClass::handleEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
+	LBLEAutoLock lock(m_dispatcherSemaphore);
 	m_dispatcher.dispatch(msg, status, buff);
 }
 
@@ -386,40 +437,63 @@ void LBLEEventDispatcher::addObserver(bt_msg_type_t msg, LBLEEventObserver* pObs
 	m_table.insert(std::make_pair(msg, pObserver));
 }
 
-void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *buff)
+void LBLEEventDispatcher::removeObserver(bt_msg_type_t msg, LBLEEventObserver* pObserver)
 {
-	EventTable::iterator i = m_table.find(msg);
-	// execute observer's callback and pop the element found 
+	// we cannot remove the key (msg), 
+	// since there may be other observers
+	// registered to the same key.
+	// So we loop over the matching elements
+	// and check the handler pointer.
+	auto i = m_table.find(msg);
 	while(i != m_table.end())
 	{
-		// process event
-		i->second->onEvent(msg, status, buff);
-		// check if we need to remove after processing the event
-		// make a copy before we advance to next item
-		auto j = i;
-		++i;
-		// 
-		if(j->second->isOnce())
+		if(i->second == pObserver)
 		{
-			m_table.erase(j);
+			m_table.erase(i);
+			return;
 		}
+		++i;
 	}
 }
 
-bool waitAndProcessEvent(std::function<void(void)> action, 
-                        bt_msg_type_t msg, 
-                        std::function<void(bt_msg_type_t, bt_status_t, void *)> handler)
+void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-    EventBlocker h(msg, handler);
-    LBLE.registerForEvent(msg, &h);
+	auto i = m_table.find(msg);
 
-    action();
+	std::vector<EventTable::iterator> removeList;
+	// execute observer's callback and pop the element found 
+	while(i != m_table.end())
+	{
+		if(i->second)
+		{
+			#if 1
+			{
+				pr_debug("dispatch: msg:0x%x, i->second:0x%x", (int)msg, (int)i->second);
+			}
+			#endif
+		// check if we need to remove after processing the event
+		// make a copy before we advance to next item
+			if(i->second->isOnce())
+		{
+				removeList.push_back(i);
+		}
 
-    uint32_t start = millis();
-    while(!h.done() && (millis() - start) < 10 * 1000)
+			// process event
+			i->second->onEvent(msg, status, buff);
+		}
+		else
+		{
+			pr_debug("dangling observer on event 0x%x", msg);
+	}
+
+		// advance to next registered observer.
+		++i;
+	}
+
+	// now we clear any "once" observers, if any.
+	for(auto&& r : removeList)
     {
-        delay(50);
+		m_table.erase(r);
     }
-
-    return h.done();
 }
+

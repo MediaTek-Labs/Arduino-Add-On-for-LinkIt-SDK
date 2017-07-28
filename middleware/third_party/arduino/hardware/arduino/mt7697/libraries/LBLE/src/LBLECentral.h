@@ -34,6 +34,8 @@ public:
 	/// Do not instantiate this class by yourself. Use `LBLE` singleton instance instead.
 	LBLECentralClass();
 
+	~LBLECentralClass(){};
+
 	/// \brief Start scanning nearby BLE peripherals
 	///
 	/// This puts the system into a scanning statie.
@@ -165,8 +167,14 @@ public:
 	virtual bool isOnce() { return false; };
 	virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void *buff);
 
+	static const size_t MAX_DEVICE_LIST_SIZE = 256;
 	std::vector<bt_gap_le_advertising_report_ind_t> m_peripherals_found;
 	static void processAdvertisement(const bt_gap_le_advertising_report_ind_t *report);
+
+protected:
+	bool m_registered;
+	void init();
+
 };
 
 class LBLEAdvertisements
@@ -308,6 +316,8 @@ class LBLEClient : public LBLEEventObserver
 {
 public:
 	LBLEClient();
+	
+	virtual ~LBLEClient();
 	
 	/// Connect to a remote peripheral device.
 	///
