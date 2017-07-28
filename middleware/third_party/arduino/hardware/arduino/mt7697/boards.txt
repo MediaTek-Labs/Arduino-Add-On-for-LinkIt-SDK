@@ -50,6 +50,7 @@ linkit_7697.build.connsys_inc=middleware/MTK/connsys/inc/
 linkit_7697.build.wifi_inc=middleware/MTK/wifi_service/combo/inc/
 linkit_7697.build.ble_inc=middleware/MTK/bluetooth/inc/
 linkit_7697.build.nvdm_inc=middleware/MTK/nvdm/inc/
+linkit_7697.build.dhcpd_inc=middleware/MTK/dhcpd/inc/
 
 # New in SDK v4.3: prebuilt headers are separated
 linkit_7697.build.prebuilt_ble_inc=prebuilt/middleware/MTK/bluetooth/inc/

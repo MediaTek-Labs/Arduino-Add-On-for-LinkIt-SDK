@@ -42,6 +42,7 @@ sub build_system_src
 		"middleware/MTK/connsys/inc/",
 		"prebuilt/middleware/MTK/nvdm/inc/",
 		"prebuilt/middleware/MTK/bluetooth/inc/",
+		"middleware/MTK/dhcpd/inc",
 		);
     
 	my @remove_list=("driver/chip/mt7687/inc/wifi.h");

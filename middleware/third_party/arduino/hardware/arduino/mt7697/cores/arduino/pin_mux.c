@@ -33,6 +33,8 @@ bool pin_enable_analog(pin_desc_t *pin)
 	if (!pin_has_adc(pin))
 		return false;
 
+	// we need to set the direction to INPUT to enable proper internal resistance.
+	hal_gpio_set_direction(pin->pin_no, HAL_GPIO_DIRECTION_INPUT);
 	ret = hal_pinmux_set_function(pin->pin_no, pin->pin_mux_aon_sel_adc);
 
 	if (ret == 0)
