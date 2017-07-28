@@ -185,7 +185,7 @@ extern "C" {
 	uint8_t get_reply_scan_networks(void);
 
 	/*
-	    WiFiClass::SSID()   getSSIDNetoworks
+	    WiFiClass::SSID()   getSSIDNetworks
 	    Based on scan, get information about the specified network
 
 	    param networkItem[in]    Less than scan results(get by WiFiClass::scanNetworks)

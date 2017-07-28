@@ -147,18 +147,18 @@ uint8_t WiFiDrv::getScanNetworks()
 	return get_reply_scan_networks();
 }
 
-char* WiFiDrv::getSSIDNetoworks(uint8_t networkItem)
+char* WiFiDrv::getSSIDNetworks(uint8_t networkItem)
 {
 	get_idx_ssid(networkItem, _networkSsid[networkItem]);
 	return _networkSsid[networkItem];
 }
 
-uint8_t WiFiDrv::getEncTypeNetowrks(uint8_t networkItem)
+uint8_t WiFiDrv::getEncTypeNetworks(uint8_t networkItem)
 {
 	return get_idx_enct(networkItem);
 }
 
-int32_t WiFiDrv::getRSSINetoworks(uint8_t networkItem)
+int32_t WiFiDrv::getRSSINetworks(uint8_t networkItem)
 {
 	return get_idx_rssi(networkItem);
 }
