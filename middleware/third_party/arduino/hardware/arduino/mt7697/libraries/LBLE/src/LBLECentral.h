@@ -173,6 +173,7 @@ public:
 
 protected:
 	bool m_registered;
+	bool m_scanning;
 	void init();
 
 };
