@@ -213,7 +213,8 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
 // LBLECentralClass
 //////////////////////////////////////////////////////////////////////////////////
 LBLECentralClass::LBLECentralClass():
-    m_registered(false)
+    m_registered(false),
+    m_scanning(false)
 {
     // we delay the actual initialization to init(),
     // since this class is likely to
@@ -238,6 +239,11 @@ void LBLECentralClass::init()
 
 void LBLECentralClass::scan()
 {
+    if(m_scanning)
+    {
+        return;
+    }
+
     bt_hci_cmd_le_set_scan_enable_t enbleSetting;
     enbleSetting.le_scan_enable = BT_HCI_ENABLE;
     enbleSetting.filter_duplicates = BT_HCI_ENABLE;		// Disable driver-level filter for duplicated adv.
@@ -253,6 +259,11 @@ void LBLECentralClass::scan()
 
     init();
 
+    // reset scan list - the BLE device address usually changes overtime for privacy reasons.
+    // and the "advertising interval" are usually in milliseconds.
+    // so it does not mean much to keep old scann results.
+    m_peripherals_found.clear();
+
     // set_scan is actually asynchronous - to ensure
     // proper calling sequence between scan() and stopScan(),
     // we wait for BT_GAP_LE_SET_SCAN_CNF.
@@ -266,6 +277,7 @@ void LBLECentralClass::scan()
 
                             [this](bt_msg_type_t, bt_status_t, void*)
                             {
+                                m_scanning = true;
                                 return;
                             }
                 );
@@ -298,6 +310,7 @@ void LBLECentralClass::stopScan()
 
                         [this](bt_msg_type_t, bt_status_t, void*)
                         {
+                            m_scanning = false;
                             return;
                         }
             );
@@ -510,6 +523,36 @@ bool LBLEClient::connect(const LBLEAddress& address)
         // we populate services in advance for ease of use
         discoverServices();
     }
+    else
+    {
+        // not receiving BT_GAP_LE_CONNECT_IND:
+        // we must "cancel" the connection otherwise the internal buffer for connection can leak.
+        bool cancelled = waitAndProcessEvent(
+                                // Call connect API
+                                [&]()
+                                { 
+                                    bt_status_t result = bt_gap_le_cancel_connection();
+                                    if(BT_STATUS_SUCCESS != result)
+                                    {
+                                        pr_debug("bt_gap_le_cancel_connection() failed with ret=0x%x", result);
+                                    }
+                                },
+                                // wait for connect indication event...
+                                BT_GAP_LE_CONNECT_CANCEL_CNF,
+
+                                // and that's it - we don't have client side buffers to release.
+                                [this](bt_msg_type_t, bt_status_t, void* buf)
+                                {
+                                    pr_debug("bt_gap_le_cancel_connection() recieves BT_GAP_LE_CONNECT_CANCEL_CNF");
+                                    return;
+                                }
+                            );
+        if(!cancelled)
+        {
+            // oh no - we failed to cancel - this is unlikely to happen.
+            pr_debug("WARNING: connect failed and bt_gap_le_cancel_connection() also failed!");
+        }
+    }
     
     return done;
 }
@@ -651,6 +694,12 @@ int LBLEClient::discoverServices()
     // start searching from 1
     do
     {
+        if(!connected())
+        {
+            pr_debug("disconnected (maybe by remote device) during enumerating services");
+            break;
+        }
+
         done = waitAndProcessEvent(
                     // start service discovery
                     [this, &searchRequest]()
@@ -759,6 +808,12 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
     // start searching from 1
     do
     {
+        if(!connected())
+        {
+            pr_debug("disconnected (maybe by remote device) during enumerating characteristics");
+            break;
+        }
+
         done = waitAndProcessEvent(
                     // start characteristic discovery
                     [this, &searchRequest]()
@@ -938,6 +993,11 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
 
 int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer& value)
 {
+    if(!connected())
+    {
+        return 0;
+    }
+
     // make sure this is smaller than MTU - header size
     const uint32_t MAXIMUM_WRITE_SIZE = 20;
 
