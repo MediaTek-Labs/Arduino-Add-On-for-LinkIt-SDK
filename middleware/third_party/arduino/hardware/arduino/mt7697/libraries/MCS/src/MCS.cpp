@@ -21,7 +21,8 @@ class MCSDevice
 ---------------------------------------------------------------------------- */
 
 MCSDevice::MCSDevice(const String& device_id, const String& device_key):
-mServer("api.mediatek.com"),
+mServer("api.mediatek.com"), //michael: make code change to "api.mediatek.cn" if it is in China
+
 mPort(80),
 mDefTimeout(30*1000),
 mId(device_id),
@@ -1011,3 +1012,82 @@ void MCSDisplayPWM::_dispatch(const String& params)
 {
     // do nothing for display channel
 }
+
+//michael
+/* ----------------------------------------------------------------------------
+class MCSControllerGamePad
+---------------------------------------------------------------------------- */
+
+MCSControllerGamePad::MCSControllerGamePad(const String& channel_id):
+MCSDataChannel(channel_id),
+mValue(0)
+{
+}
+
+MCSControllerGamePad::~MCSControllerGamePad()
+{
+     mUp = mDown = mLeft = mRight = mButtonA = mButtonB = 0;
+}
+
+int MCSControllerGamePad::value(void)
+{
+    // retrieve latest data point from server
+    String params;
+
+    _DEBUG_PRINT("MCSControllerGamePad::value="+params);
+
+    if(valid()) {    	
+    	mValue = mUp+(mDown<<1)+(mLeft<<2)+(mRight<<3)+(mButtonA<<4)+(mButtonB<<5);    	
+        return mValue;
+    }
+        
+    if(_getDataPoint(params))
+    {
+        _update(params);
+        return mValue;
+    }
+    
+    return 0;
+}
+
+void MCSControllerGamePad::_dispatch(const String& params)
+{
+    _DEBUG_PRINT("MCSControllerGamePad::_dispatch="+params);
+    
+    if(_update(params))
+        _setUpdated();
+}
+
+bool MCSControllerGamePad::_update(const String& params)
+{
+    _DEBUG_PRINT("MCSControllerGamePad::_update="+params);
+
+    if (params=="up|0")
+    	mUp = 0;
+    else if (params=="up|1")
+    	mUp = 1;
+    else if (params=="down|0")
+    	mDown = 0;
+    else if (params=="down|1")
+    	mDown = 1;
+    else if (params=="left|0")
+    	mLeft = 0;
+    else if (params=="left|1")
+    	mLeft = 1;
+    else if (params=="right|0")
+    	mRight = 0;
+    else if (params=="right|1")
+    	mRight = 1;
+    else if (params=="A|0")
+    	mButtonA = 0;
+    else if (params=="A|1")
+    	mButtonA = 1;
+    else if (params=="B|0")
+    	mButtonB = 0;
+    else if (params=="B|1")
+    	mButtonB = 1;
+
+    _setValid();
+    return true;
+}
+//michael
