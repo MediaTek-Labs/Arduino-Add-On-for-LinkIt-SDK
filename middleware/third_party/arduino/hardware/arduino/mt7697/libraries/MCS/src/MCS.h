@@ -676,5 +676,31 @@ public:
     }
 };
 
+//michael
+class MCSControllerGamePad : public MCSDataChannel
+{
+public:
+    MCSControllerGamePad(const String& channel_id);
+    ~MCSControllerGamePad();
+    void dump(void);
+    int value(void);
+
+protected:
+    // override
+    virtual void _dispatch(const String& params);
+
+private:
+    bool _update(const String& params);
+
+private:
+    int mValue;
+    int mUp;
+    int mDown;
+    int mLeft;
+    int mRight;
+    int mButtonA;
+    int mButtonB;
+};
+//michael
 
 #endif
