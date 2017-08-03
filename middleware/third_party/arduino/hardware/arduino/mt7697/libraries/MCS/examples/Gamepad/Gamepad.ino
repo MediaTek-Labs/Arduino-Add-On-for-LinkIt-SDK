@@ -3,20 +3,20 @@
 #include "MCS.h"
 
 // Assign AP ssid / password here
-#define _SSID "your_ssid"
-#define _KEY  "your_password"
+#define _SSID "your_wifi_ap_ssid"
+#define _KEY  "your_wifi_password"
 
 // Assign device id / key of your test device
 MCSDevice mcs("your_device_id", "your_device_key");
 
 // Assign channel id 
-// The test device should have 1 channel
+// The test device should have a channel id "control_gamepad".
 // the first channel should be "Controller" - "GamePad"
-MCSControllerGamePad gamepad("Gamepad");
+MCSControllerGamePad gamepad("control_gamepad");
 
 void setup() {
   // setup Serial output at 9600
-  Serial.begin(38400);
+  Serial.begin(9600);
 
   // setup Wifi connection
   while(WL_CONNECTED != WiFi.status())
@@ -42,25 +42,31 @@ void setup() {
 
   while(!gamepad.valid())
   {
-    Serial.println("read Gamepad value from MCS...");
+    Serial.println("initialize gamepad default value...");
     gamepad.value();    
+    // Note: At this moment we can "read" the values
+    // of the gamepad - but the value is meaningless.
+    // 
+    // The MCS server returns that "last button pressed" 
+    // in this cause - even if the user is not pressing any button
+    // at this moment.
+    // 
+    // We read the values here simply to make the following
+    // process() -> if(gamepad.updated()) check working.
   }
-  Serial.print("done, Gamepad value = ");
-  Serial.println(gamepad.value()); 
 
 }
 
 void loop() {
-  // call process() to allow background processing, add timeout to avoid high cpu usage
-  Serial.print("process(");
-  Serial.print(millis());
-  Serial.println(")");
-  mcs.process(100); //1000?
+  // Note that each process consumes 1 command from MCS server.
+  // The 100 millisecond timeout assumes that the server
+  // won't send command rapidly.
+  mcs.process(100);
 
   // updated flag will be cleared in process(), user must check it after process() call.
   if(gamepad.updated())
   {
-    Serial.print("Gamepad updated, new value = ");
+    Serial.print("Gamepad event arrived, new value = ");
     Serial.println(gamepad.value());
   }
 

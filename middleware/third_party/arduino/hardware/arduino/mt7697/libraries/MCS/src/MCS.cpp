@@ -92,11 +92,11 @@ void MCSDevice::process(int timeout_ms)
     if(_parsePattern(body))
     {
         _DEBUG_PRINT(String("[log]found:")+body);
-        int f1 = body.indexOf(',');
-        int f2 = body.indexOf(',', f1+1);
-
-        String channel = body.substring(f1+1, f2);
-        String params = body.substring(f2+1);
+        const int f1 = body.indexOf(',');
+        const int f2 = body.indexOf(',', f1+1);
+        const String timestamp = body.substring(0, f1);
+        const String channel = body.substring(f1+1, f2);
+        const String params = body.substring(f2+1);
 
         if(channel.length() > 0) {
             _DEBUG_PRINT(String("[log]found:channel:")+channel+String(",params:")+params);
@@ -1013,81 +1013,125 @@ void MCSDisplayPWM::_dispatch(const String& params)
     // do nothing for display channel
 }
 
-//michael
 /* ----------------------------------------------------------------------------
-class MCSControllerGamePad
+class MCSControllerGamePad and MCSGamePadValue
 ---------------------------------------------------------------------------- */
 
-MCSControllerGamePad::MCSControllerGamePad(const String& channel_id):
-MCSDataChannel(channel_id),
-mValue(0)
+bool MCSGamePadValue::operator==(const MCSGamePadValue& rhs)const
 {
+    return button == rhs.button &&
+           event == rhs.event;
 }
 
-MCSControllerGamePad::~MCSControllerGamePad()
+bool MCSGamePadValue::operator!=(const MCSGamePadValue& rhs)const
 {
-     mUp = mDown = mLeft = mRight = mButtonA = mButtonB = 0;
+    return button != rhs.button ||
+           event != rhs.event;
 }
 
-int MCSControllerGamePad::value(void)
+MCSGamePadValue::operator bool()const
 {
-    // retrieve latest data point from server
-    String params;
+    return isValid();
+}
 
-    _DEBUG_PRINT("MCSControllerGamePad::value="+params);
+bool MCSGamePadValue::isValid()const
+{
+    return (button != BTN_INVALID) && (event != BTN_NO_EVENT);
+}
 
-    if(valid()) {    	
-    	mValue = mUp+(mDown<<1)+(mLeft<<2)+(mRight<<3)+(mButtonA<<4)+(mButtonB<<5);    	
-        return mValue;
+String MCSGamePadValue::toString() const
+{
+    String ret;
+    switch(button)
+    {
+    case BTN_UP:
+        ret = "up";
+        break;
+    case BTN_DOWN:
+        ret = "down";
+        break;
+    case BTN_LEFT:
+        ret = "left";
+        break;
+    case BTN_RIGHT:
+        ret = "right";
+        break;
+    case BTN_A:
+        ret = "A";
+        break;
+    case BTN_B:
+        ret = "B";
+        break;
+    default:
+        ret = "INVALID";
+        break;
     }
         
-    if(_getDataPoint(params))
+    ret += "|";
+    
+    switch(event)
     {
-        _update(params);
-        return mValue;
+    case BTN_PRESSED:
+        ret += "pressed";
+        break;
+    case BTN_RELEASED:
+        ret += "released";
+        break;
+    default:
+        break;
     }
     
-    return 0;
+    return ret;
 }
 
-void MCSControllerGamePad::_dispatch(const String& params)
+size_t MCSGamePadValue::printTo(Print& p) const
 {
-    _DEBUG_PRINT("MCSControllerGamePad::_dispatch="+params);
+    return p.print(toString());
+}
+
     
-    if(_update(params))
-        _setUpdated();
-}
-
-bool MCSControllerGamePad::_update(const String& params)
+String MCSValueToString(const MCSGamePadValue& value)
 {
-    _DEBUG_PRINT("MCSControllerGamePad::_update="+params);
-
-    if (params=="up|0")
-    	mUp = 0;
-    else if (params=="up|1")
-    	mUp = 1;
-    else if (params=="down|0")
-    	mDown = 0;
-    else if (params=="down|1")
-    	mDown = 1;
-    else if (params=="left|0")
-    	mLeft = 0;
-    else if (params=="left|1")
-    	mLeft = 1;
-    else if (params=="right|0")
-    	mRight = 0;
-    else if (params=="right|1")
-    	mRight = 1;
-    else if (params=="A|0")
-    	mButtonA = 0;
-    else if (params=="A|1")
-    	mButtonA = 1;
-    else if (params=="B|0")
-    	mButtonB = 0;
-    else if (params=="B|1")
-    	mButtonB = 1;
-
-    _setValid();
-    return true;
+    return value.toString();
 }
-//michael
+
+void MCSStringToValue(const String& params, MCSGamePadValue& value)
+{
+    const int c = params.indexOf('|');
+    const String btnStr = params.substring(0, c);
+    const String eventStr = params.substring(c + 1);
+
+    _DEBUG_PRINT(String("[log]MCSStringToValue:")+btnStr + "--" + eventStr);
+
+    // parse button
+    if (btnStr=="up")
+    	value.button = BTN_UP;
+    else if (btnStr=="down")
+    	value.button = BTN_DOWN;
+    else if (btnStr=="left")
+    	value.button = BTN_LEFT;
+    else if (btnStr=="right")
+    	value.button = BTN_RIGHT;
+    else if (btnStr=="A")
+    	value.button = BTN_A;
+    else if (btnStr=="B")
+    	value.button = BTN_B;
+
+    _DEBUG_PRINT(String("[log]value.button =")+String((int)value.button));
+
+    // parse press/release
+    if(eventStr == "1")
+    {
+        value.event = BTN_PRESSED;
+    }
+    else if(eventStr == "0")
+    {
+        value.event = BTN_RELEASED;
+    }
+    else
+    {
+        value.event = BTN_NO_EVENT;
+    }
+
+    return;
+}

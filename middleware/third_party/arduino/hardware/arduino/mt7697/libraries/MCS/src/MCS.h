@@ -676,31 +676,67 @@ public:
     }
 };
 
-//michael
-class MCSControllerGamePad : public MCSDataChannel
+/* ------------------------------------------------------------------------ */
+enum MCSGamePadButton{
+    BTN_UP = 1,
+    BTN_DOWN,
+    BTN_LEFT,
+    BTN_RIGHT,
+    BTN_A,
+    BTN_B,
+    BTN_INVALID
+};
+
+enum MCSGamePadButtonEvent{
+    BTN_PRESSED = 1,
+    BTN_RELEASED = 0,
+    BTN_NO_EVENT = -1
+};
+
+struct MCSGamePadValue : public Printable
+{
+    MCSGamePadButton button;           // The button of the update
+    MCSGamePadButtonEvent event;    // The event associated with the button
+
+    MCSGamePadValue():
+        button(BTN_INVALID),
+        event(BTN_NO_EVENT)
+    {
+    }
+
+    bool operator==(const MCSGamePadValue& rhs)const;
+    bool operator!=(const MCSGamePadValue& rhs)const;
+    explicit operator bool()const;
+    bool isValid()const;
+
+    String toString() const;
+    
+    /// Implement Printable interface to support
+    /// ~~~{.cpp}
+    /// Serial.println(MCSGPSValue());
+    /// ~~~
+    virtual size_t printTo(Print& p) const;
+};
+
+String MCSValueToString(const MCSGamePadValue& value);
+
+void MCSStringToValue(const String& params, MCSGamePadValue& value);
+
+class MCSControllerGamePad : public MCSControllerBase<MCSGamePadValue>
 {
 public:
-    MCSControllerGamePad(const String& channel_id);
-    ~MCSControllerGamePad();
-    void dump(void);
-    int value(void);
+    MCSControllerGamePad(const String& channel_id):MCSControllerBase(channel_id){
+    }
 
-protected:
-    // override
-    virtual void _dispatch(const String& params);
+    inline MCSGamePadButton button()
+    {
+        return value().button;
+    }
 
-private:
-    bool _update(const String& params);
-
-private:
-    int mValue;
-    int mUp;
-    int mDown;
-    int mLeft;
-    int mRight;
-    int mButtonA;
-    int mButtonB;
+    inline MCSGamePadButtonEvent event()
+    {
+        return value().event;
+    }
 };
-//michael
 
 #endif
