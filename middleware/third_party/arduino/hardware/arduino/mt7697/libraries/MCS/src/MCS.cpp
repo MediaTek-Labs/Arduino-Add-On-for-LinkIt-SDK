@@ -21,7 +21,8 @@ class MCSDevice
 ---------------------------------------------------------------------------- */
 
 MCSDevice::MCSDevice(const String& device_id, const String& device_key):
-mServer("api.mediatek.com"),
+mServer("api.mediatek.com"), //michael: make code change to "api.mediatek.cn" if it is in China
+
 mPort(80),
 mDefTimeout(30*1000),
 mId(device_id),
@@ -91,11 +92,11 @@ void MCSDevice::process(int timeout_ms)
     if(_parsePattern(body))
     {
         _DEBUG_PRINT(String("[log]found:")+body);
-        int f1 = body.indexOf(',');
-        int f2 = body.indexOf(',', f1+1);
-
-        String channel = body.substring(f1+1, f2);
-        String params = body.substring(f2+1);
+        const int f1 = body.indexOf(',');
+        const int f2 = body.indexOf(',', f1+1);
+        const String timestamp = body.substring(0, f1);
+        const String channel = body.substring(f1+1, f2);
+        const String params = body.substring(f2+1);
 
         if(channel.length() > 0) {
             _DEBUG_PRINT(String("[log]found:channel:")+channel+String(",params:")+params);
@@ -1010,4 +1011,127 @@ int MCSDisplayPWM::period(void)
 void MCSDisplayPWM::_dispatch(const String& params)
 {
     // do nothing for display channel
+}
+
+/* ----------------------------------------------------------------------------
+class MCSControllerGamePad and MCSGamePadValue
+---------------------------------------------------------------------------- */
+
+bool MCSGamePadValue::operator==(const MCSGamePadValue& rhs)const
+{
+    return button == rhs.button &&
+           event == rhs.event;
+}
+
+bool MCSGamePadValue::operator!=(const MCSGamePadValue& rhs)const
+{
+    return button != rhs.button ||
+           event != rhs.event;
+}
+
+MCSGamePadValue::operator bool()const
+{
+    return isValid();
+}
+
+bool MCSGamePadValue::isValid()const
+{
+    return (button != BTN_INVALID) && (event != BTN_NO_EVENT);
+}
+
+String MCSGamePadValue::toString() const
+{
+    String ret;
+    switch(button)
+    {
+    case BTN_UP:
+        ret = "up";
+        break;
+    case BTN_DOWN:
+        ret = "down";
+        break;
+    case BTN_LEFT:
+        ret = "left";
+        break;
+    case BTN_RIGHT:
+        ret = "right";
+        break;
+    case BTN_A:
+        ret = "A";
+        break;
+    case BTN_B:
+        ret = "B";
+        break;
+    default:
+        ret = "INVALID";
+        break;
+    }
+        
+    ret += "|";
+    
+    switch(event)
+    {
+    case BTN_PRESSED:
+        ret += "pressed";
+        break;
+    case BTN_RELEASED:
+        ret += "released";
+        break;
+    default:
+        break;
+    }
+    
+    return ret;
+}
+
+size_t MCSGamePadValue::printTo(Print& p) const
+{
+    return p.print(toString());
+}
+
+    
+String MCSValueToString(const MCSGamePadValue& value)
+{
+    return value.toString();
+}
+
+void MCSStringToValue(const String& params, MCSGamePadValue& value)
+{
+    const int c = params.indexOf('|');
+    const String btnStr = params.substring(0, c);
+    const String eventStr = params.substring(c + 1);
+
+    _DEBUG_PRINT(String("[log]MCSStringToValue:")+btnStr + "--" + eventStr);
+
+    // parse button
+    if (btnStr=="up")
+    	value.button = BTN_UP;
+    else if (btnStr=="down")
+    	value.button = BTN_DOWN;
+    else if (btnStr=="left")
+    	value.button = BTN_LEFT;
+    else if (btnStr=="right")
+    	value.button = BTN_RIGHT;
+    else if (btnStr=="A")
+    	value.button = BTN_A;
+    else if (btnStr=="B")
+    	value.button = BTN_B;
+
+    _DEBUG_PRINT(String("[log]value.button =")+String((int)value.button));
+
+    // parse press/release
+    if(eventStr == "1")
+    {
+        value.event = BTN_PRESSED;
+    }
+    else if(eventStr == "0")
+    {
+        value.event = BTN_RELEASED;
+    }
+    else
+    {
+        value.event = BTN_NO_EVENT;
+    }
+
+    return;
 }
