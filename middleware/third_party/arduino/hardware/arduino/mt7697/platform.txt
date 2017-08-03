@@ -140,7 +140,7 @@ tools.flash_tool.upload.pattern="{path}/{cmd}" -n "{path}/da97.bin" -c {serial.p
 
 # Bootloader update
 tools.firmware_update.path={runtime.tools.flash_tool.path}
-tools.firmware_update.cmd=upload.py
+tools.firmware_update.cmd=bootloader_update.sh
 tools.firmware_update.cmd.windows=bootloader_update.bat
 tools.firmware_update.bootloader.params.verbose=-d
 tools.firmware_update.bootloader.pattern="{path}/{cmd}" {serial.port}
