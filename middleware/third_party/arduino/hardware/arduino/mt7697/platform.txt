@@ -143,6 +143,7 @@ tools.firmware_update.path={runtime.tools.flash_tool.path}
 tools.firmware_update.cmd=bootloader_update.sh
 tools.firmware_update.cmd.windows=bootloader_update.bat
 tools.firmware_update.bootloader.params.verbose=-d
+tools.firmware_update.bootloader.params.quiet=
 tools.firmware_update.bootloader.pattern="{path}/{cmd}" {serial.port}
 
 # Dummy erase option just to make the menu work
