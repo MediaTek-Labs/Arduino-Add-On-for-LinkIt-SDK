@@ -1,0 +1,4 @@
+# Add LinkIt 7697 firmware update option (bootloader and N9 firmware)
+linkitfirmware.name=LinkIt 7697 Bootloader & Firmware Updater
+linkitfirmware.communication=usb
+linkitfirmware.program.tool=firmware_update

@@ -58,6 +58,6 @@ linkit_7697.build.prebuilt_ble_inc=prebuilt/middleware/MTK/bluetooth/inc/
 linkit_7697.build.bootloader=mt7687_bootloader.bin
 linkit_7697.build.wifi_binary=WIFI_RAM_CODE_MT76X7_in_flash.bin
 
-linkit_7697.bootloader.tool=flash_tool
+linkit_7697.bootloader.tool=firmware_update
 ################################################################################
 

@@ -139,12 +139,14 @@ tools.flash_tool.upload.params.verify=
 tools.flash_tool.upload.pattern="{path}/{cmd}" -n "{path}/da97.bin" -c {serial.port} -f "{build.path}/{build.project_name}.bin"
 
 # Bootloader update
-tools.flash_tool.bootloader.cmd=upload.py
-tools.flash_tool.bootloader.cmd.windows=upload.exe
-tools.flash_tool.bootloader.params.verbose=-d
-tools.flash_tool.bootloader.pattern="{path}/{cmd}" -n "{path}/da97.bin" -c {serial.port} -t ldr -f "{path}/mt7697_bootloader.bin"
+tools.firmware_update.path={runtime.tools.flash_tool.path}
+tools.firmware_update.cmd=bootloader_update.sh
+tools.firmware_update.cmd.windows=bootloader_update.bat
+tools.firmware_update.bootloader.params.verbose=-d
+tools.firmware_update.bootloader.params.quiet=
+tools.firmware_update.bootloader.pattern="{path}/{cmd}" {serial.port}
 
 # Dummy erase option just to make the menu work
-tools.flash_tool.erase.params.verbose=-v
-tools.flash_tool.erase.params.quiet=-q -q
-tools.flash_tool.erase.pattern=
+tools.firmware_update.erase.params.verbose=-v
+tools.firmware_update.erase.params.quiet=-q -q
+tools.firmware_update.erase.pattern=
