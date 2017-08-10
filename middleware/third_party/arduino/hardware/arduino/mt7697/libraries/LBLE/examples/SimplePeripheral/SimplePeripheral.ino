@@ -25,6 +25,9 @@ void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
 
+  // to check if USR button is pressed
+  pinMode(6, INPUT);
+
   // Initialize BLE subsystem
   LBLE.begin();
   while (!LBLE.ready()) {
@@ -61,7 +64,17 @@ void setup() {
 }
 
 void loop() {
-  delay(100);
+  delay(1000);
+
+  Serial.print("conected=");
+  Serial.println(LBLEPeripheral.connected());
+
+  if (digitalRead(6))
+  {
+    Serial.println("disconnect all!");
+    LBLEPeripheral.disconnectAll();
+  }
+
   if (switchCharacteristic.isWritten()) {
     const char value = switchCharacteristic.getValue();
     switch (value) {
@@ -76,4 +89,6 @@ void loop() {
         break;
     }
   }
+
+
 }
