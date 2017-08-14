@@ -426,6 +426,9 @@ public:
 	/// returns true if there is a central device connecting to this peripheral.
 	bool connected();
 
+	/// disconnect all connected centrals (if any)
+	void disconnectAll();
+
 	/// configuring GATT Services. You must configure services
 	/// before advertising the device. The services cannot change
 	/// after being connected.
@@ -449,7 +452,7 @@ private:
 	std::unique_ptr<LBLEAdvertisementData> m_pAdvData;
 	bt_hci_cmd_le_set_advertising_parameters_t m_advParam;
 
-	uint16_t m_clientCount;
+	std::vector<bt_handle_t> m_connections;
 	
 };
 
