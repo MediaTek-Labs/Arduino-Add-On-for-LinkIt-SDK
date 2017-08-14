@@ -89,12 +89,11 @@ void LBLEAdvertisementData::configAsConnectableDevice(const char* deviceName, co
     {
         // 128-bit UUID
         item.adType = BT_GAP_LE_AD_TYPE_128_BIT_UUID_COMPLETE;
-        item.adDataLen = 16;	// 16 Bit UUID = 2 bytes
+        item.adDataLen = 16;	// 128 Bit UUID = 16 bytes
         uuid.toRawBuffer(item.adData, item.adDataLen);
     }
     addAdvertisementData(item);
     
-
     // Usually we need a name for iOS devices to list our peripheral device.
     addName(deviceName);
 }
@@ -717,7 +716,7 @@ LBLEPeripheralClass::~LBLEPeripheralClass()
     
 }
 
-void LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
+int LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
 {
     // make a copy of advertisement data for re-advertising after disconnect event.
     // previous advertisement data will be cleared since m_pAdvData is unique_ptr.
@@ -727,10 +726,10 @@ void LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
     m_advParam.advertising_interval_min = 0x00C0;
     m_advParam.advertising_interval_max = 0x00C0;
     // start advertisement
-    advertiseAgain();
+    return advertiseAgain();
 }
 
-void LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
+int LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
 						                    uint32_t intervalMS,
 						                    uint8_t txPower)
 {
@@ -754,7 +753,7 @@ void LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData
 #if 1
     pr_debug("txPower %d is ignored", txPower);
     // use normal advertisement API
-    advertiseAgain();
+    return advertiseAgain();
 #else
     // TODO: currently the multi-advertisment API does not work due to 
     // instance limitation - looks like a bug.
@@ -831,11 +830,11 @@ void LBLEPeripheralClass::stopAdvertise()
     // TODO: we better wait for the BT_GAP_LE_SET_ADVERTISING_CNF event.
 }
 
-void LBLEPeripheralClass::advertiseAgain()
+int LBLEPeripheralClass::advertiseAgain()
 {
     if(!m_pAdvData)
     {
-        return;
+        return -2;
     }
 
     // enable advertisement
@@ -843,16 +842,32 @@ void LBLEPeripheralClass::advertiseAgain()
     enable.advertising_enable = BT_HCI_ENABLE;
 
     // note that advertisement parameters (m_advParam) are pre-configured in advertisement() methods.
+    pr_debug("get payload");
 
     // populate the advertisement data
     bt_hci_cmd_le_set_advertising_data_t hci_adv_data;
-    hci_adv_data.advertising_data_length = m_pAdvData->getPayload(hci_adv_data.advertising_data, 
+    const uint32_t payLoadRequired = m_pAdvData->getPayload(hci_adv_data.advertising_data, 
                                                               sizeof(hci_adv_data.advertising_data));
+    pr_debug("payload requires %d bytes", payLoadRequired);
+    if(sizeof(hci_adv_data.advertising_data) < payLoadRequired)
+    {
+        pr_debug("payload too long, requires %d bytes", payLoadRequired);
+        return -1;
+    }
+
+    hci_adv_data.advertising_data_length = payLoadRequired;
+    pr_debug("advertising_data_length=%d", hci_adv_data.advertising_data_length);
 
     // start broadcasting
-    bt_gap_le_set_advertising(&enable, &m_advParam, &hci_adv_data, NULL);
+    const bt_status_t status = bt_gap_le_set_advertising(&enable, &m_advParam, &hci_adv_data, NULL);
+    if (BT_STATUS_SUCCESS != status)
+    {
+        pr_debug("bt_gap_le_set_advertising fails with %d", status);
+        return -2;
+    }
 
     // TODO: we better wait for the BT_GAP_LE_SET_ADVERTISING_CNF event.
+    return 0;
 }
 
 void LBLEPeripheralClass::setName(const char* name)

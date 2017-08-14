@@ -144,7 +144,7 @@ public:
 	/// Note that you need to define corresponding GATT services with LBLEPeripheral
 	/// before start advertising your device.
 	///
-	/// \param deviceName must be shorter than 27 bytes.
+	/// \param deviceName must be shorter than 9 bytes when UUID is 128-bit.
 	/// \param uuid service UUID to be included in advertisement
 	void configAsConnectableDevice(const char* deviceName, const LBLEUuid& uuid);
 
@@ -397,7 +397,8 @@ public:
 	/// start advertisement as a connectable device
 	///
 	/// \param advertisementData The advertisement data to be advertised.
-	void advertise(const LBLEAdvertisementData& advertisementData);
+	/// \returns  0 when succeeded, -1 when payload too long, -2 for other errors.
+	int advertise(const LBLEAdvertisementData& advertisementData);
 
 	/// start advertisement as an non-connectable device (such as an iBeacon)
 	///
@@ -405,12 +406,13 @@ public:
 	/// \param intervalMS The advertisement interval, in milliseconds.
 	/// \param txPower This controls the actual advertisement power in dbm. 
 	///        Note: current version does not support adjusting txPower.
-	void advertiseAsBeacon(const LBLEAdvertisementData& advertisementData,
+	int advertiseAsBeacon(const LBLEAdvertisementData& advertisementData,
 						   uint32_t intervalMS = 700,
 						   uint8_t txPower = -30);
 	
 	/// start advertisement based on previous input of advertise
-	void advertiseAgain();
+	/// \returns 0 when succeeded, -1 when payload too long, -2 for other errors.
+	int advertiseAgain();
 
 	/// stop advertisement and clears advertisement data
 	/// advertiseAgain() fails after stopAdvertise();
