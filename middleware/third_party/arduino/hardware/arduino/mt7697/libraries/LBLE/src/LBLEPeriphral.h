@@ -186,6 +186,17 @@ public:
 
 	virtual uint32_t getRecordCount() = 0;
 
+	// a callback from BLE service to assign attribute handle
+	// back to the attribute instance. the instance
+	// may choose to ignore this information
+	virtual void assignHandle(uint16_t attrHandle) = 0;
+
+	// send notification to the given connection
+	virtual int notify(bt_handle_t connection) = 0;
+
+	// send indication and wait for ACK to the given connection
+	virtual int indicate(bt_handle_t connection) = 0;
+
 	// @param recordIndex ranges from 0 ~ (getRecordCount - 1)
 	// 
 	// returns a generic bt_gatts_service_rec_t pointer
@@ -203,17 +214,30 @@ public:	// method for Arduino users
 	// Check if a character is written
 	bool isWritten();
 
-public:
+public: // Following methods are not meant to be called by Arduino users
+
 	// Each characteristic maps to 2 GATT attribute records
 	virtual uint32_t getRecordCount() {return 2;};
 
 	// common implementation for characteristics attributes
 	virtual bt_gatts_service_rec_t* allocRecord(uint32_t recordIndex, uint16_t currentHandle);
 
+	// store the assigned attribute handle for notification/indication
+	virtual void assignHandle(uint16_t attrHandle);
+
+	// Utility function for child class to call.
+	// send notification with `buf` as data to the given connection
+	int _notify(bt_handle_t connection, const LBLEValueBuffer& data);
+
+	// Utility function for child class to call.
+	// send indication with `buf` as data and wait for ACK to the given connection
+	int _indicate(bt_handle_t connection, const LBLEValueBuffer& data);
+
 protected:
 	LBLEUuid m_uuid;
 	uint32_t m_perm;
 	bool m_updated;
+	uint16_t m_attrHandle;
 };
 
 // This class is used by LBLECharacteristicBuffer
@@ -265,6 +289,8 @@ public:	// for BLE framework
 	virtual uint32_t onSize() const;
 	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
 	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);
+	virtual int notify(bt_handle_t connection);
+	virtual int indicate(bt_handle_t connection);
 
 private:
 	uint8_t m_data[MAX_ATTRIBUTE_DATA_LEN];
@@ -296,6 +322,8 @@ public:	// for BLE framework
 	virtual uint32_t onSize() const;
 	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
 	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);
+	virtual int notify(bt_handle_t connection);
+	virtual int indicate(bt_handle_t connection);
 
 private:
 	int m_data;
@@ -342,6 +370,8 @@ public:	// for BLE framework
 	virtual uint32_t onSize() const;
 	virtual uint32_t onRead(void *data, uint16_t size, uint16_t offset);
 	virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset);
+	virtual int notify(bt_handle_t connection);
+	virtual int indicate(bt_handle_t connection);
 
 private:
 	String m_data;
@@ -430,6 +460,18 @@ public:
 
 	/// disconnect all connected centrals (if any)
 	void disconnectAll();
+
+	/// broadcasting notification of the given GATT characteristic value to
+	/// all connected devices, e.g. LBLEPeripheral.notify(myCharacteristic)
+	/// Note that `myChar` must be added to the LBLEPeriphral as
+	/// part of a service before calling this method.
+	int notifyAll(LBLEAttributeInterface& characteristic);
+
+	/// broadcasting indication of the given GATT characteristic value to
+	/// all connected devices, e.g. LBLEPeripheral.notify(myCharacteristic)
+	/// Note that `myChar` must be added to the LBLEPeriphral as
+	/// part of a service before calling this method.
+	int indicateAll(LBLEAttributeInterface& characteristic);
 
 	/// configuring GATT Services. You must configure services
 	/// before advertising the device. The services cannot change

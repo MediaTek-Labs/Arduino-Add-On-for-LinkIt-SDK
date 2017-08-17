@@ -9,6 +9,7 @@
 #include <WString.h>
 #include <Printable.h>
 #include <delay.h>
+#include <vector>
 #include <map>
 
 extern "C" {
@@ -175,6 +176,41 @@ public:	// Helper function
 public:
 	bt_addr_t m_addr;
 };
+
+/// This class encapsulates raw buffer operations used by LBLEClient/LBLEPeripheral
+///
+/// When writing or reading GATT attributes, we need to convert
+/// to raw buffers and meaningful data types used by users.
+/// 
+/// This class helps users to convert to these raw buffer
+/// values when reading or writing GATT attributes.
+class LBLEValueBuffer : public std::vector<uint8_t>
+{
+public:
+	/// Default constructor creates an empty buffer.
+	LBLEValueBuffer();
+
+	/// Create a raw buffer from an integer value.
+	LBLEValueBuffer(int intValue);
+
+	/// Create a raw buffer from a float value.
+	LBLEValueBuffer(float floatValue);
+
+	/// Create a raw buffer from a single-byte character value.
+	LBLEValueBuffer(char charValue);
+
+	/// Create a raw buffer from a NULL-terminated string.
+	/// The resulting buffer contains the trailing NULL bytel.
+	LBLEValueBuffer(const String& strValue);
+
+	template<typename T>void shallowInit(T value);
+};
+
+template<typename T>void LBLEValueBuffer::shallowInit(T value)
+{
+    this->resize(sizeof(value), 0);
+    memcpy(&(*this)[0], &value, sizeof(value));
+}
 
 // Interface of an event observer
 class LBLEEventObserver

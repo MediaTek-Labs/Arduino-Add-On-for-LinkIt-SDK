@@ -6,7 +6,6 @@
 #define LBLECentral_H
 
 #include <inttypes.h>
-#include <vector>
 #include <WString.h>
 #include <LBLE.h>
 #include <map>
@@ -256,35 +255,6 @@ struct LBLEServiceInfo
 	LBLEUuid uuid;
 	uint16_t startHandle;
 	uint16_t endHandle;
-};
-
-/// This class encapsulates raw buffer operations used by LBLEClient
-///
-/// When writing or reading GATT attributes, we need to convert
-/// to raw buffers and meaningful data types used by users.
-/// 
-/// This class helps users to convert to these raw buffer
-/// values when reading or writing GATT attributes.
-class LBLEValueBuffer : public std::vector<uint8_t>
-{
-public:
-	/// Default constructor creates an empty buffer.
-	LBLEValueBuffer();
-
-	/// Create a raw buffer from an integer value.
-	LBLEValueBuffer(int intValue);
-
-	/// Create a raw buffer from a float value.
-	LBLEValueBuffer(float floatValue);
-
-	/// Create a raw buffer from a single-byte character value.
-	LBLEValueBuffer(char charValue);
-
-	/// Create a raw buffer from a NULL-terminated string.
-	/// The resulting buffer contains the trailing NULL bytel.
-	LBLEValueBuffer(const String& strValue);
-
-	template<typename T>void shallowInit(T value);
 };
 
 /// This class allows users to create connections to remote peripheral devices.

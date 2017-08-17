@@ -78,6 +78,11 @@ void LBLEClass::registerForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserver
 	{
 		pr_debug("abnormal observer added: msg:0x%x, pobserver:0x%x", (int)msg, (int)pObserver);
 	}
+
+	#if 1
+	pr_debug("observer added: msg:0x%x, pobserver:0x%x", (int)msg, (int)pObserver);
+	#endif
+
 	m_dispatcher.addObserver(msg, pObserver);
 }
 
@@ -85,6 +90,9 @@ void LBLEClass::unregisterForEvent(bt_msg_type_t msg, LBLEEventObserver* pObserv
 {
 	LBLEAutoLock lock(m_dispatcherSemaphore);
 	m_dispatcher.removeObserver(msg, pObserver);
+	#if 1
+	pr_debug("observer removed: msg:0x%x, pobserver:0x%x", (int)msg, (int)pObserver);
+	#endif
 }
 
 void LBLEClass::handleEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
@@ -434,6 +442,7 @@ void ard_ble_postAllEvents(bt_msg_type_t msg, bt_status_t status, void *buff)
 
 void LBLEEventDispatcher::addObserver(bt_msg_type_t msg, LBLEEventObserver* pObserver)
 {
+	// pr_debug("add observer: i->second:%p", (int)msg, pObserver);
 	m_table.insert(std::make_pair(msg, pObserver));
 }
 
@@ -458,17 +467,23 @@ void LBLEEventDispatcher::removeObserver(bt_msg_type_t msg, LBLEEventObserver* p
 
 void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
+	pr_debug("dispatch: msg:0x%x", msg);
 	auto i = m_table.find(msg);
 
 	std::vector<EventTable::iterator> removeList;
 	// execute observer's callback and pop the element found 
 	while(i != m_table.end())
 	{
+		if(i->first != msg)
+		{
+			break;
+		}
+		
 		if(i->second)
 		{
 			#if 1
 			{
-				pr_debug("dispatch: msg:0x%x, i->second:0x%x", (int)msg, (int)i->second);
+				pr_debug("dispatch found: msg:0x%x, i->second:%p", (int)msg, i->second);
 			}
 			#endif
 		// check if we need to remove after processing the event
@@ -497,3 +512,30 @@ void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *
     }
 }
 
+//////////////////////////////////////////////////////////////////////////
+//  LBLEValueBuffer
+//////////////////////////////////////////////////////////////////////////
+LBLEValueBuffer::LBLEValueBuffer()
+{
+}
+
+LBLEValueBuffer::LBLEValueBuffer(int intValue)
+{
+    shallowInit(intValue);
+}
+
+LBLEValueBuffer::LBLEValueBuffer(float floatValue)
+{
+    shallowInit(floatValue);
+}
+
+LBLEValueBuffer::LBLEValueBuffer(char charValue)
+{
+    shallowInit(charValue);
+}
+
+LBLEValueBuffer::LBLEValueBuffer(const String& strValue)
+{
+    resize(strValue.length() + 1);
+    strValue.getBytes(&(*this)[0], size());
+}

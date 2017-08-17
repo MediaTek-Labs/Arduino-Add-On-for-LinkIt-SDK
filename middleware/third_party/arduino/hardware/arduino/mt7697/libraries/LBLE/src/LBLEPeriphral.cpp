@@ -330,6 +330,9 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
                 m_records.push_back(pRec);
             }
         }
+
+        // assign the last handle number back to attribute instance
+        m_attributes[i]->assignHandle(currentHandle - 1);
     }
 
     // handle numbers
@@ -395,7 +398,8 @@ uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *dat
 LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid, uint32_t permission):
     m_uuid(uuid),
     m_perm(permission),
-    m_updated(false)
+    m_updated(false),
+    m_attrHandle(BT_HANDLE_INVALID)
 {
 
 }
@@ -403,6 +407,11 @@ LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid, uint32_t permissio
 bool LBLECharacteristicBase::isWritten()
 {
     return m_updated;
+}
+
+void LBLECharacteristicBase::assignHandle(uint16_t attrHandle)
+{
+    m_attrHandle = attrHandle;
 }
 
 bt_gatts_service_rec_t* LBLECharacteristicBase::allocRecord(uint32_t recordIndex, uint16_t currentHandle)
@@ -419,10 +428,12 @@ bt_gatts_service_rec_t* LBLECharacteristicBase::allocRecord(uint32_t recordIndex
                 return NULL;
             }	
 
+            // For Arduino, we by default enables all permissions and properties,
+            // allowing read/write and would potentially send notification and indication.
             pRec->rec_hdr.uuid_ptr = &BT_GATT_UUID_CHARC;
             pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
             pRec->rec_hdr.value_len = 19;
-            pRec->value.properties = BT_GATT_CHARC_PROP_READ | BT_GATT_CHARC_PROP_WRITE;
+            pRec->value.properties = BT_GATT_CHARC_PROP_READ | BT_GATT_CHARC_PROP_WRITE | BT_GATT_CHARC_PROP_NOTIFY | BT_GATT_CHARC_PROP_INDICATE;
             pRec->value.handle = currentHandle + 1;
             pRec->value.uuid128 = m_uuid.uuid_data;
             
@@ -455,6 +466,82 @@ bt_gatts_service_rec_t* LBLECharacteristicBase::allocRecord(uint32_t recordIndex
     default:
         return NULL;
     }
+}
+
+// send notification to the given connection
+int LBLECharacteristicBase::_notify(bt_handle_t connection, const LBLEValueBuffer& data)
+{
+    pr_debug("attr data size = %d", data.size());
+    // allocating request buffer, header + data
+    std::vector<uint8_t> reqBuf;
+    const size_t requestHeaderSize = 3;
+    reqBuf.resize(requestHeaderSize + data.size(), 0);
+    pr_debug("attr reqBuf size = %d", reqBuf.size());
+
+    // alias pointer to the request buffer
+    bt_gattc_charc_value_notification_indication_t* pReq = (bt_gattc_charc_value_notification_indication_t*)&reqBuf[0];
+    pReq->attribute_value_length = requestHeaderSize + data.size();
+    pReq->att_req.opcode = BT_ATT_OPCODE_HANDLE_VALUE_NOTIFICATION;
+    pReq->att_req.handle = m_attrHandle;
+    memcpy(pReq->att_req.attribute_value, &data[0], data.size());
+
+    // send notification - we don't expect peer to send ACK.
+    const bt_status_t status = bt_gatts_send_charc_value_notification_indication(connection, pReq);
+    if(BT_STATUS_SUCCESS != status)
+    {
+        pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
+        return -1;
+    }
+    
+    return 0;
+}
+
+// send notification to the given connection
+int LBLECharacteristicBase::_indicate(bt_handle_t connection, const LBLEValueBuffer& data)
+{
+    // allocating request buffer, header + data
+    std::vector<uint8_t> reqBuf;
+    const size_t requestHeaderSize = 3;
+    reqBuf.resize(requestHeaderSize + data.size(), 0);
+    pr_debug("attr reqBuf size = %d", reqBuf.size());
+
+    // alias pointer to the request buffer
+    bt_gattc_charc_value_notification_indication_t* pReq = (bt_gattc_charc_value_notification_indication_t*)&reqBuf[0];
+    pReq->attribute_value_length = requestHeaderSize + data.size();
+    pReq->att_req.opcode = BT_ATT_OPCODE_HANDLE_VALUE_INDICATION;
+    pReq->att_req.handle = m_attrHandle;
+    memcpy(pReq->att_req.attribute_value, &data[0], data.size());
+
+    #if 1
+    const bt_status_t status = bt_gatts_send_charc_value_notification_indication(connection, pReq);
+    if(BT_STATUS_SUCCESS != status)
+    {
+        pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
+        return -1;
+    }
+    return 0; 
+    #else
+    // send notification
+    bool done = waitAndProcessEvent(
+                    // start read request
+                    [&]()
+                    { 
+                        const bt_status_t status = bt_gatts_send_charc_value_notification_indication(connection, pReq);
+                        if(BT_STATUS_SUCCESS != status)
+                        {
+                            pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
+                        }
+                    },
+                    // wait for event...
+                    BT_GATTC_CHARC_VALUE_CONFIRMATION,
+                    // and parse event result in bt task context
+                    [](bt_msg_type_t msg, bt_status_t, void* buf)
+                    {
+                        pr_debug("BT_GATTC_CHARC_VALUE_CONFIRMATION with connection = 0x%x", *(bt_handle_t*)buf);
+                    }
+                );
+    return (done == true) ? 0 : -1;
+    #endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -544,6 +631,24 @@ uint32_t LBLECharacteristicBuffer::onWrite(void *data, uint16_t size, uint16_t o
     return size;
 }
 
+int LBLECharacteristicBuffer::notify(bt_handle_t connection)
+{
+    // notify entire 512-byte buffer
+    LBLEValueBuffer dataBuf;
+    dataBuf.resize(sizeof(m_data));
+    memcpy(&dataBuf[0], m_data, sizeof(m_data));
+    return _notify(connection, dataBuf);
+}
+
+int LBLECharacteristicBuffer::indicate(bt_handle_t connection)
+{
+    // notify entire 512-byte buffer
+    LBLEValueBuffer dataBuf;
+    dataBuf.resize(sizeof(m_data));
+    memcpy(&dataBuf[0], m_data, sizeof(m_data));
+    return _indicate(connection, dataBuf);
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 // LBLECharacteristic (String data)
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -570,6 +675,18 @@ String LBLECharacteristicString::getValue()
 uint32_t LBLECharacteristicString::onSize() const
 {
     return m_data.length();
+}
+
+int LBLECharacteristicString::notify(bt_handle_t connection)
+{
+    LBLEValueBuffer dataBuf(m_data);
+    return _notify(connection, dataBuf);
+}
+
+int LBLECharacteristicString::indicate(bt_handle_t connection)
+{
+    LBLEValueBuffer dataBuf(m_data);
+    return _indicate(connection, dataBuf);
 }
 
 uint32_t LBLECharacteristicString::onRead(void *data, uint16_t size, uint16_t offset)
@@ -651,6 +768,18 @@ int LBLECharacteristicInt::getValue()
 {
     m_updated = false;
     return m_data;
+}
+
+int LBLECharacteristicInt::notify(bt_handle_t connection)
+{
+    LBLEValueBuffer dataBuf(m_data);
+    return _notify(connection, dataBuf);
+}
+
+int LBLECharacteristicInt::indicate(bt_handle_t connection)
+{
+    LBLEValueBuffer dataBuf(m_data);
+    return _indicate(connection, dataBuf);
 }
 
 uint32_t LBLECharacteristicInt::onSize() const
@@ -822,12 +951,31 @@ void LBLEPeripheralClass::stopAdvertise()
     bt_hci_cmd_le_set_advertising_enable_t enable;
     enable.advertising_enable = BT_HCI_DISABLE;
 
-    // start broadcasting
+    // stop broadcasting
+    bool done = waitAndProcessEvent(
+                    // Call connect API
+                    [&enable]()
+                    {
     bt_gap_le_set_advertising(&enable, NULL, NULL, NULL);
+                    },
+                    // wait for confirmation before we can disconnect again...
+                    BT_GAP_LE_SET_ADVERTISING_CNF,
+                    // to update the `m_connection` member in BT task
+                    [](bt_msg_type_t, bt_status_t, void* buf)
+                    {
+                        return;
+                    }
+                );
+    
+    if(!done)
+    {
+        pr_debug("fails to stop advertisement!");
+    }
 
+    // remove the advertisement data
+    // so that advertiseAgain() won't succeed
+    // until advertise() API is called again.
     m_pAdvData.release();
-
-    // TODO: we better wait for the BT_GAP_LE_SET_ADVERTISING_CNF event.
 }
 
 int LBLEPeripheralClass::advertiseAgain()
@@ -836,7 +984,7 @@ int LBLEPeripheralClass::advertiseAgain()
     {
         return -2;
     }
-
+    
     // enable advertisement
     bt_hci_cmd_le_set_advertising_enable_t enable = {0};
     enable.advertising_enable = BT_HCI_ENABLE;
@@ -857,7 +1005,6 @@ int LBLEPeripheralClass::advertiseAgain()
 
     hci_adv_data.advertising_data_length = payLoadRequired;
     pr_debug("advertising_data_length=%d", hci_adv_data.advertising_data_length);
-
     // start broadcasting
     const bt_status_t status = bt_gap_le_set_advertising(&enable, &m_advParam, &hci_adv_data, NULL);
     if (BT_STATUS_SUCCESS != status)
@@ -866,7 +1013,8 @@ int LBLEPeripheralClass::advertiseAgain()
         return -2;
     }
 
-    // TODO: we better wait for the BT_GAP_LE_SET_ADVERTISING_CNF event.
+    // we dont wait for CNF event since this method
+    // may be called in BT task context.
     return 0;
 }
 
@@ -1013,6 +1161,44 @@ bool LBLEPeripheralClass::isOnce()
     return false;
 }
 
+int LBLEPeripheralClass::notifyAll(LBLEAttributeInterface& characteristic)
+{
+    // broadcasting to all connected devices
+    size_t count = 0;
+    size_t notified = 0;
+    for(auto c : m_connections)
+    {
+        if(BT_HANDLE_INVALID != c)
+        {
+            // found valid device
+            pr_debug("notify characteristic 0x%p to connection 0x%x", &characteristic, c);
+            characteristic.notify(c);
+            notified++;
+        }
+    }
+
+    return notified;
+}
+
+int LBLEPeripheralClass::indicateAll(LBLEAttributeInterface& characteristic)
+{
+    // broadcasting to all connected devices
+    size_t count = 0;
+    size_t indicated = 0;
+    for(auto c : m_connections)
+    {
+        if(BT_HANDLE_INVALID != c)
+        {
+            // found valid device
+            pr_debug("indicate characteristic 0x%p to connection 0x%x", &characteristic, c);
+            characteristic.indicate(c);
+            indicated++;
+        }
+    }
+
+    return indicated;
+}
+
 void LBLEPeripheralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
     // note that this callback handler is executed in "bt_task" context
@@ -1029,6 +1215,18 @@ void LBLEPeripheralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *b
             {
                 break;
             }
+
+            // check if there is a redundant connection event
+            for(auto c : m_connections)
+            {
+                // already registered, early break.
+                if(c == pInfo->connection_handle)
+                {
+                    pr_debug("duplicated connection handle event: %d", c);
+                    return;
+                }
+            }
+
             // Peripheral are "slaves"
             if(BT_ROLE_SLAVE == pInfo->role)
             {
@@ -1056,10 +1254,8 @@ void LBLEPeripheralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *b
     case BT_GAP_LE_DISCONNECT_IND:
         {
             const bt_gap_le_disconnect_ind_t* pInfo = (bt_gap_le_disconnect_ind_t*)buff;
-            if(!pInfo)
+            if(pInfo)
             {
-                break;
-            }
             const bt_handle_t disconnectedHandle = pInfo->connection_handle;
             for(auto itr = m_connections.begin(); itr != m_connections.end(); ++itr)
             {
@@ -1070,6 +1266,9 @@ void LBLEPeripheralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *b
                 }
             }
         }
+        }
+        // the underlying framework stops advertisement as soon as a new connection is built.
+        // so we re-advertise ourselves after disconnection.
         advertiseAgain();
         break;
     }
