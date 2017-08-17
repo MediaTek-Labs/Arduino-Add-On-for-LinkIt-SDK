@@ -266,7 +266,7 @@ void hw_uart_init(void)
 
 }
 
-#if 0
+
 void hw_uart_puts(const char *str)
 {
     if (str == NULL) {
@@ -283,18 +283,12 @@ void hw_uart_puts(const char *str)
         str++;
     }
 }
-#else
-void hw_uart_puts(const char *str)
-{
-}
-#endif
 
 void hw_uart_putc(char c)
 {
     hal_uart_put_char(HAL_UART_0, c);
 }
 
-#if 0
 void hw_uart_printf(char *str, ...)
 {
     if (str == NULL) {
@@ -306,13 +300,6 @@ void hw_uart_printf(char *str, ...)
     bl_print_internal(str, ap);
     va_end (ap);
 }
-#else
-
-void hw_uart_printf(char *str, ...){
-return;
-};
-
-#endif
 
 /*
  * @fixme there is no exported non-blocking HAL UART get char API.
