@@ -81,17 +81,22 @@ static void flushinput(void)
 static int _inbyte(unsigned short timeout)
 {
     int c;
+    uint32_t start, current, timeout_us;
 
-    while (timeout) {
+    timeout_us = (uint32_t)timeout * 1000;
+    hal_gpt_get_free_run_count(HAL_GPT_CLOCK_SOURCE_1M, &start);
+    current = start;
+
+    while ((current-start) < timeout_us) {
         if ((c = hw_uart_getc()) >= 0) {
             return c;
         }
 
-        if (!timeout)
-            break;
+        hal_gpt_get_free_run_count(HAL_GPT_CLOCK_SOURCE_1M, &current);
 
-        hal_gpt_delay_ms(1);
-        timeout--;
+        /* 115200 bps, 1 byte receiving time ~= 1000000/115200*10 ~= 86 us.
+           921600 bps, 1 byte receiving time ~= 1000000/921600*10 ~= 11 us.*/
+        hal_gpt_delay_us(1);
     }
 
     return -1;
