@@ -11,6 +11,7 @@ C_FILES  += $(BL_SRC)/crc16.c
 #include path
 CFLAGS += -I$(SOURCE_DIR)/driver/chip/mt7687/inc
 CFLAGS += -I$(SOURCE_DIR)/driver/chip/inc
+CFLAGS += -I$(SOURCE_DIR)/middleware/MTK/connsys/inc
 ifeq ($(MTK_FOTA_ENABLE),y)
 CFLAGS += -I$(SOURCE_DIR)/middleware/MTK/fota/inc
 CFLAGS += -I$(SOURCE_DIR)/middleware/MTK/fota/inc/76x7

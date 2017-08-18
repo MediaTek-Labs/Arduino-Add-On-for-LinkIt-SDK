@@ -68,6 +68,7 @@
 #include "mperf.h"
 #endif
 
+#include "connsys_util.h"
 #include "spi_flash.h"
 
 #define CM4_SYSRAM_END            0x20040000
@@ -449,6 +450,14 @@ static void fotu_do(uint32_t partition, uint32_t len)
     return;
 }
 
+static const char* get_wifi_firmware_version(void)
+{
+    uint8_t* pimage = (uint8_t*)WIFI_FW_ADDR_IN_FLASH;
+    const uint32_t length = *((uint32_t *)pimage);
+    const fw_image_tailer_t* pinfo = (fw_image_tailer_t*)(pimage + length - sizeof(fw_image_tailer_t));
+    return pinfo->ilm_info.ram_built_date + 1;
+}
+
 #define WAIT_USER_INPUT_SEC	(60)    /* wait 1 secs for user input */
 
 static void user_select(void)
@@ -462,6 +471,7 @@ static void user_select(void)
             ;
 
         hw_uart_printf("\r\n");
+        hw_uart_printf("@FWVER=%s\r\n", get_wifi_firmware_version());
         hw_uart_printf("1. Burn flash to 0x%x(BootLoader)\r\n", LOADER_BASE+0x10000000);
         hw_uart_printf("2. Burn flash to 0x%x(XIP)\r\n", CM4_CODE_BASE+0x10000000);
         hw_uart_printf("3. Burn flash to 0x%x(FW)\r\n", N9_RAMCODE_BASE+0x10000000);
