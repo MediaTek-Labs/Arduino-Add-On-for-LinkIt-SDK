@@ -248,7 +248,11 @@ void bl_print_internal(char *fmt, va_list ap)
 void hw_uart_init(void)
 {
     hal_uart_config_t config = {
+                                #ifdef MTK_BOOTLOADER_MENU_ENABLE
+                                 .baudrate    = HAL_UART_BAUDRATE_921600,
+                                #else
                                  .baudrate    = HAL_UART_BAUDRATE_115200,
+                                #endif
                                  .word_length = HAL_UART_WORD_LENGTH_8,
                                  .stop_bit    = HAL_UART_STOP_BIT_1,
                                  .parity      = HAL_UART_PARITY_NONE
@@ -266,9 +270,10 @@ void hw_uart_init(void)
 
 }
 
-#if 0
+
 void hw_uart_puts(const char *str)
 {
+#ifdef MTK_BOOTLOADER_MENU_ENABLE
     if (str == NULL) {
         return;
     }
@@ -282,21 +287,19 @@ void hw_uart_puts(const char *str)
 
         str++;
     }
-}
-#else
-void hw_uart_puts(const char *str)
-{
-}
 #endif
+}
 
 void hw_uart_putc(char c)
 {
+#ifdef MTK_BOOTLOADER_MENU_ENABLE
     hal_uart_put_char(HAL_UART_0, c);
+#endif
 }
 
-#if 0
 void hw_uart_printf(char *str, ...)
 {
+#ifdef MTK_BOOTLOADER_MENU_ENABLE
     if (str == NULL) {
         return;
     }
@@ -305,14 +308,8 @@ void hw_uart_printf(char *str, ...)
     va_start (ap, str);
     bl_print_internal(str, ap);
     va_end (ap);
-}
-#else
-
-void hw_uart_printf(char *str, ...){
-return;
-};
-
 #endif
+}
 
 /*
  * @fixme there is no exported non-blocking HAL UART get char API.

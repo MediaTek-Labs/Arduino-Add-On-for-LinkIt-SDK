@@ -47,7 +47,7 @@ include $(FEATURE)
 # HAL driver files
 include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
 # EPT Config
--include $(SOURCE_DIR)/driver/board/mt76x7_hdk/ept/module.mk
+-include $(SOURCE_DIR)/driver/board/linkit7697_hdk/ept/module.mk
 
 RAM_BOOTING=0
 
@@ -62,7 +62,7 @@ OUTPATH = $(PWD)/Build
 
 Q ?= @
 
-include $(SOURCE_DIR)/driver/board/mt76x7_hdk/bootloader/module.mk
+include $(SOURCE_DIR)/driver/board/linkit7697_hdk/bootloader/module.mk
 
 # FOTA files
 ifeq ($(MTK_FOTA_ENABLE),y)
@@ -90,6 +90,7 @@ CFLAGS += -DMTK_FW_VERSION=\"$(MTK_FW_VERSION)\"
 ifeq ($(MTK_FOTA_ENABLE),y)
 CFLAGS += -DMOD_CFG_FOTA_DISABLE_CLI
 CFLAGS += -DMOD_CFG_FOTA_DISABLE_OS
+CFLAGS += -DMOD_CFG_FOTA_BL_RESERVED
 else
 CFLAGS += -DMOD_CFG_LOADER_DISABLE_FOTA
 endif
@@ -110,9 +111,9 @@ endif
 # include path
 CFLAGS += -I$(SOURCE_DIR)/$(APP_PATH)/inc
 ifeq ($(MTK_BL_LOAD_ENABLE),y)
-CFLAGS  += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/bootloader/src/mt7687
+CFLAGS  += -I$(SOURCE_DIR)/driver/board/linkit7697_hdk/bootloader/src/mt7687
 endif
-CFLAGS += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/ept/inc
+CFLAGS += -I$(SOURCE_DIR)/driver/board/linkit7697_hdk/ept/inc
 
 ###################################################
 # LD Flags
@@ -148,8 +149,12 @@ $(MODULE_PATH):
 	@+make -C $@ $(MOD_EXTRA) $($@_EXTRA)
 
 
+ifeq ($(MTK_BL_BOOT_MENU_ENABLE),y)
+proj: $(OUTPATH)/$(PROJ_NAME).elf $(OUTPATH)/$(PROJ_NAME)-ram.elf
+else
 proj: $(OUTPATH)/$(PROJ_NAME).elf
-#proj: $(OUTPATH)/$(PROJ_NAME).elf $(OUTPATH)/$(PROJ_NAME)-ram.elf
+endif
+
 
 $(OUTPATH)/$(PROJ_NAME)-ram.elf: $(C_OBJS) $(CXX_OBJS) $(S_OBJS) $(LIBS)
 	@echo Linking...
