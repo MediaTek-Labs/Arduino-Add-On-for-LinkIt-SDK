@@ -40,7 +40,7 @@ public:
         const char      *propertyName,
         LFlashDataType  dataType,
         const uint8_t   *buffer,
-        uint32_t        data_size);
+        uint32_t        dataSize);
 
     /* read data from the flash
        [IN]     sectionName  - The name of the data section
