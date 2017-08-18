@@ -1,5 +1,6 @@
 #include <sys/stat.h>
 
+/*This option is to retarget printf(.) for data logging through UART (Universal Asynchronous Receiver/Transmitter) communication.*/
 #ifdef BL_FOTA_DEBUG
 #include "hw_uart.h"
 

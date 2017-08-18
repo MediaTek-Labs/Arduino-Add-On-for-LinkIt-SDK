@@ -17,11 +17,11 @@
  */
 
 /**
- * @addtogroup mt7697_hdk mt7697_hdk
+ * @addtogroup linkit7697_hdk linkit7697_hdk
  * @{
- * @addtogroup mt7697_hdk_apps apps
+ * @addtogroup linkit7697_hdk_apps apps
  * @{
- * @addtogroup mt7697_hdk_apps_bootloader_lite bootloader_lite
+ * @addtogroup linkit7697_hdk_apps_bootloader_lite bootloader_lite
  * @{
 
 @par Overview
@@ -42,7 +42,7 @@
 
 @par Directory contents
   - Source and header files
-    - \b \<sdk_root\>/driver/board/mt76x7_hdk/bootloader/src/mt7687/main.c:
+    - \b \<sdk_root\>/driver/board/linkit7697_hdk/bootloader/src/mt7687/main.c:
                                   Main program
     - \b inc/hal_feature_config.h:
                                   MT7687x's feature configuration file.
@@ -72,7 +72,7 @@
 
 @par Run the example
   - Connect board to the PC with serial port cable.
-  - Build bootloader with the command, "./build.sh mt7697_hdk bootloader"
+  - Build bootloader with the command, "./build.sh linkit7697_hdk bootloader"
     under the SDK root folder and download the binary file to LinkIt 7697
     HDK.
   - Power on LinkIt 7697 HDK and bootloader log are showen on serial tool.
