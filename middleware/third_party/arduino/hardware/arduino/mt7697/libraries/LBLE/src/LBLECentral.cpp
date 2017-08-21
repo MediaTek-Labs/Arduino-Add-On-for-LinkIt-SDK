@@ -1095,37 +1095,3 @@ void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t, void *buff)
                         pNoti->att_rsp->handle);
     }
 }
-
-//////////////////////////////////////////////////////////////////////////
-//  LBLEValueBuffer
-//////////////////////////////////////////////////////////////////////////
-template<typename T>void LBLEValueBuffer::shallowInit(T value)
-{
-    this->resize(sizeof(value));
-    memcpy(&(*this)[0], &value, sizeof(value));
-}
-
-LBLEValueBuffer::LBLEValueBuffer()
-{
-}
-
-LBLEValueBuffer::LBLEValueBuffer(int intValue)
-{
-    shallowInit(intValue);
-}
-
-LBLEValueBuffer::LBLEValueBuffer(float floatValue)
-{
-    shallowInit(floatValue);
-}
-
-LBLEValueBuffer::LBLEValueBuffer(char charValue)
-{
-    shallowInit(charValue);
-}
-
-LBLEValueBuffer::LBLEValueBuffer(const String& strValue)
-{
-    resize(strValue.length() + 1);
-    strValue.getBytes(&(*this)[0], size());
-}
