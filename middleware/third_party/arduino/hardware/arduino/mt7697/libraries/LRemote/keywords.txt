@@ -1,0 +1,68 @@
+#######################################
+# Syntax Coloring Map For LBLE
+#######################################
+
+#######################################
+# Library (KEYWORD1)
+#######################################
+
+LBLE	KEYWORD1	LBLE
+LBLECentral KEYWORD1    LBLECentral
+LBLEPeripheral KEYWORD1    LBLEPeripheral
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+LBLECentral	KEYWORD1	LBLECentral
+LBLEPeripheral	KEYWORD1	LBLEPeripheral
+LBLEUuid        KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+firmwareVersion		KEYWORD2
+status			KEYWORD2
+connect			KEYWORD2
+write			KEYWORD2
+available		KEYWORD2
+config			KEYWORD2
+setDNS			KEYWORD2
+read			KEYWORD2
+flush			KEYWORD2
+stop			KEYWORD2
+connected		KEYWORD2
+begin			KEYWORD2
+disconnect		KEYWORD2
+macAddress		KEYWORD2
+localIP			KEYWORD2
+subnetMask		KEYWORD2
+gatewayIP		KEYWORD2
+SSID			KEYWORD2
+BSSID			KEYWORD2
+RSSI			KEYWORD2
+encryptionType		KEYWORD2
+getResult		KEYWORD2
+getSocket		KEYWORD2
+WiFiClient		KEYWORD2	WiFiClient
+WiFiServer		KEYWORD2	WiFiServer
+WiFiUDP			KEYWORD2	WiFiUDPConstructor
+beginPacket		KEYWORD2
+endPacket		KEYWORD2
+parsePacket		KEYWORD2
+remoteIP		KEYWORD2
+remotePort		KEYWORD2
+
+scan            KEYWORD2    
+getAddress      KEYWORD2    
+getName         KEYWORD2    
+getTxPower      KEYWORD2    
+getRSSI         KEYWORD2    
+getServiceUuid  KEYWORD2    
+getManufacturer KEYWORD2    
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
