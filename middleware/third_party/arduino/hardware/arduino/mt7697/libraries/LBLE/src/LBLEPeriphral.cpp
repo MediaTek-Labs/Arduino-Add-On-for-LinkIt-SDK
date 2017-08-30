@@ -550,7 +550,7 @@ int LBLECharacteristicBase::_indicate(bt_handle_t connection, const LBLEValueBuf
 LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permission):
     LBLECharacteristicBase(uuid, permission)
 {
-    memset(m_data, 0, sizeof(m_data));
+    m_data.resize(512);
     m_writtenInfo.size = 0;
     m_writtenInfo.offset = 0;
 }
@@ -558,24 +558,27 @@ LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permi
 // Set value - size must not exceed MAX_ATTRIBUTE_DATA_LEN.
 void LBLECharacteristicBuffer::setValueBuffer(const uint8_t* buffer, size_t size)
 {
-    if(size > sizeof(m_data))
+    if(size > MAX_ATTRIBUTE_DATA_LEN)
     {
         return;
     }
 
-    memcpy(m_data, buffer, size);
+    m_data.resize(size);
+
+    memcpy(&m_data[0], buffer, size);
 }
 
 // Get value buffer content. (size + offset) must not exceed MAX_ATTRIBUTE_DATA_LEN.
 void LBLECharacteristicBuffer::getValue(uint8_t* buffer, uint16_t size, uint16_t offset)
 {
-    if((offset + size) > sizeof(m_data))
+    if((offset + size) > m_data.size())
     {
         return;
     }
 
-    memcpy(buffer, m_data + offset, size);
+    memcpy(buffer, &m_data[0] + offset, size);
     m_updated = false;
+
 }
 
 // Retrieve value, note that isWritten() flag turns off after calling getValue()
@@ -586,7 +589,7 @@ const LBLECharacteristicWrittenInfo& LBLECharacteristicBuffer::getLastWrittenInf
 
 uint32_t LBLECharacteristicBuffer::onSize() const
 {
-    return sizeof(m_data);
+    return m_data.size();
 }
 
 uint32_t LBLECharacteristicBuffer::onRead(void *data, uint16_t size, uint16_t offset)
@@ -604,7 +607,7 @@ uint32_t LBLECharacteristicBuffer::onRead(void *data, uint16_t size, uint16_t of
 
     if(copySize)
     {
-        memcpy(data, m_data + offset, copySize);
+        memcpy(data, &m_data[0] + offset, copySize);
     }
 
     return copySize;
@@ -615,7 +618,7 @@ uint32_t LBLECharacteristicBuffer::onWrite(void *data, uint16_t size, uint16_t o
     const uint32_t updateSize = size + offset;
 
     // abort writing if exceeding GATT limit (512 bytes)
-    if(updateSize > MAX_ATTRIBUTE_DATA_LEN)
+    if(updateSize > m_data.size())
     {
         return 0;
     }
@@ -625,7 +628,7 @@ uint32_t LBLECharacteristicBuffer::onWrite(void *data, uint16_t size, uint16_t o
     {
         m_writtenInfo.size = size;
         m_writtenInfo.offset = offset;
-        memcpy(m_data + offset, data, size);	
+        memcpy(&m_data[0] + offset, data, size);	
         m_updated = true;
     }
     return size;
@@ -633,20 +636,12 @@ uint32_t LBLECharacteristicBuffer::onWrite(void *data, uint16_t size, uint16_t o
 
 int LBLECharacteristicBuffer::notify(bt_handle_t connection)
 {
-    // notify entire 512-byte buffer
-    LBLEValueBuffer dataBuf;
-    dataBuf.resize(sizeof(m_data));
-    memcpy(&dataBuf[0], m_data, sizeof(m_data));
-    return _notify(connection, dataBuf);
+    return _notify(connection, m_data);
 }
 
 int LBLECharacteristicBuffer::indicate(bt_handle_t connection)
 {
-    // notify entire 512-byte buffer
-    LBLEValueBuffer dataBuf;
-    dataBuf.resize(sizeof(m_data));
-    memcpy(&dataBuf[0], m_data, sizeof(m_data));
-    return _indicate(connection, dataBuf);
+    return _indicate(connection, m_data);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
