@@ -6,11 +6,11 @@
 #include <LRemote.h>
 
 
-LRemoteUIControl btn;
-LRemoteUIControl slider;
-LRemoteUIControl label;
-LRemoteUIControl switchButton;
-LRemoteUIControl bigButton;
+LRemoteButton button;
+LRemoteSlider slider;
+LRemoteLabel label;
+LRemoteSwitch switchButton;
+LRemoteCircleButton bigButton;
 
 void setup() {
   //Initialize serial and wait for port to open:
@@ -22,21 +22,23 @@ void setup() {
     delay(100);
   }
 
+  // Initialize GPIO
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, 0);
+
   // Setup the Remote Control's UI canvas
   LRemote.setGrid(3, 5);
   LRemote.setName("Demo Con");
 
   // Add a push button
-  btn.setType(RC_PUSHBUTTON);
-  btn.setText("OK");
-  btn.setPos(1, 1);
-  btn.setSize(2, 1);
-  btn.setColor(RC_PINK);
-  LRemote.addControl(btn);
+  button.setText("Press Me");
+  button.setPos(1, 1);
+  button.setSize(2, 1);
+  button.setColor(RC_PINK);
+  LRemote.addControl(button);
 
   // Add a big, round button
-  bigButton.setType(RC_CIRCLEBUTTON);
-  bigButton.setText("OK");
+  bigButton.setText("!BIG!");
   bigButton.setPos(0, 3);
   bigButton.setSize(3, 2);
   bigButton.setColor(RC_GREEN);
@@ -51,7 +53,6 @@ void setup() {
   LRemote.addControl(slider);
 
   // Add a simple text label
-  label.setType(RC_LABEL);
   label.setText("Remote Test");
   label.setPos(0, 0);
   label.setSize(3, 1);
@@ -59,8 +60,7 @@ void setup() {
   LRemote.addControl(label);
 
   // Add an on/off switch
-  switchButton.setType(RC_SWITCHBUTTON);
-  switchButton.setText("Power");
+  switchButton.setText("USR LED");
   switchButton.setPos(0, 1);
   switchButton.setSize(1, 1);
   switchButton.setColor(RC_BLUE);
@@ -85,38 +85,21 @@ void loop() {
 
   // Now we poll each control's status
   
-  if(btn.hasEvent()){
-    RCEventInfo info = btn.getLastEvent();
-    Serial.print("btn event=");
-    switch(info.event) {
-      case RC_BTNUP:
-        Serial.println("BTN_UP");
-        break;
-      case RC_BTNDOWN:
-        Serial.println("BTN_DOWN");
-    }
+  if(button.isValueChanged()){
+    Serial.print("button new value =");
+    Serial.println(button.getValue());
   }
 
-  if(bigButton.hasEvent()){
-    RCEventInfo info = bigButton.getLastEvent();
-    Serial.print("bigButton event=");
-    switch(info.event) {
-      case RC_BTNUP:
-        Serial.println("BTN_UP");
-        break;
-      case RC_BTNDOWN:
-        Serial.println("BTN_DOWN");
-    }
+  if(bigButton.isValueChanged()){
+    Serial.print("big button new value =");
+    Serial.println(bigButton.getValue());
   }
 
-  if(switchButton.hasEvent()){
-    RCEventInfo info = switchButton.getLastEvent();
-    Serial.print("switch to new value = ");
-    Serial.println(switchButton.getValue());
+  if(switchButton.isValueChanged()){
+    digitalWrite(LED_BUILTIN, switchButton.getValue());
   }
 
-  if(slider.hasEvent()){
-    RCEventInfo info = slider.getLastEvent();
+  if(slider.isValueChanged()){
     Serial.print("slider to new value = ");
     Serial.println(slider.getValue());
   }

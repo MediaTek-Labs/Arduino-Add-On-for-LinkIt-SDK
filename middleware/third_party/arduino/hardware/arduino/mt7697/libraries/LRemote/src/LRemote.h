@@ -74,22 +74,20 @@ public:
         m_text = text;
     }
 
+protected:
+    const RCEventInfo& getLastEvent() {
+        consumeEvent();
+        return m_lastEvent;
+    }
+
     bool hasEvent() {
         return m_lastEvent.seq != m_eventSeq;
     }
 
-    const RCEventInfo& getLastEvent() {
+    // after calling this, hasEvent() returns false,
+    // unless a new event has arrived from BLE.
+    void consumeEvent() {
         m_eventSeq = m_lastEvent.seq;
-        return m_lastEvent;
-    }
-
-    bool isValueChanged() {
-        return hasEvent();
-    }
-
-    uint8_t getValue() {
-        m_eventSeq = m_lastEvent.seq;
-        return m_lastEvent.data;
     }
 
 public:
@@ -107,6 +105,74 @@ public:
 
     // Our "processed" event sequence ID
     uint8_t m_eventSeq;
+};
+
+enum RemoteButtonEvent {
+    BTN_NO_EVENT = 0,
+    BTN_DOWN = 1,
+    BTN_UP = 2
+};
+
+class LRemoteLabel : public LRemoteUIControl {
+public:
+    LRemoteLabel() : LRemoteUIControl() {
+        setType(RC_LABEL);
+    }
+};
+
+class LRemoteButton : public LRemoteUIControl {
+public:
+    LRemoteButton() : LRemoteUIControl() {
+        setType(RC_PUSHBUTTON);
+    }
+
+    bool isValueChanged() {
+        return hasEvent();
+    }
+
+    uint8_t getValue() {
+        consumeEvent();
+        return m_lastEvent.data;
+    }
+};
+
+class LRemoteCircleButton : public LRemoteButton {
+public:
+    LRemoteCircleButton() : LRemoteButton() {
+        setType(RC_CIRCLEBUTTON);
+    }
+};
+
+class LRemoteSwitch : public LRemoteUIControl {
+public:
+    LRemoteSwitch() : LRemoteUIControl() {
+        setType(RC_SWITCHBUTTON);
+    }
+
+    bool isValueChanged() {
+        return hasEvent();
+    }
+
+    uint8_t getValue() {
+        consumeEvent();
+        return m_lastEvent.data;
+    }
+};
+
+class LRemoteSlider : public LRemoteUIControl {
+public:
+    LRemoteSlider() : LRemoteUIControl() {
+        setType(RC_SLIDER);
+    }
+
+    bool isValueChanged() {
+        return hasEvent();
+    }
+
+    uint8_t getValue() {
+        consumeEvent();
+        return m_lastEvent.data;
+    }
 };
 
 class LRemoteClass {
