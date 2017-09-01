@@ -24,7 +24,7 @@ void setup() {
 
   // Setup the Remote Control's UI canvas
   LRemote.setGrid(3, 5);
-  LRemote.setName("TEST DEV");
+  LRemote.setName("LinkIt 7697");
 
   // Add a push button
   button.setText("Press Me");
