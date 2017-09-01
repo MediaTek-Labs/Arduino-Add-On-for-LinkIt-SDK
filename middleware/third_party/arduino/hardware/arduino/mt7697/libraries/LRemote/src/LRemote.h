@@ -4,7 +4,24 @@
 #include <LBLEPeriphral.h>
 #include <vector>
 
-// Defines the type of the UI control
+// Background / primary color of the UI control
+enum RCColorType {
+    RC_ORANGE = 1,
+    RC_YELLOW,
+    RC_BLUE,
+    RC_GREEN,
+    RC_PINK,
+    RC_GREY,
+};
+
+// Internal event from BLE devce
+enum RCControlEvent {
+    RC_BTNDOWN = 1,
+    RC_BTNUP,
+    RC_VALUECHANGE,
+};
+
+// Internal Defines the type of the UI control
 enum RCControlType {
     RC_LABEL = 1,
     RC_PUSHBUTTON = 2,
@@ -13,32 +30,24 @@ enum RCControlType {
     RC_SLIDER = 5,
 };
 
-// Background / primary color of the UI control
-enum RCColorType {
-    RC_GOLD = 1,
-    RC_YELLOW,
-    RC_BLUE,
-    RC_GREEN,
-    RC_PINK,
-    RC_GREY,
-};
-
-// Event
-enum RCControlEvent {
-    RC_BTNDOWN = 1,
-    RC_BTNUP,
-    RC_VALUECHANGE,
-};
-
+// Internal data structure for BLE events
 struct RCEventInfo {
-    uint8_t event;
-    uint8_t data;
-    uint8_t reserved;
     uint8_t seq;
+    uint8_t event;
+    uint16_t data;
+};
+
+// Internal structure for storing config data.
+// the semantic is up to each subclass to interpret.
+struct RCConfigData {
+    uint16_t data1;
+    uint16_t data2;
+    uint16_t data3;
+    uint16_t data4;
 };
 
 class LRemoteUIControl {
-public:
+protected:
     LRemoteUIControl() :
         m_x(0),
         m_y(0),
@@ -51,7 +60,7 @@ public:
     {
         memset(&m_lastEvent, sizeof(m_lastEvent), 0);
     }
-
+public:
     void setType(RCControlType type) {
         m_type = type;
     }
@@ -72,6 +81,19 @@ public:
 
     void setText(const String& text) {
         m_text = text;
+    }
+
+public:
+
+    // Each subclass of controls should be responsible
+    // for filling this config data according
+    // to their own definitions. The corresponding
+    // mobile app counterpart (LinkIt Remote)
+    // should decode the config data in the same fashion
+    virtual void fillConfigData(RCConfigData &info) {
+        // by default, we simply zero clear the config data
+        memset(&info, 0, sizeof(info));
+        return;
     }
 
 protected:
@@ -107,12 +129,6 @@ public:
     uint8_t m_eventSeq;
 };
 
-enum RemoteButtonEvent {
-    BTN_NO_EVENT = 0,
-    BTN_DOWN = 1,
-    BTN_UP = 2
-};
-
 class LRemoteLabel : public LRemoteUIControl {
 public:
     LRemoteLabel() : LRemoteUIControl() {
@@ -130,7 +146,9 @@ public:
         return hasEvent();
     }
 
-    uint8_t getValue() {
+    // returns 1 if button is currently pressed
+    // returns 0 if button is not pressed
+    uint16_t getValue() {
         consumeEvent();
         return m_lastEvent.data;
     }
@@ -153,7 +171,9 @@ public:
         return hasEvent();
     }
 
-    uint8_t getValue() {
+    // returns 1 if switched on
+    // returns 0 if switched off
+    uint16_t getValue() {
         consumeEvent();
         return m_lastEvent.data;
     }
@@ -161,7 +181,12 @@ public:
 
 class LRemoteSlider : public LRemoteUIControl {
 public:
-    LRemoteSlider() : LRemoteUIControl() {
+    LRemoteSlider() : 
+        LRemoteUIControl(),
+        m_minValue(0),
+        m_maxValue(100),
+        m_initValue(0)
+    {
         setType(RC_SLIDER);
     }
 
@@ -169,19 +194,49 @@ public:
         return hasEvent();
     }
 
-    uint8_t getValue() {
+    // returns value according to remote slider value
+    int16_t getValue() {
         consumeEvent();
-        return m_lastEvent.data;
+        return static_cast<int16_t>(m_lastEvent.data);
     }
+
+    // configures the value range for the slider
+    void setValueRange(int16_t min, int16_t max, int16_t initialValue) {
+        m_minValue = min;
+        m_maxValue = max;
+        m_initValue = initialValue;
+        return;
+    }
+
+    virtual void fillConfigData(RCConfigData &info) {
+        // data1 : min value
+        // data2 : max value
+        // data3 : initial value
+        // data4 : reserved
+        info.data1 = (uint16_t)m_minValue;
+        info.data2 = (uint16_t)m_maxValue;
+        info.data3 = (uint16_t)m_initValue;
+        info.data4 = 0;
+        return;
+    }
+
+protected:
+    int16_t m_minValue;
+    int16_t m_maxValue;
+    int16_t m_initValue;
 };
 
 class LRemoteClass {
 public:
 
+    // Configure name of this device.
+    // This will appear in the device list
+    // of the LinkIt Remote app.
     void setName(const String& name) {
         m_deviceName = name;
     }
 
+    // Set the canvas grid layout of the 
     void setGrid(int column, int row) {
         m_canvasRow = row;
         m_canvasColumn = column;
@@ -192,8 +247,16 @@ public:
         m_controls.push_back(&control);
     }
 
+    // Initializes a BLE peripheral
+    // and start advertisement
     void begin();
 
+    // Check if the LinkIt Remote app
+    // has connected
+    bool connected();
+
+    // Process event sent from the
+    // LinkIt Remote app.
     void process();
 
 protected:

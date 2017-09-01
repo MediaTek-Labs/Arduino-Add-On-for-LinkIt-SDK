@@ -16,11 +16,7 @@ void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
 
-  // Initialize BLE subsystem
-  LBLE.begin();
-  while (!LBLE.ready()) {
-    delay(100);
-  }
+  Serial.println("Start configuring remote");
 
   // Initialize GPIO
   pinMode(LED_BUILTIN, OUTPUT);
@@ -28,7 +24,7 @@ void setup() {
 
   // Setup the Remote Control's UI canvas
   LRemote.setGrid(3, 5);
-  LRemote.setName("Demo Con");
+  LRemote.setName("TEST DEV");
 
   // Add a push button
   button.setText("Press Me");
@@ -45,11 +41,11 @@ void setup() {
   LRemote.addControl(bigButton);
 
   // Add a slider
-  slider.setType(RC_SLIDER);
-  slider.setText("MinMax");
+  slider.setText("Value Slider(-100 ~ 1024)");
   slider.setPos(0, 2);
   slider.setSize(3, 1);
-  slider.setColor(RC_GOLD);
+  slider.setColor(RC_ORANGE);
+  slider.setValueRange(-100, 1024, 0);
   LRemote.addControl(slider);
 
   // Add a simple text label
@@ -67,12 +63,18 @@ void setup() {
   LRemote.addControl(switchButton);
 
   // Start broadcasting our remote contoller
+  // This method implicitly initialized underlying BLE subsystem
+  // to create a BLE peripheral, and then
+  // start advertisement on it.
   LRemote.begin();
+  Serial.println("begin() returned");
 }
 
 void loop() {
 
-  if(!LBLEPeripheral.connected()) {
+  // check if we are connect by some 
+  // BLE central device, e.g. an mobile app
+  if(!LRemote.connected()) {
     Serial.println("waiting for connection");
     delay(1000);
   } else {

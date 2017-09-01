@@ -404,6 +404,15 @@ LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid, uint32_t permissio
 
 }
 
+LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid):
+    m_uuid(uuid),
+    m_perm(LBLE_READ | LBLE_WRITE),
+    m_updated(false),
+    m_attrHandle(BT_HANDLE_INVALID)
+{
+
+}
+
 bool LBLECharacteristicBase::isWritten()
 {
     return m_updated;
@@ -555,6 +564,14 @@ LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permi
     m_writtenInfo.offset = 0;
 }
 
+LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid):
+    LBLECharacteristicBase(uuid, LBLE_READ | LBLE_WRITE)
+{
+    m_data.resize(512);
+    m_writtenInfo.size = 0;
+    m_writtenInfo.offset = 0;
+}
+
 // Set value - size must not exceed MAX_ATTRIBUTE_DATA_LEN.
 void LBLECharacteristicBuffer::setValueBuffer(const uint8_t* buffer, size_t size)
 {
@@ -653,6 +670,12 @@ LBLECharacteristicString::LBLECharacteristicString(LBLEUuid uuid, uint32_t permi
 
 }
 
+LBLECharacteristicString::LBLECharacteristicString(LBLEUuid uuid):
+    LBLECharacteristicBase(uuid, LBLE_READ | LBLE_WRITE)
+{
+
+}
+
 void LBLECharacteristicString::setValue(const String& value)
 {
     // m_update means "set by central device",
@@ -746,6 +769,13 @@ uint32_t LBLECharacteristicString::onWrite(void *data, uint16_t size, uint16_t o
 /////////////////////////////////////////////////////////////////////////////////////////////
 LBLECharacteristicInt::LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission):
     LBLECharacteristicBase(uuid, permission),
+    m_data(0)
+{
+
+}
+
+LBLECharacteristicInt::LBLECharacteristicInt(LBLEUuid uuid):
+    LBLECharacteristicBase(uuid, LBLE_READ | LBLE_WRITE),
     m_data(0)
 {
 
