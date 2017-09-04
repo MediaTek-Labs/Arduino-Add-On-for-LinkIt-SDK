@@ -44,7 +44,7 @@ public:
     //Access/read members.
     //uint8_t operator*() const            { return eeprom_read_byte( (uint8_t*) index ); }
     uint8_t operator*() const;
-    operator const uint8_t() const       { return **this; }
+    operator uint8_t() const       { return **this; }
 
     //Assignment/write members.
     EERef &operator=( const EERef &ref ) { return *this = *ref; }
@@ -94,7 +94,7 @@ public:
     EEPtr( const int index )
         : index( index )                {}
 
-    operator const int() const          { return index; }
+    operator int() const          { return index; }
     EEPtr &operator=( int in )          { return index = in, *this; }
 
     //Iterator functionality.
