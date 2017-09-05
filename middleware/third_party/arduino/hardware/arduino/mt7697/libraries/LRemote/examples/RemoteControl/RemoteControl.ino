@@ -5,7 +5,6 @@
 */
 #include <LRemote.h>
 
-
 LRemoteButton button;
 LRemoteSlider slider;
 LRemoteLabel label;
@@ -23,8 +22,9 @@ void setup() {
   digitalWrite(LED_BUILTIN, 0);
 
   // Setup the Remote Control's UI canvas
-  LRemote.setGrid(3, 5);
   LRemote.setName("LinkIt 7697");
+  LRemote.setOrientation(RC_PORTRAIT);
+  LRemote.setGrid(3, 5);
 
   // Add a push button
   button.setText("Press Me");

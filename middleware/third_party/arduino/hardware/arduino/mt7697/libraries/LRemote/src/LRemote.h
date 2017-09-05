@@ -14,6 +14,12 @@ enum RCColorType {
     RC_GREY,
 };
 
+// Set desired view orientation for your UI
+enum RCOrientation {
+    RC_PORTRAIT = 0,
+    RC_LANDSCAPE = 1
+};
+
 // Internal event from BLE devce
 enum RCControlEvent {
     RC_BTNDOWN = 1,
@@ -228,6 +234,14 @@ protected:
 
 class LRemoteClass {
 public:
+    LRemoteClass():
+        m_canvasColumn(1),
+        m_canvasRow(1),
+        m_orientation(RC_PORTRAIT),
+        m_deviceName("LinkIt 7697")
+    {
+
+    }
 
     // Configure name of this device.
     // This will appear in the device list
@@ -247,6 +261,10 @@ public:
         m_controls.push_back(&control);
     }
 
+    void setOrientation(RCOrientation orientation) {
+        m_orientation = orientation;
+    }
+
     // Initializes a BLE peripheral
     // and start advertisement
     void begin();
@@ -264,6 +282,7 @@ protected:
     std::vector<LRemoteUIControl*> m_controls;
     int m_canvasRow;
     int m_canvasColumn;
+    RCOrientation m_orientation;
 };
 
 extern LRemoteClass LRemote;

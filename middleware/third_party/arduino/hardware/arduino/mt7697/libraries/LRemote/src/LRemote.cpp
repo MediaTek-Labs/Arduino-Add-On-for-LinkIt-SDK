@@ -31,10 +31,13 @@ static LBLECharacteristicBuffer
     rcEventArray("b5d2ff7b-6eff-4fb5-9b72-6b9cff5181e7"); // Array of UINT8[4],
                                                           // (sequence, event,
                                                           //  event data_byte1,
-                                                          //  event data_byte2, 
+                                                          //  event data_byte2,
                                                           // #) of each control
 static LBLECharacteristicBuffer
     rcConfigDataArray("5d7a63ff-4155-4c7c-a348-1c0a323a6383");
+
+static LBLECharacteristicInt rcOrientation(
+    "203fbbcd-9967-4eba-b0ff-0f72e5a634eb"); // 0: portrait, 1: landscape
 
 void LRemoteClass::begin() {
   // Initialize BLE subsystem
@@ -69,6 +72,7 @@ void LRemoteClass::begin() {
   rcService.addAttribute(rcNames);
   rcService.addAttribute(rcEventArray);
   rcService.addAttribute(rcConfigDataArray);
+  rcService.addAttribute(rcOrientation);
 
   // Add service to GATT server (peripheral)
   LBLEPeripheral.addService(rcService);
@@ -78,10 +82,11 @@ void LRemoteClass::begin() {
   rcControlCount.setValue(count);
   rcCol.setValue(m_canvasColumn);
   rcRow.setValue(m_canvasRow);
+  rcOrientation.setValue(m_orientation);
 
   LBLEValueBuffer typeArray;
   typeArray.resize(count);
-  
+
   LBLEValueBuffer colorArray;
   colorArray.resize(count);
 
@@ -90,7 +95,7 @@ void LRemoteClass::begin() {
 
   LBLEValueBuffer eventArray;
   eventArray.resize(count * 4);
-  
+
   String nameList;
 
   LBLEValueBuffer configDataArray;
@@ -110,16 +115,16 @@ void LRemoteClass::begin() {
     nameList += '\n';
 
     // convert default values of each control to BLE attribute
-    const RCEventInfo& info = m_controls[i]->m_lastEvent;
-    eventArray[i * 4 + 0] = 0;  // initial sequence = 0
-    eventArray[i * 4 + 1] = 0;  // initial event = 0
-    *((uint16_t*)&eventArray[i * 4 + 2]) = info.data; // initial data
+    const RCEventInfo &info = m_controls[i]->m_lastEvent;
+    eventArray[i * 4 + 0] = 0;                         // initial sequence = 0
+    eventArray[i * 4 + 1] = 0;                         // initial event = 0
+    *((uint16_t *)&eventArray[i * 4 + 2]) = info.data; // initial data
 
     Serial.println("config data fill");
     // fill the additional config data
     RCConfigData configData;
     m_controls[i]->fillConfigData(configData);
-    *((RCConfigData*)&configDataArray[i * sizeof(RCConfigData)]) = configData;
+    *((RCConfigData *)&configDataArray[i * sizeof(RCConfigData)]) = configData;
   }
 
   rcControlTypes.setValueBuffer(&typeArray[0], typeArray.size());
@@ -137,9 +142,7 @@ void LRemoteClass::begin() {
   LBLEPeripheral.advertise(advertisement);
 }
 
-bool LRemoteClass::connected() {
-  return LBLEPeripheral.connected();
-}
+bool LRemoteClass::connected() { return LBLEPeripheral.connected(); }
 
 void LRemoteClass::process() {
   // check if new event coming in
