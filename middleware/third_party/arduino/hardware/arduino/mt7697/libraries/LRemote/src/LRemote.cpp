@@ -40,11 +40,8 @@ static LBLECharacteristicInt rcOrientation(
     "203fbbcd-9967-4eba-b0ff-0f72e5a634eb"); // 0: portrait, 1: landscape
 
 void LRemoteClass::begin() {
-  // Initialize BLE subsystem
-  LBLE.begin();
-  while (!LBLE.ready()) {
-    delay(100);
-  }
+  // Initialize BLE subsystem if necessary
+  initBLEOnce();
 
   // configure our advertisement data.
   // In this case, we simply create an advertisement that represents an
@@ -61,21 +58,6 @@ void LRemoteClass::begin() {
   // Configure our device's Generic Access Profile's device name
   // Ususally this is the same as the name in the advertisement data.
   LBLEPeripheral.setName(m_deviceName.c_str());
-
-  // Add characteristics into rcService
-  rcService.addAttribute(rcCol);
-  rcService.addAttribute(rcRow);
-  rcService.addAttribute(rcControlCount);
-  rcService.addAttribute(rcControlTypes);
-  rcService.addAttribute(rcColors);
-  rcService.addAttribute(rcFrames);
-  rcService.addAttribute(rcNames);
-  rcService.addAttribute(rcEventArray);
-  rcService.addAttribute(rcConfigDataArray);
-  rcService.addAttribute(rcOrientation);
-
-  // Add service to GATT server (peripheral)
-  LBLEPeripheral.addService(rcService);
 
   // Set default values
   const size_t count = m_controls.size();
@@ -134,12 +116,51 @@ void LRemoteClass::begin() {
   rcEventArray.setValueBuffer(&eventArray[0], eventArray.size());
   rcConfigDataArray.setValueBuffer(&configDataArray[0], configDataArray.size());
 
+  initPeripheralOnce();
+
+  // start advertisment
+  LBLEPeripheral.advertise(advertisement);
+}
+
+void LRemoteClass::initBLEOnce() {
+  if (m_bleInitialized) {
+    return;
+  }
+
+  m_bleInitialized = true;
+
+  // Initialize BLE subsystem
+  LBLE.begin();
+  while (!LBLE.ready()) {
+    delay(100);
+  }
+
+  // Add characteristics into rcService
+  rcService.addAttribute(rcCol);
+  rcService.addAttribute(rcRow);
+  rcService.addAttribute(rcControlCount);
+  rcService.addAttribute(rcControlTypes);
+  rcService.addAttribute(rcColors);
+  rcService.addAttribute(rcFrames);
+  rcService.addAttribute(rcNames);
+  rcService.addAttribute(rcEventArray);
+  rcService.addAttribute(rcConfigDataArray);
+  rcService.addAttribute(rcOrientation);
+
+  // Add service to GATT server (peripheral)
+  LBLEPeripheral.addService(rcService);
+}
+
+void LRemoteClass::initPeripheralOnce() {
+  if (m_peripheralBegan) {
+    return;
+  }
+
   // start the GATT server - it is now
   // available to connect
   LBLEPeripheral.begin();
 
-  // start advertisment
-  LBLEPeripheral.advertise(advertisement);
+  m_peripheralBegan = true;
 }
 
 bool LRemoteClass::connected() { return LBLEPeripheral.connected(); }
@@ -159,4 +180,11 @@ void LRemoteClass::process() {
       rcEventArray.getValue((uint8_t *)&control.m_lastEvent, 4, i * 4);
     }
   }
+}
+
+void LRemoteClass::end() {
+  // force disconnect all clients and stop advertise ourselves.
+  // Note: the underlying BT subssystem is still kept alive.
+  LBLEPeripheral.disconnectAll();
+  LBLEPeripheral.stopAdvertise();
 }
