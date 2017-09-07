@@ -210,6 +210,8 @@ class LBLECharacteristicBase : public LBLEAttributeInterface
 public:	// method for Arduino users
 
 	LBLECharacteristicBase(LBLEUuid uuid, uint32_t permission);
+	
+	LBLECharacteristicBase(LBLEUuid uuid);
 
 	// Check if a character is written
 	bool isWritten();
@@ -247,9 +249,10 @@ struct LBLECharacteristicWrittenInfo
 	uint16_t offset;
 };
 
-/// \brief represents a typeless 512-byte raw buffer GATT attribute.
+/// \brief represents a typeless raw buffer GATT attribute.
 ///
-/// This characteristic is a 512-byte raw buffer initialized to zero
+/// This characteristic is a raw buffer initialized to zero.
+/// The length of the buffer is limited to MAX_ATTRIBUTE_DATA_LEN
 /// When isWritten() is true, you can use getLastWrittenInfo()
 /// to check what part of the buffer is updated during the last write.
 class LBLECharacteristicBuffer : public LBLECharacteristicBase
@@ -258,6 +261,8 @@ public:	// method for Arduino users
 
 	LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permission);
 
+	LBLECharacteristicBuffer(LBLEUuid uuid);
+
 	/// Set value with raw buffer
 	///
 	/// \param buffer pointer to raw buffer of value. 
@@ -265,6 +270,9 @@ public:	// method for Arduino users
 	///				  buffer of the LBLECharacteristicBuffer object.
 	/// \param size must not exceed MAX_ATTRIBUTE_DATA_LEN.
 	void setValueBuffer(const uint8_t* buffer, size_t size);
+
+	/// Set value buffer size and initialize all content to 0
+	void setValueBufferWithSize(size_t size);
 
 	/// Get value buffer content. 
 	/// 
@@ -293,7 +301,7 @@ public:	// for BLE framework
 	virtual int indicate(bt_handle_t connection);
 
 private:
-	uint8_t m_data[MAX_ATTRIBUTE_DATA_LEN];
+	LBLEValueBuffer m_data;
 	LBLECharacteristicWrittenInfo m_writtenInfo;
 };
 
@@ -311,6 +319,8 @@ public:	// method for Arduino users
 	/// \param uuid UUID for this characteristic
 	/// \param permission read/write permission. (currently ignored).
 	LBLECharacteristicInt(LBLEUuid uuid, uint32_t permission);
+
+	LBLECharacteristicInt(LBLEUuid uuid);
 
 	/// Set value of the characteristic.
 	void setValue(int value);
@@ -359,6 +369,8 @@ public:	// method for Arduino users
 	/// \param uuid UUID for this characteristic
 	/// \param permission read/write permission. (currently ignored).
 	LBLECharacteristicString(LBLEUuid uuid, uint32_t permission);
+
+	LBLECharacteristicString(LBLEUuid uuid);
 
 	/// Set value of the characteristic.
 	void setValue(const String& value);

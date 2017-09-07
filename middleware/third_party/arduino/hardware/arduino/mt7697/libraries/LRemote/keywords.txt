@@ -1,0 +1,47 @@
+#######################################
+# Syntax Coloring Map For LRemote
+#######################################
+
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+LRemote				KEYWORD1
+LRemoteUIControl	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+setName			KEYWORD2
+setGrid		    KEYWORD2
+setType			KEYWORD2
+setText			KEYWORD2
+setPos			KEYWORD2
+setSize			KEYWORD2
+setColor		KEYWORD2
+addControl		KEYWORD2
+begin			KEYWORD2
+getLastEvent	KEYWORD2
+getValue		KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+RC_LABEL		LITERAL1
+RC_PUSHBUTTON	LITERAL1
+RC_CIRCLEBUTTON	LITERAL1
+RC_SWITCHBUTTON	LITERAL1
+RC_SLIDER		LITERAL1
+RC_ORANGE			LITERAL1
+RC_YELLOW		LITERAL1
+RC_BLUE			LITERAL1
+RC_GREEN		LITERAL1
+RC_PINK			LITERAL1
+RC_GREY			LITERAL1
+RC_BTNDOWN		LITERAL1
+RC_BTNUP		LITERAL1
+RC_VALUECHANGE	LITERAL1
