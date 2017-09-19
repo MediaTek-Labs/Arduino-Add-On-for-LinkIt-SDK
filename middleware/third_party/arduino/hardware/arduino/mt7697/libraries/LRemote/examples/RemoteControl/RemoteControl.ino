@@ -78,7 +78,12 @@ void loop() {
     Serial.println("waiting for connection");
     delay(1000);
   } else {
-    delay(100);
+    // The interval between button down/up
+    // can be very short - e.g. a quick tap
+    // on the screen.
+    // We could lose some event if we
+    // delay something like 100ms.
+    delay(15);
   }
   
   // Process the incoming BLE write request
@@ -99,6 +104,8 @@ void loop() {
 
   if(switchButton.isValueChanged()){
     digitalWrite(LED_BUILTIN, switchButton.getValue());
+    Serial.print("USR LED new value =");
+    Serial.println(switchButton.getValue());
   }
 
   if(slider.isValueChanged()){
