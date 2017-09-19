@@ -28,7 +28,7 @@ static LBLECharacteristicString
                                                      // separated by the \n
                                                      // ASCII character
 static LBLECharacteristicBuffer
-    rcEventArray("b5d2ff7b-6eff-4fb5-9b72-6b9cff5181e7"); // Array of UINT8[4],
+    rcEvent("b5d2ff7b-6eff-4fb5-9b72-6b9cff5181e7"); // Array of UINT8[4],
                                                           // (sequence, event,
                                                           //  event data_byte1,
                                                           //  event data_byte2,
@@ -38,6 +38,8 @@ static LBLECharacteristicBuffer
 
 static LBLECharacteristicInt rcOrientation(
     "203fbbcd-9967-4eba-b0ff-0f72e5a634eb"); // 0: portrait, 1: landscape
+
+static LBLECharacteristicInt rcProtocolVersion("ae73266e-65d4-4023-8868-88b070d5d576"); // Incremental
 
 void LRemoteClass::begin() {
   // Initialize BLE subsystem if necessary
@@ -61,6 +63,7 @@ void LRemoteClass::begin() {
 
   // Set default values
   const size_t count = m_controls.size();
+  rcProtocolVersion.setValue(PROTOCOL_VERSION);
   rcControlCount.setValue(count);
   rcCol.setValue(m_canvasColumn);
   rcRow.setValue(m_canvasRow);
@@ -75,8 +78,12 @@ void LRemoteClass::begin() {
   LBLEValueBuffer frameArray;
   frameArray.resize(count * 4); // (x, y, r, c) are 4 uint8_t
 
-  LBLEValueBuffer eventArray;
-  eventArray.resize(count * 4);
+  RCEventInfo eventInfo;
+  eventInfo.seq = 0;
+  eventInfo.controlIndex = 0;
+  eventInfo.event = 0;
+  eventInfo.processedSeq = 0;
+  eventInfo.data = 0;
 
   String nameList;
 
@@ -96,12 +103,6 @@ void LRemoteClass::begin() {
     nameList += m_controls[i]->m_text;
     nameList += '\n';
 
-    // convert default values of each control to BLE attribute
-    const RCEventInfo &info = m_controls[i]->m_lastEvent;
-    eventArray[i * 4 + 0] = 0;                         // initial sequence = 0
-    eventArray[i * 4 + 1] = 0;                         // initial event = 0
-    *((uint16_t *)&eventArray[i * 4 + 2]) = info.data; // initial data
-
     Serial.println("config data fill");
     // fill the additional config data
     RCConfigData configData;
@@ -113,7 +114,7 @@ void LRemoteClass::begin() {
   rcColors.setValueBuffer(&colorArray[0], colorArray.size());
   rcFrames.setValueBuffer(&frameArray[0], frameArray.size());
   rcNames.setValue(nameList);
-  rcEventArray.setValueBuffer(&eventArray[0], eventArray.size());
+  rcEvent.setValueBuffer((uint8_t*)&eventInfo, sizeof(eventInfo));
   rcConfigDataArray.setValueBuffer(&configDataArray[0], configDataArray.size());
 
   initPeripheralOnce();
@@ -136,6 +137,7 @@ void LRemoteClass::initBLEOnce() {
   }
 
   // Add characteristics into rcService
+  rcService.addAttribute(rcProtocolVersion);
   rcService.addAttribute(rcCol);
   rcService.addAttribute(rcRow);
   rcService.addAttribute(rcControlCount);
@@ -143,7 +145,7 @@ void LRemoteClass::initBLEOnce() {
   rcService.addAttribute(rcColors);
   rcService.addAttribute(rcFrames);
   rcService.addAttribute(rcNames);
-  rcService.addAttribute(rcEventArray);
+  rcService.addAttribute(rcEvent);
   rcService.addAttribute(rcConfigDataArray);
   rcService.addAttribute(rcOrientation);
 
@@ -167,18 +169,25 @@ bool LRemoteClass::connected() { return LBLEPeripheral.connected(); }
 
 void LRemoteClass::process() {
   // check if new event coming in
-  if (rcEventArray.isWritten()) {
-    const LBLECharacteristicWrittenInfo &written =
-        rcEventArray.getLastWrittenInfo();
+  if (rcEvent.isWritten()) {
+    const LBLECharacteristicWrittenInfo &written = rcEvent.getLastWrittenInfo();
 
-    // scan and compare for event serial numbers
-    for (size_t i = 0; i < m_controls.size(); i++) {
+    RCEventInfo event = {0};
 
+    // retrieve the control's event info
+    rcEvent.getValue((uint8_t *)&event, sizeof(event), 0);
+
+    // scan and update event info
+    // make sure that the "sequence number" is incremented
+    // (and thus different from the control's record)
+    const size_t i = event.controlIndex;
       LRemoteUIControl &control = *m_controls[i];
+    const uint8_t oldSeq = control.m_lastEvent.seq;
+    control.m_lastEvent = event;
+    control.m_lastEvent.seq = oldSeq + 1;
 
-      // retrieve the control's event info
-      rcEventArray.getValue((uint8_t *)&control.m_lastEvent, 4, i * 4);
-    }
+    event.processedSeq = event.seq;
+    rcEvent.setValueBuffer((uint8_t *)&event, sizeof(event));
   }
 }
 

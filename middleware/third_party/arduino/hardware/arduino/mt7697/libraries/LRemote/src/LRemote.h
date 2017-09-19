@@ -4,6 +4,8 @@
 #include <LBLEPeriphral.h>
 #include <vector>
 
+#define PROTOCOL_VERSION (2)
+
 // Background / primary color of the UI control
 enum RCColorType {
   RC_ORANGE = 1,
@@ -35,9 +37,11 @@ enum RCControlType {
 
 // Internal data structure for BLE events
 struct RCEventInfo {
-  uint8_t seq;
-  uint8_t event;
-  uint16_t data;
+  uint8_t seq;            // from Mobile, increment sequence serial number
+  uint8_t controlIndex;   // from Mobile, index into the control array of the event origin
+  uint8_t event;          // from Mobile, event type
+  uint8_t processedSeq;   // from Arduino, last processed serial number.
+  uint16_t data;          // from Mobile, data of the event
 };
 
 // Internal structure for storing config data.
