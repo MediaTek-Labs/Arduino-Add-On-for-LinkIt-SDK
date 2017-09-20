@@ -24,6 +24,7 @@ extern "C" {
 #include "delay.h"
 #include <hal_adc.h>
 #include <hal_pwm.h>
+#include <log_dump.h>
 
 static int _readResolution  = 12;		// MT7687 ADC: 12 Bit
 
@@ -121,12 +122,20 @@ void analogWrite(uint32_t ulPin, uint32_t ulValue)
 		ulValue = (1<<_writeResolution)-1;
 
 	if (HAL_PWM_STATUS_OK != hal_pwm_get_running_status(pwm_channel, &status))
-		return;			/* hal_pwm_get_running_status fail */
+	{
+		// If fail to get PWM state,
+		// we assume PWM is not initialized -> set to IDLE.
+		// switch to PWM mode
+		status = HAL_PWM_IDLE;
+	}	
 
 	if (HAL_PWM_IDLE  == status) {
 		/* Set Pinmux to pwm mode */
 		if (!pin_enable_pwm(pin_desc))
+		{
+			pr_debug("pin_enable_pwm failed -> analogWrite failed\n");
 			return;
+		}	
 
 		if (HAL_PWM_STATUS_OK != hal_pwm_set_frequency(pwm_channel, PWM_FREQUENCY, &total_count))
 			return;		/* hal_pwm_set_frequency fail */
