@@ -59,7 +59,7 @@ uint8_t Servo::attach(int pin, int min, int max)
   this->max  = max/4*4;
 
   hal_gpio_init(pin_desc->pin_no);
-  hal_pinmux_set_function(pin_desc->pin_no, pin_desc->pin_mux_aon_sel_pwm);
+  pin_enable_pwm(pin_desc);
   if(HAL_PWM_STATUS_OK != hal_pwm_set_frequency((hal_pwm_channel_t)pin_desc->pin_info_pwm_channel, (1000*1000)/REFRESH_INTERVAL, &total_count))
     return INVALID_SERVO-1;
   hal_pwm_set_duty_cycle((hal_pwm_channel_t)pin_desc->pin_info_pwm_channel, US_TO_TICK(DEFAULT_PULSE_WIDTH));

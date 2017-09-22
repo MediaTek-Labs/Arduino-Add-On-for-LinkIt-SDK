@@ -111,7 +111,6 @@ void analogWrite(uint32_t ulPin, uint32_t ulValue)
 	hal_pwm_running_status_t	status      = -1;
 	uint8_t				pwm_channel;
 
-
 	pin_desc = get_arduino_pin_desc(ulPin);
 	if (pin_desc == NULL)
 		return;
@@ -121,38 +120,55 @@ void analogWrite(uint32_t ulPin, uint32_t ulValue)
 	if (ulValue > (uint32_t)((1<<_writeResolution)-1))
 		ulValue = (1<<_writeResolution)-1;
 
+	/* Set Pinmux to pwm mode */
+	if (!pin_enable_pwm(pin_desc))
+	{
+		pr_debug("pin_enable_pwm failed -> analogWrite failed\n");
+		return;
+	}
+
 	if (HAL_PWM_STATUS_OK != hal_pwm_get_running_status(pwm_channel, &status))
 	{
 		// If fail to get PWM state,
 		// we assume PWM is not initialized -> set to IDLE.
 		// switch to PWM mode
+		pr_debug("hal_pwm_get_running_status failed\n");
 		status = HAL_PWM_IDLE;
 	}	
 
 	if (HAL_PWM_IDLE  == status) {
-		/* Set Pinmux to pwm mode */
-		if (!pin_enable_pwm(pin_desc))
-		{
-			pr_debug("pin_enable_pwm failed -> analogWrite failed\n");
-			return;
-		}	
 
 		if (HAL_PWM_STATUS_OK != hal_pwm_set_frequency(pwm_channel, PWM_FREQUENCY, &total_count))
+		{
+			pr_debug("hal_pwm_set_frequency failed\n");
 			return;		/* hal_pwm_set_frequency fail */
+		}	
 
 		ulValue = ulValue * total_count / ((1 << _writeResolution)-1);
 
 		if (HAL_PWM_STATUS_OK != hal_pwm_set_duty_cycle(pwm_channel, ulValue))
+		{	
 			return;		/* hal_pwm_set_duty_cycle fail */
+			pr_debug("hal_pwm_set_frequency failed\n");
+		}
 
 		if (HAL_PWM_STATUS_OK != hal_pwm_start(pwm_channel))
+		{
+			pr_debug("hal_pwm_start failed\n");
 			return;		/* hal_pwm_start fail */
+		}
+			
 
 	} else if (HAL_PWM_BUSY == status) {
 		ulValue = ulValue * total_count / ((1<<_writeResolution)-1);
 
+		pr_debug("hal_pwm_set_duty_cycle, %d, %d\n", pwm_channel, ulValue);
+
 		if (HAL_PWM_STATUS_OK != hal_pwm_set_duty_cycle(pwm_channel, ulValue))
+		{
+			pr_debug("hal_pwm_set_duty_cycle failed\n");
 			return;		/* hal_pwm_set_duty_cycle fail */
+	}
 	}
 }
 

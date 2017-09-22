@@ -27,8 +27,7 @@ typedef struct pin_desc
 	uint8_t		pin_info_eint_num;
 	uint8_t		pin_info_pwm_channel;
 
-	// uint16_t	pin_cap_sel;		// Not Use Currently
-	// void		*pin_private;		// Not Use Currently
+	uint8_t		pin_current_function;
 } pin_desc_t;
 
 #define	PIN_DESC(gpio_no, sel_gpio, sel_adc, sel_pwm, sel_uart, sel_i2c, sel_spi, eint_num, pwm_ch)\
@@ -42,6 +41,7 @@ typedef struct pin_desc
 		.pin_mux_aon_sel_spi	= sel_spi,	\
 		.pin_info_eint_num	= eint_num,	\
 		.pin_info_pwm_channel	= pwm_ch,	\
+		.pin_current_function = 0xff,	\
 	}
 
 // TODO: SPI is TBD.

@@ -20,8 +20,10 @@ bool pin_enable_digital(pin_desc_t *pin)
 
 	ret = hal_pinmux_set_function(pin->pin_no, pin->pin_mux_aon_sel_gpio);
 
-	if (ret == 0)
+	if (ret == 0) {
+		pin->pin_current_function = pin->pin_mux_aon_sel_gpio;
 		return true;
+	}
 	else
 		return false;
 }
@@ -37,8 +39,10 @@ bool pin_enable_analog(pin_desc_t *pin)
 	hal_gpio_set_direction(pin->pin_no, HAL_GPIO_DIRECTION_INPUT);
 	ret = hal_pinmux_set_function(pin->pin_no, pin->pin_mux_aon_sel_adc);
 
-	if (ret == 0)
+	if (ret == 0) {
+		pin->pin_current_function = pin->pin_mux_aon_sel_adc;
 		return true;
+	}
 	else
 		return false;
 }
@@ -50,10 +54,17 @@ bool pin_enable_pwm(pin_desc_t *pin)
 	if (!pin_has_pwm(pin))
 		return false;
 
+	// for PWM, we check to prevent excessive set funcion
+	if (pin->pin_current_function == pin->pin_mux_aon_sel_pwm) {
+		return true;
+	}
+
 	ret = hal_pinmux_set_function(pin->pin_no, pin->pin_mux_aon_sel_pwm);
 
-	if (ret == 0)
+	if (ret == 0) {
+		pin->pin_current_function = pin->pin_mux_aon_sel_pwm;
 		return true;
+	}
 	else
 		return false;
 }
@@ -67,8 +78,10 @@ bool pin_enable_uart(pin_desc_t *pin)
 
 	ret = hal_pinmux_set_function(pin->pin_no, pin->pin_mux_aon_sel_uart);
 
-	if (ret == 0)
+	if (ret == 0) {
+		pin->pin_current_function = pin->pin_mux_aon_sel_uart;
 		return true;
+	}
 	else
 		return false;
 }
@@ -82,8 +95,10 @@ bool pin_enable_i2c(pin_desc_t *pin)
 
 	ret = hal_pinmux_set_function(pin->pin_no, pin->pin_mux_aon_sel_i2c);
 
-	if (ret == 0)
+	if (ret == 0) {
+		pin->pin_current_function = pin->pin_mux_aon_sel_i2c;
 		return true;
+	}
 	else
 		return false;
 }
@@ -97,8 +112,10 @@ bool pin_enable_spi(pin_desc_t *pin)
 
 	ret = hal_pinmux_set_function(pin->pin_no, pin->pin_mux_aon_sel_spi);
 
-	if (ret == 0)
+	if (ret == 0) {
+		pin->pin_current_function = pin->pin_mux_aon_sel_spi;
 		return true;
+	}
 	else
 		return false;
 }
