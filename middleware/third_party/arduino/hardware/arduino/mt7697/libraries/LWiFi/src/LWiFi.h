@@ -235,7 +235,9 @@ class WiFiClass
 		 */
 		// int softAP(const char* ssid, const char* password);
 
-		int softAP(const char* ssid);
+		int softAP(const char* ssid, const char* password);
+
+		IPAddress softAPIP();
 
 		int softAP_maxClient();
 

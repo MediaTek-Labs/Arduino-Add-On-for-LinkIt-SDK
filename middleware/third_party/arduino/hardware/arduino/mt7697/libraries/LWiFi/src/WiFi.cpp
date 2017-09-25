@@ -18,6 +18,8 @@
 */
 
 #include <Arduino.h>
+#include <WString.h>
+#include <IPAddress.h>
 #include "LWiFi.h"
 #include "utility/wifi_drv.h"
 
@@ -28,12 +30,37 @@ extern "C" {
 #include "lwip/dhcp.h"
 #include "lwip/inet.h"
 #include "lwip/dns.h"
+#include "dhcpd.h"
 #include "ethernetif.h"
 }
+
+#define AP_IPADDR     IPAddress(10, 10, 10, 1)
+#define AP_NETMASK    IPAddress(255, 255, 255, 0)
+#define AP_GATEWAY    IPAddress(10, 10, 10, 1)
+#define PRIMARY_DNS   IPAddress(8, 8, 8, 8)
+#define SECONDARY_DNS IPAddress(8, 8, 4, 4)
+#define IP_POOL_START IPAddress(10, 10, 10, 2)
+#define IP_POOL_END   IPAddress(10, 10, 10, 10)
 
 extern bool wifi_ready(void);
 extern void set_wifi_ready(void);
 
+String ip2String(const IPAddress& _address)
+{
+	String p;
+	size_t n = 0;
+	for (int i =0; i < 3; i++)
+	{
+		p += String(_address[i], DEC);
+		p += String('.');
+	}
+	p += String(_address[3], DEC);
+	return p;
+}
+
+//////////////////////////////////////////////////////////////////////
+//	WiFiClass
+//////////////////////////////////////////////////////////////////////
 WiFiClass::WiFiClass()
 {
 	// Driver initialization
@@ -252,7 +279,9 @@ static int32_t _wifi_ready_handler(wifi_event_t event,
 	return 0;
 }
 
-int WiFiClass::softAP(const char* ssid)
+
+
+int WiFiClass::softAP(const char* ssid, const char* password)
 {
 	if(!wifi_ready())
 	{
@@ -267,21 +296,51 @@ int WiFiClass::softAP(const char* ssid)
 		config.ap_config.encrypt_type = WIFI_ENCRYPT_TYPE_WEP_DISABLED;
 		config.ap_config.channel = 6;
 
+		pr_debug("calling wifi_init\n");
 		wifi_init(&config, NULL);
 
-		lwip_tcpip_init(NULL, config.opmode);
+		pr_debug("calling lwip_tcpip_init\n");
+		lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}, {0}, {0}, {0}};		
+		tcpip_config.ap_addr.addr = (uint32_t)AP_IPADDR;
+		tcpip_config.ap_mask.addr = (uint32_t)AP_NETMASK;
+		tcpip_config.ap_gateway.addr = (uint32_t)AP_GATEWAY;
+		lwip_tcpip_init(&tcpip_config, config.opmode);
 
+		pr_debug("calling while(wifi_ready)\n");
 		while (!wifi_ready())
 		{
 			delay(100);
 		}
-		pr_debug("start_scan_net wifi_init completion\r\n");
+		
+		pr_debug("wifi ready. call dhcpd_start()\n");
+		dhcpd_settings_t dhcpd_settings = {{0},{0},{0},{0},{0},{0},{0}};
+		strcpy((char *)dhcpd_settings.dhcpd_server_address, ip2String(AP_IPADDR).c_str());
+		strcpy((char *)dhcpd_settings.dhcpd_netmask, ip2String(AP_NETMASK).c_str());
+		strcpy((char *)dhcpd_settings.dhcpd_gateway, ip2String(AP_GATEWAY).c_str());
+		strcpy((char *)dhcpd_settings.dhcpd_primary_dns, ip2String(PRIMARY_DNS).c_str());
+		strcpy((char *)dhcpd_settings.dhcpd_secondary_dns, ip2String(SECONDARY_DNS).c_str());
+		strcpy((char *)dhcpd_settings.dhcpd_ip_pool_start, ip2String(IP_POOL_START).c_str());
+		strcpy((char *)dhcpd_settings.dhcpd_ip_pool_end, ip2String(IP_POOL_END).c_str());
+		netif *ap_if = netif_find_by_type(NETIF_TYPE_AP);
+		if(ap_if) {
+			netif_set_default(ap_if);
+			netif_set_link_up(ap_if);
+			dhcpd_start(&dhcpd_settings);
+			pr_debug("dhcpd_start() called\n");
+		} else {
+			pr_debug("netif_find_by_type(NETIF_TYPE_AP) failed!\n");
+		}
+	
 		return 1;
 	}
 	else
 	{
 		return 0;
 	}
+}
+
+IPAddress WiFiClass::softAPIP() {
+	return AP_IPADDR;
 }
 
 int WiFiClass::softAP_maxClient()
