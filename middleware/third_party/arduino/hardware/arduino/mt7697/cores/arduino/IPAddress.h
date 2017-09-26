@@ -21,6 +21,7 @@
 #define IPAddress_h
 
 #include <stdint.h>
+#include "WString.h"
 #include "Printable.h"
 
 // A class to make it easier to handle and pass around IP addresses
@@ -60,6 +61,7 @@ class IPAddress : public Printable {
 		IPAddress& operator=(uint32_t address);
 
 		virtual size_t printTo(Print& p) const;
+		virtual String toString() const;
 
 		friend class EthernetClass;
 		friend class UDP;
