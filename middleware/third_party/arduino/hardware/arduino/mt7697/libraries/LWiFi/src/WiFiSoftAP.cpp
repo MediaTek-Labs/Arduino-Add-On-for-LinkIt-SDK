@@ -117,7 +117,7 @@ bool WiFiClass::softAP(const char* ssid, const char* passphrase, int channel) {
         pr_debug("wifi_init in SOFT_AP mode")
         wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_ready_handler);
 
-        wifi_config_t config = {0};
+        wifi_config_t config = {0, {0}, {0}};
         config.opmode = WIFI_MODE_AP_ONLY;
         setupWiFiConfig(config, ssid, passphrase, channel);
         pr_debug("calling wifi_init\n");
@@ -155,6 +155,64 @@ bool WiFiClass::softAP(const char* ssid, const char* passphrase, int channel) {
     }
 }
 
+bool WiFiClass::softAPConfig(IPAddress local_ip, IPAddress gateway, IPAddress subnet) {
+
+    if(!wifi_ready()){
+        // Wi-Fi not started yet, simply update configuration
+        g_softAPConfig.m_softAP_localIP = local_ip;
+        g_softAPConfig.m_softAP_gateway = gateway;
+        g_softAPConfig.m_softAP_subnet = subnet;
+        return true;
+    } else {
+        // restart wi-fi settings
+        // TODO: check if we already in softAP connection - if so, re-start softAP mode.
+    }
+
+    return true;
+}
+
+bool WiFiClass::softAPdisconnect(bool wifioff) {
+    
+    // disconnect all clients
+    uint8_t clientCount = 0;
+    wifi_sta_list_t* pClientList = NULL;
+    if(0 > wifi_connection_get_sta_list(&clientCount, NULL) && clientCount){
+        pClientList = (wifi_sta_list_t*)malloc(clientCount * clientCount);
+        wifi_connection_get_sta_list(&clientCount, pClientList);
+    }
+
+    if(pClientList){
+        for(uint8_t i = 0; i < clientCount; ++clientCount) {
+            wifi_connection_disconnect_sta(pClientList[i].mac_address);
+        }
+        free(pClientList);
+        pClientList = NULL;
+    }
+
+    // and change SSID / PASSWORD to null values
+    // TODO: wifi_config_set_* rejects NULL pointer and string with NULL characters only
+    //wifi_config_set_ssid(WIFI_PORT_AP, (uint8_t*)" ", 1);
+    //wifi_config_set_wpa_psk_key(WIFI_PORT_AP, (uint8_t*)" ", 1);
+    // wifi_config_reload_setting();
+
+    // Disable Wi-Fi AP (by swtiching into STA mode)
+    int32_t result = 0;
+    result = wifi_config_set_opmode(WIFI_MODE_STA_ONLY);
+    pr_debug("wifi_config_set_opmode(WIFI_MODE_STA_ONLY) returns %d\n", result);
+
+    if(wifioff) {
+        
+        // use dummpy AP name
+        //wifi_config_set_ssid(WIFI_PORT_STA, (uint8_t*)" ", 1);
+        //wifi_config_set_wpa_psk_key(WIFI_PORT_STA, (uint8_t*)" ", 1);
+        //wifi_config_set_security_mode(WIFI_PORT_STA, WIFI_AUTH_MODE_OPEN, WIFI_ENCRYPT_TYPE_WEP_DISABLED);
+        
+        #if 0  // TODO: currently, error happens after calling wifi_config_set_radio(0)
+        result = wifi_config_set_radio(0);
+        pr_debug("wifi_config_set_radio(0) returns %d\n", result);
+        #endif
+    }    
+}
 
 IPAddress WiFiClass::softAPIP() {
     return g_softAPConfig.m_softAP_localIP;
