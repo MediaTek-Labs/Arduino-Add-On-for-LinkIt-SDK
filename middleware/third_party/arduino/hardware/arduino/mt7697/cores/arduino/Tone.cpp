@@ -14,6 +14,9 @@ extern "C" {
 #define PWM_SRC_CLOCK				HAL_PWM_CLOCK_32KHZ
 #define PWM_MAX_FREQUENCY			(6500ul)
 #define PWM_MIN_FREQUENCY			(10ul)
+#ifndef HAL_PWM_MAX
+#define HAL_PWM_MAX HAL_PWM_MAX_CHANNEL
+#endif
 
 #include "hal_gpt.h"
 
