@@ -35,6 +35,7 @@ linkit_7697.build.lib_ble_multi_adv=libble_multi_adv.a
 linkit_7697.build.lib_btdriver_7697=libbtdriver_7697.a
 
 linkit_7697.build.chip_mt7697_inc=driver/chip/mt7687/inc/
+linkit_7697.build.chip_mt7697_src_inc=driver/chip/mt7687/src/common/include/
 linkit_7697.build.chin_inc=driver/chip/inc/
 linkit_7697.build.cmsis_mt7697_inc=driver/CMSIS/Device/MTK/mt7687/Include/
 linkit_7697.build.cmsis_inc=driver/CMSIS/Include/
