@@ -13,7 +13,7 @@ script:
 - echo -en 'travis_fold:end:arduino_lib\\r'
 - mkdir out
 - echo -en 'travis_fold:start:ide_pkg\\r'
-- ./mk_ide_pkg.pl -o out -v $TRAVIS_TAG -t 1.4.2
+- ./mk_ide_pkg.pl -o out -v $TRAVIS_TAG -t 1.4.3
 - echo -en 'travis_fold:end:ide_pkg\\r'
 notifications:
   email:
@@ -26,7 +26,7 @@ deploy:
     secure: Y5Ey8dUzWmnV0PQWz3ge04uP/YA71vy/0XwuGMm/jjAOxKLy0cfpFVygs1qMTfw5b9dEkN+NFTgaqEAoKHSYrJRSsnmJ6mt9wR6SAXza0PeZV5cpWZSm7kCXG6C0+QBkfCbE/lLJrxUVNT/22bXstxMSpz45yc6GhdrjDKuYbgWLTmUkWMjeHO0Z8rRc6uF/neqW1ysh8vhuSuuLE+IRx2nActACxZg34x5jg1O+XNsfTMiSkV3DIKvY4o+oNz2pGms8GO4WAFW4UQ0UH9oTimfiyGPJXJ37l8BdZQ6wHCcLKxwlNbC4GJyI0Cik2J5alDackJxvo/RZk/WACuhZA8cqud7qbXQc1/pOqwFyYOQlMdQmJU+X3pn7zB6gCJgkD8lj1RJyUT4HNFjuYZjqMbdUY+25L1A1A0fAFOhfrOda6gyY2Fq8IU+1FrhyBb44sqrNp1PSbWqrITQolgp+4zH33I8M3LtdHDSsuIyAutlylqw1nNMPUGopwXkIzTwrdID8HAUPmeFv2RQixmLQlgBFnuDYws0nWJu99JknqETUlW0kywp59UMbXiXKHEXN/uxhbzL8F5dm8UrpJAfEo6kzq9S/0YPX7zGD3gQo5lKmL4aPsVUTUyMgXXKl1+2JbiWhOjae8qvDfnh5NAmcqS1fQhIWTVC76DvaW4S/E+g=
   file:
    - out/mediatek_linkit_7697-$TRAVIS_TAG.tar.bz2
-   - out/mediatek_linkit_7697_flash_tool-1.4.2.tar.bz2
+   - out/mediatek_linkit_7697_flash_tool-1.4.3.tar.bz2
   on:
     repo: MediaTek-Labs/Arduino-Add-On-for-LinkIt-SDK
     tags: true
