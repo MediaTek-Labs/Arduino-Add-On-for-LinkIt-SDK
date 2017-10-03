@@ -21,7 +21,7 @@ length  KEYWORD2
 read    KEYWORD2
 write   KEYWORD2
 put     KEYWORD2
-get     KEYWORD2s
+get     KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
