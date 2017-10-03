@@ -399,7 +399,8 @@ LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid, uint32_t permissio
     m_uuid(uuid),
     m_perm(permission),
     m_updated(false),
-    m_attrHandle(BT_HANDLE_INVALID)
+    m_attrHandle(BT_HANDLE_INVALID),
+    m_userOnWrite(NULL)
 {
 
 }
@@ -408,7 +409,8 @@ LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid):
     m_uuid(uuid),
     m_perm(LBLE_READ | LBLE_WRITE),
     m_updated(false),
-    m_attrHandle(BT_HANDLE_INVALID)
+    m_attrHandle(BT_HANDLE_INVALID),
+    m_userOnWrite(NULL)
 {
 
 }
@@ -553,6 +555,25 @@ int LBLECharacteristicBase::_indicate(bt_handle_t connection, const LBLEValueBuf
     #endif
 }
 
+void LBLECharacteristicBase::setUserOnWrite(LBLEOnWriteCallback callback) {
+    m_userOnWrite = callback;
+}
+
+void LBLECharacteristicBase::_checkAndCallUserOnWrite() {
+    if(m_userOnWrite) {
+        return m_userOnWrite();
+    }
+}
+
+void LBLECharacteristicBase::_setUpdated() {
+    m_updated = true;
+    _checkAndCallUserOnWrite();
+}
+
+void LBLECharacteristicBase::_clearUpdated() {
+    m_updated = false;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 // LBLECharacteristic (Raw Buffer)
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -594,7 +615,7 @@ void LBLECharacteristicBuffer::getValue(uint8_t* buffer, uint16_t size, uint16_t
     }
 
     memcpy(buffer, &m_data[0] + offset, size);
-    m_updated = false;
+    _clearUpdated();
 
 }
 
@@ -646,7 +667,7 @@ uint32_t LBLECharacteristicBuffer::onWrite(void *data, uint16_t size, uint16_t o
         m_writtenInfo.size = size;
         m_writtenInfo.offset = offset;
         memcpy(&m_data[0] + offset, data, size);	
-        m_updated = true;
+        _setUpdated();
     }
     return size;
 }
@@ -680,13 +701,13 @@ void LBLECharacteristicString::setValue(const String& value)
 {
     // m_update means "set by central device",
     // so clear it here.
-    m_updated = false;
+    _clearUpdated();
     m_data = value;
 }
 
 String LBLECharacteristicString::getValue()
 {
-    m_updated = false;
+    _clearUpdated();
     return m_data;
 }
 
@@ -759,8 +780,7 @@ uint32_t LBLECharacteristicString::onWrite(void *data, uint16_t size, uint16_t o
     free(pBuffer);
     pBuffer = NULL;
 
-    m_updated = true;
-
+    _setUpdated();
     return onSize();
 }
 
@@ -785,13 +805,13 @@ void LBLECharacteristicInt::setValue(int value)
 {
     // m_update means "set by central device",
     // so clear it here.
-    m_updated = false;
+    _clearUpdated();
     m_data = value;
 }
 
 int LBLECharacteristicInt::getValue()
 {
-    m_updated = false;
+    _clearUpdated();
     return m_data;
 }
 
@@ -834,8 +854,7 @@ uint32_t LBLECharacteristicInt::onWrite(void *data, uint16_t size, uint16_t offs
     copySize = (size > copySize) ? copySize : size;
     memcpy(((uint8_t*)(&m_data)) + offset, data, copySize);
 
-    m_updated = true;
-
+    _setUpdated();
     return copySize;
 }
 

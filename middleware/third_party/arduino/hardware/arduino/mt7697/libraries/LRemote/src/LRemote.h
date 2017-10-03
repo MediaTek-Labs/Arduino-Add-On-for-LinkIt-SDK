@@ -273,6 +273,9 @@ public:
   /// controls.
   void process();
 
+  /// Internal callback for underlying BLE framework
+  static void _onEventWritten();
+
 protected:
   // The BLE subsystem and GATT server
   // can only initliaze once -

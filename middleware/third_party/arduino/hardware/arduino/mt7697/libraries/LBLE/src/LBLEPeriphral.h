@@ -235,11 +235,23 @@ public: // Following methods are not meant to be called by Arduino users
 	// send indication with `buf` as data and wait for ACK to the given connection
 	int _indicate(bt_handle_t connection, const LBLEValueBuffer& data);
 
+	typedef void (*LBLEOnWriteCallback)(void);
+	
+	void setUserOnWrite(LBLEOnWriteCallback callback);
+
+protected:
+	void _checkAndCallUserOnWrite();
+	void _setUpdated();
+	void _clearUpdated();
 protected:
 	LBLEUuid m_uuid;
 	uint32_t m_perm;
-	bool m_updated;
+	
 	uint16_t m_attrHandle;
+	LBLEOnWriteCallback m_userOnWrite;
+
+private:
+	bool m_updated;
 };
 
 // This class is used by LBLECharacteristicBuffer

@@ -115,6 +115,7 @@ void LRemoteClass::begin() {
   rcFrames.setValueBuffer(&frameArray[0], frameArray.size());
   rcNames.setValue(nameList);
   rcEvent.setValueBuffer((uint8_t*)&eventInfo, sizeof(eventInfo));
+  rcEvent.setUserOnWrite(_onEventWritten);
   rcConfigDataArray.setValueBuffer(&configDataArray[0], configDataArray.size());
 
   initPeripheralOnce();
@@ -181,7 +182,7 @@ void LRemoteClass::process() {
     // make sure that the "sequence number" is incremented
     // (and thus different from the control's record)
     const size_t i = event.controlIndex;
-      LRemoteUIControl &control = *m_controls[i];
+    LRemoteUIControl &control = *m_controls[i];
     const uint8_t oldSeq = control.m_lastEvent.seq;
     control.m_lastEvent = event;
     control.m_lastEvent.seq = oldSeq + 1;
@@ -189,6 +190,14 @@ void LRemoteClass::process() {
     event.processedSeq = event.seq;
     rcEvent.setValueBuffer((uint8_t *)&event, sizeof(event));
   }
+}
+
+void LRemoteClass::_onEventWritten() {
+  // Be very careful - 
+  // this callback is invoked in BT task, 
+  // not Arduino task.
+  pr_debug("LRemoteClass::_onEventWritten - call process()");
+  LRemote.process();
 }
 
 void LRemoteClass::end() {
