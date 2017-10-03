@@ -161,7 +161,7 @@ while 1:
         pass
 
 statinfo = os.stat(da_path)
-bar = pyprind.ProgBar(statinfo.st_size/1024+2, stream=sys.stderr)
+# bar = pyprind.ProgBar(statinfo.st_size/1024+2, stream=sys.stderr)
 
 
 # noinspection PyUnusedLocal
@@ -171,13 +171,13 @@ def getc(size, timeout=1):
 
 # noinspection PyUnusedLocal
 def putc(data, timeout=1):
-    bar.update()
+    # bar.update()
     return s.write(data)
 
 
 # noinspection PyUnusedLocal
 def putc_user(data, timeout=1):
-    bar_user.update()
+    # bar_user.update()
     return s.write(data)
 
 
@@ -224,7 +224,7 @@ s.flush()
 s.flushInput()
 
 statinfo_bin = os.stat(opt.bin_path)
-bar_user = pyprind.ProgBar(statinfo_bin.st_size/1024+2, stream=sys.stderr)
+# bar_user = pyprind.ProgBar(statinfo_bin.st_size/1024+2, stream=sys.stderr)
 stream = open(opt.bin_path, 'rb')
 m = xmodem.XMODEM(getc, putc_user, mode='xmodem1k')
 m.send(stream)
@@ -246,7 +246,7 @@ if onboard_fw_version != current_fw_version:
     s.flushInput()
 
     statinfo_bin = os.stat(n9_fw_path)
-    bar_user = pyprind.ProgBar(statinfo_bin.st_size / 1024 + 2, stream=sys.stderr)
+    # bar_user = pyprind.ProgBar(statinfo_bin.st_size / 1024 + 2, stream=sys.stderr)
     fw_stream = open(n9_fw_path, 'rb')
     m = xmodem.XMODEM(getc, putc_user, mode='xmodem1k')
     m.send(fw_stream)
