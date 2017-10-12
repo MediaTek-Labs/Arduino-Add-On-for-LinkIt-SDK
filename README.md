@@ -6,14 +6,14 @@ This is the **source code** for Arduino Add-On package for LinkIt 7697. To insta
 The source code is an add-on to LinkIt SDK v4.x. To build the board support package, you need following prerequisites:
 
 ## Build Prerequisites
- * You need a working LinkIt SDK v4.3 public version. To obtain public version of LinkIt SDK v4.3, visit https://docs.labs.mediatek.com/resource/mt7687-mt7697/en/downloads
+ * You need a working LinkIt SDK v4.6 public version. To obtain public version of LinkIt SDK v4.6, visit https://docs.labs.mediatek.com/resource/mt7687-mt7697/en/downloads
  * You must build this package on a Linux machine with `make` and `perl` installed.
 
 ## Building the Board Supporting Package
  * Copy LinkIt SDK v4 public version into the source repo. We want to keep existing files, since this is an add-on package. We assume the SDK is unpacked in `Arduino-Add-On-for-LinkIt-SDK`.
     ```bash
     git clone --depth 1 https://github.com/MediaTek-Labs/Arduino-Add-On-for-LinkIt-SDK.git
-    tar --keep-old-files -zxf LinkIt_SDK_V4.3.1.tar.gz -C Arduino-Add-On-for-LinkIt-SDK
+    tar --keep-old-files -zxf LinkIt_SDK_V4.6.0.tar.gz -C Arduino-Add-On-for-LinkIt-SDK
     ```
  * Use following command to build the board support package:
     ```bash

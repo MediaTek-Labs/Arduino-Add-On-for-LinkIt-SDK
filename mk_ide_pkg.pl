@@ -26,6 +26,7 @@ sub build_system_src
 	my @source_list=(
 		"driver/chip/mt7687/inc/",
 		"driver/chip/inc/",
+        "driver/chip/mt7687/src/common/include/",
 		"driver/CMSIS/Device/MTK/mt7687/Include/",
 		"driver/CMSIS/Include/",
 		"kernel/service/inc",
