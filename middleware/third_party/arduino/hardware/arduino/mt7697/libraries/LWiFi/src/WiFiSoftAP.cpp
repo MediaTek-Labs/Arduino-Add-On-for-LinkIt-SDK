@@ -123,7 +123,7 @@ bool WiFiClass::softAP(const char* ssid, const char* passphrase, int channel) {
         pr_debug("calling wifi_init\n");
         wifi_init(&config, NULL);
 
-        lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}, {0}, {0}, {0}};
+        lwip_tcpip_config_t tcpip_config = {0};
         g_softAPConfig.getTCPIPConfig(tcpip_config);
         pr_debug("calling lwip_tcpip_init\n");
         lwip_tcpip_init(&tcpip_config, config.opmode);
@@ -212,6 +212,8 @@ bool WiFiClass::softAPdisconnect(bool wifioff) {
         pr_debug("wifi_config_set_radio(0) returns %d\n", result);
         #endif
     }    
+
+    return true;
 }
 
 IPAddress WiFiClass::softAPIP() {
