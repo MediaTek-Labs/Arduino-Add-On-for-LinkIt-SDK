@@ -245,6 +245,8 @@ include $(SOURCE_DIR)/middleware/MTK/bluetooth/module.mk
 CFLAGS += -I$(SOURCE_DIR)/middleware/MTK/bluetooth/inc
 CXXFLAGS += -I$(SOURCE_DIR)/middleware/MTK/bluetooth/inc
 
+# Wi-Fi files for CPP files
+CXXFLAGS += -I$(SOURCE_DIR)/middleware/MTK/wifi_service/combo/inc
 
 
 LIBS += $(OUTPATH)/libarduino.o
