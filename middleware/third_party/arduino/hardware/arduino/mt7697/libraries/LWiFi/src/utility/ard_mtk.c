@@ -200,18 +200,18 @@ static int32_t _wifi_ready_handler(wifi_event_t event,
 void lwip_init_start(uint8_t opmode)
 {
 	befor_beginfunc = 0;		//Indicate begin() aready exec
-	//ip_ready = xSemaphoreCreateBinary();
 
-	struct netif *sta_if;
-	sta_if = netif_find_by_type(NETIF_TYPE_STA);
+	int result = wifi_config_set_radio(1);
 
 	switch (opmode) {
 		case WIFI_MODE_STA_ONLY:
 		case WIFI_MODE_REPEATER:
+			{
 			wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_ready_handler);
 			wifi_connection_register_event_handler(WIFI_EVENT_IOT_PORT_SECURE, _wifi_station_port_secure_event_handler);
 			wifi_connection_register_event_handler(WIFI_EVENT_IOT_DISCONNECTED, _wifi_station_disconnected_event_handler);
-
+				struct netif *sta_if;
+				sta_if = netif_find_by_type(NETIF_TYPE_STA);
 			if (ipmode_flag == STA_IP_MODE_DHCP) {
 				netif_set_default(sta_if);
 				netif_set_status_callback(sta_if, ip_ready_callback);
@@ -221,10 +221,12 @@ void lwip_init_start(uint8_t opmode)
 				pr_debug("STA mode static\r\n");
 				netif_set_addr(sta_if, &static_ip, &static_netmask, &static_gw);
 			}
-
+			}
 			break;
 		case WIFI_MODE_AP_ONLY:
-			/*......*/
+			{
+				// TODO: AP mode does not follow this call path
+			}
 			break;
 	}
 }

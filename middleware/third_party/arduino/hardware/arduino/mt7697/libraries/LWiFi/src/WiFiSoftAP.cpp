@@ -133,6 +133,13 @@ bool WiFiClass::softAP(const char* ssid, const char* passphrase, int channel) {
         {
             delay(10);
         }
+    }
+    else
+    {
+        // Wi-Fi is now ready - change OpMode immediately
+        wifi_config_set_radio(1);
+        wifi_config_set_opmode(WIFI_MODE_AP_ONLY);
+    }
 
         pr_debug("wifi ready. call dhcpd_start()\n");
         dhcpd_settings_t dhcpd_settings = {{0},{0},{0},{0},{0},{0},{0}};
@@ -148,11 +155,6 @@ bool WiFiClass::softAP(const char* ssid, const char* passphrase, int channel) {
         }
 
         return true;
-    }
-    else
-    {
-        return false;
-    }
 }
 
 bool WiFiClass::softAPConfig(IPAddress local_ip, IPAddress gateway, IPAddress subnet) {
@@ -207,10 +209,8 @@ bool WiFiClass::softAPdisconnect(bool wifioff) {
         //wifi_config_set_wpa_psk_key(WIFI_PORT_STA, (uint8_t*)" ", 1);
         //wifi_config_set_security_mode(WIFI_PORT_STA, WIFI_AUTH_MODE_OPEN, WIFI_ENCRYPT_TYPE_WEP_DISABLED);
         
-        #if 0  // TODO: currently, error happens after calling wifi_config_set_radio(0)
         result = wifi_config_set_radio(0);
         pr_debug("wifi_config_set_radio(0) returns %d\n", result);
-        #endif
     }    
 
     return true;
@@ -222,12 +222,25 @@ IPAddress WiFiClass::softAPIP() {
 
 uint8_t WiFiClass::softAPgetStationNum()
 {
-    uint8_t number = 0;
-    const uint8_t status = wifi_connection_get_sta_list(&number, NULL);
+    // if we pass NULL to sta_list, we get an error.
+    // prepare 10 slots because the MAX STA is 9 as of SDK v4.6.0
+    static const uint8_t list_size = 10;
+    uint8_t number = list_size;
+    wifi_sta_list_t sta_list[list_size] = {0};
+    const uint8_t status = wifi_connection_get_sta_list(&number, sta_list);
+    pr_debug("wifi_connection_get_sta_list result = %d\n", status);
+    if(status >= 0) {
     return number;
+    } else {
+        return 0;
+    }
+    
 }
 
 uint8_t* WiFiClass::softAPmacAddress(uint8_t* mac) {
+    if(NULL == mac) {
+        return NULL;
+    }
     if(wifi_config_get_mac_address(WIFI_PORT_AP, mac) >= 0){
         return mac;
     } else {

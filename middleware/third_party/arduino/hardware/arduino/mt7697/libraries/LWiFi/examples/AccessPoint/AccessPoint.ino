@@ -22,8 +22,8 @@ void setup() {
     Serial.print(" and visit http://");
     Serial.println(myIP);
 
-    //Serial.print("AP MAC=");
-    //Serial.println(WiFi.softAPmacAddress());
+    Serial.print("AP MAC=");
+    Serial.println(WiFi.softAPmacAddress());
 
     server.begin();
 }
@@ -51,8 +51,11 @@ void loop() {
                     client.println("<!DOCTYPE HTML>");
                     client.println("<html>");
                     client.println("<p>Hello from LinkIt 7697!</p>");
-                    client.println("<p>Wi-Fi SSID:");
+                    client.println("<p>Wi-Fi SSID: ");
                     client.print(ssid);
+                    client.println("</p>");
+                    client.print("<p>Connected STA #: ");
+                    client.print((int)WiFi.softAPgetStationNum());
                     client.println("</p>");
                     client.println("</html>");
                     break;
