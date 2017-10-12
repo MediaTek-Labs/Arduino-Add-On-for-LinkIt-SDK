@@ -6,22 +6,21 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-EEPROM	KEYWORD1
-EERef	KEYWORD1
-EEPtr	KEYWORD2
+LRTC	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
-update	KEYWORD2
 begin   KEYWORD2
-end     KEYWORD2
-length  KEYWORD2
-read    KEYWORD2
-write   KEYWORD2
-put     KEYWORD2
 get     KEYWORD2
+set     KEYWORD2
+year    KEYWORD2
+month   KEYWORD2
+day     KEYWORD2
+hour    KEYWORD2
+minute  KEYWORD2
+second  KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
