@@ -34,6 +34,7 @@ struct SoftAPConfig {
         tcpip_config.ap_addr.addr = (uint32_t)m_softAP_localIP;
         tcpip_config.ap_mask.addr = (uint32_t)m_softAP_subnet;
         tcpip_config.ap_gateway.addr = (uint32_t)m_softAP_gateway;
+        
         return;
     }
 
@@ -80,22 +81,20 @@ struct SoftAPConfig {
 
 static SoftAPConfig g_softAPConfig;
 
-void setupWiFiConfig(wifi_config_t& config, const char* ssid, const char* passphrase, int channel) {
+void setupWiFiConfig(const char* ssid, const char* passphrase, int channel) {
+    // SSID
+    const size_t ssid_length = std::min((size_t)WIFI_MAX_LENGTH_OF_SSID, strlen(ssid));
+    wifi_config_set_ssid(WIFI_PORT_AP, (unsigned char*)ssid, ssid_length);
 
-    strncpy((char *)config.ap_config.ssid, ssid, WIFI_MAX_LENGTH_OF_SSID);
-    config.ap_config.ssid_length = std::min((size_t)WIFI_MAX_LENGTH_OF_SSID, strlen((char *)config.ap_config.ssid));
-    config.ap_config.channel = channel;
-
+    // Passphrase & security mode
     if(NULL == passphrase) {
         // Open network
-        config.ap_config.auth_mode = WIFI_AUTH_MODE_OPEN;
-        config.ap_config.encrypt_type = WIFI_ENCRYPT_TYPE_WEP_DISABLED;
+        wifi_config_set_security_mode(WIFI_PORT_AP, WIFI_AUTH_MODE_OPEN, WIFI_ENCRYPT_TYPE_WEP_DISABLED);
     } else {
         // WPA-PSK2 encrypted
-        config.ap_config.auth_mode = WIFI_AUTH_MODE_WPA2_PSK;
-        config.ap_config.encrypt_type = WIFI_ENCRYPT_TYPE_AES_ENABLED;
-        strncpy((char *)config.ap_config.password, passphrase, WIFI_LENGTH_PASSPHRASE);
-        config.ap_config.password_length = std::min((size_t)WIFI_LENGTH_PASSPHRASE, strlen((char *)passphrase));
+        wifi_config_set_security_mode(WIFI_PORT_AP, WIFI_AUTH_MODE_WPA2_PSK, WIFI_ENCRYPT_TYPE_AES_ENABLED);
+        const size_t password_length = std::min((size_t)WIFI_LENGTH_PASSPHRASE, strlen(passphrase));
+        wifi_config_set_wpa_psk_key(WIFI_PORT_AP, (unsigned char*)passphrase, password_length);
     }
 }
 
@@ -103,17 +102,27 @@ bool WiFiClass::softAP(const char* ssid, const char* passphrase, int channel) {
     init_global_connsys();
 
         // Wi-Fi is now ready - change OpMode immediately
+    wifi_config_set_opmode(WIFI_MODE_AP_ONLY);
         wifi_config_set_radio(1);
-        wifi_config_set_opmode(WIFI_MODE_AP_ONLY);
+    setupWiFiConfig(ssid, passphrase, channel);
+    wifi_config_reload_setting();
 
-        pr_debug("wifi ready. call dhcpd_start()\n");
-        dhcpd_settings_t dhcpd_settings = {{0},{0},{0},{0},{0},{0},{0}};
-        g_softAPConfig.getDHCPDConfig(dhcpd_settings);
+    pr_debug("wifi AP mode ready. initialize IP & DHCPD\n");
+
         netif *ap_if = netif_find_by_type(NETIF_TYPE_AP);
         if(ap_if) {
             netif_set_default(ap_if);
+
+        lwip_tcpip_config_t tcpip_config = {0};
+        g_softAPConfig.getTCPIPConfig(tcpip_config);
+        netif_set_addr(ap_if, &tcpip_config.ap_addr, &tcpip_config.ap_mask, &tcpip_config.ap_gateway);
+        
             netif_set_link_up(ap_if);
+
+        dhcpd_settings_t dhcpd_settings = {{0},{0},{0},{0},{0},{0},{0}};
+        g_softAPConfig.getDHCPDConfig(dhcpd_settings);
             dhcpd_start(&dhcpd_settings);
+
             pr_debug("dhcpd_start() called\n");
         } else {
             pr_debug("netif_find_by_type(NETIF_TYPE_AP) failed!\n");
@@ -149,7 +158,9 @@ bool WiFiClass::softAPdisconnect(bool wifioff) {
         pClientList = NULL;
     }
 
-    // Disable Wi-Fi Soft AP (by swtiching into STA mode)
+    dhcpd_stop();
+
+    // Disable Wi-Fi Soft AP (by swtiching back into STA mode)
     int32_t result = 0;
     result = wifi_config_set_opmode(WIFI_MODE_STA_ONLY);
     pr_debug("wifi_config_set_opmode(WIFI_MODE_STA_ONLY) returns %d\n", result);
