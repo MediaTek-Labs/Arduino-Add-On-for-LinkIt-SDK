@@ -1,14 +1,13 @@
 #include "utility/wl_definitions.h"
+#include "variant.h"
 #include "wifi_api.h"
 #include "lwip/dhcp.h"
 #include "lwip/inet.h"
 #include "lwip/dns.h"
 #include "ethernetif.h"
-
 #include "log_dump.h"
 
 // declared in Arduino core's "variant.h"
-extern void set_wifi_ready(void);
 extern bool wifi_ready(void);
 
 static ip_addr_t _hostIpAddr;
@@ -184,19 +183,6 @@ static int32_t _wifi_station_disconnected_event_handler(wifi_event_t event,
 	return 0;
 }
 
-static int32_t _wifi_ready_handler(wifi_event_t event,
-		uint8_t *payload,
-		uint32_t length)
-{
-	if (event == WIFI_EVENT_IOT_INIT_COMPLETE) {
-		set_wifi_ready();
-
-		pr_debug(" wifi_ready_handler exec\r\n");
-	}
-
-	return 0;
-}
-
 void lwip_init_start(uint8_t opmode)
 {
 	befor_beginfunc = 0;		//Indicate begin() aready exec
@@ -207,7 +193,6 @@ void lwip_init_start(uint8_t opmode)
 		case WIFI_MODE_STA_ONLY:
 		case WIFI_MODE_REPEATER:
 			{
-			wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_ready_handler);
 			wifi_connection_register_event_handler(WIFI_EVENT_IOT_PORT_SECURE, _wifi_station_port_secure_event_handler);
 			wifi_connection_register_event_handler(WIFI_EVENT_IOT_DISCONNECTED, _wifi_station_disconnected_event_handler);
 				struct netif *sta_if;
@@ -225,7 +210,7 @@ void lwip_init_start(uint8_t opmode)
 			break;
 		case WIFI_MODE_AP_ONLY:
 			{
-				// TODO: AP mode does not follow this call path
+				pr_debug("Error: lwip_init_start called with WIFI_MODE_AP_ONLY");
 			}
 			break;
 	}
@@ -266,19 +251,7 @@ int8_t set_net(const char* ssid, uint8_t ssid_len)
 	if (ssid_len == 0)
 		return WL_FAILURE;
 
-	if (!wifi_ready()) {
-
-		wifi_config_t config = {0};
-
-		config.opmode = WIFI_MODE_STA_ONLY;
-
-		strcpy((char *)config.sta_config.ssid, ssid);
-		config.sta_config.ssid_length = ssid_len;
-
-		wifi_init(&config, NULL);
-		lwip_tcpip_init(NULL, config.opmode);
-
-	} else {
+	init_global_connsys();
 
 		uint8_t port = WIFI_PORT_STA;
 		wifi_auth_mode_t auth = WIFI_AUTH_MODE_OPEN;
@@ -299,8 +272,6 @@ int8_t set_net(const char* ssid, uint8_t ssid_len)
 			goto err;
 		}
 
-	}
-
 	lwip_init_start(WIFI_MODE_STA_ONLY);
 
 	return WL_SUCCESS;
@@ -313,26 +284,7 @@ int8_t set_key(const char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *
 	if (ssid_len == 0 || len == 0)
 		return WL_FAILURE;
 
-	if (!wifi_ready()) {
-
-		wifi_config_t config = {0};
-		wifi_config_ext_t config_ext = {0};
-
-		config.opmode = WIFI_MODE_STA_ONLY;
-
-		strcpy((char *)config.sta_config.ssid, ssid);
-		config.sta_config.ssid_length = ssid_len;
-
-		strcpy((char *)config.sta_config.password, key);
-		config.sta_config.password_length = len;
-
-		config_ext.sta_wep_key_index_present = 1;
-		config_ext.sta_wep_key_index = key_idx;
-
-		wifi_init(&config, &config_ext);
-		lwip_tcpip_init(NULL, config.opmode);
-
-	} else {
+	init_global_connsys();
 
 		uint8_t port = WIFI_PORT_STA;
 		wifi_auth_mode_t auth = WIFI_AUTH_MODE_OPEN;
@@ -365,8 +317,6 @@ int8_t set_key(const char *ssid, uint8_t ssid_len, uint8_t key_idx, const char *
 			goto err;
 		}
 
-	}
-
 	lwip_init_start(WIFI_MODE_STA_ONLY);
 
 	return WL_SUCCESS;
@@ -379,22 +329,7 @@ int8_t set_passphrase(const char* ssid, uint8_t ssid_len, const char *passphrase
 	if (ssid_len == 0 || len == 0)
 		return WL_FAILURE;
 
-	if (!wifi_ready()) {
-
-		wifi_config_t config = {0};
-
-		config.opmode = WIFI_MODE_STA_ONLY;
-
-		strcpy((char *)config.sta_config.ssid, ssid);
-		config.sta_config.ssid_length = ssid_len;
-
-		strcpy((char *)config.sta_config.password, passphrase);
-		config.sta_config.password_length = len;
-
-		wifi_init(&config, NULL);
-		lwip_tcpip_init(NULL, config.opmode);
-
-	} else {
+	init_global_connsys();
 
 		uint8_t port = WIFI_PORT_STA;
 		wifi_auth_mode_t auth = WIFI_AUTH_MODE_WPA2_PSK;
@@ -419,8 +354,6 @@ int8_t set_passphrase(const char* ssid, uint8_t ssid_len, const char *passphrase
 			pr_debug("wifi_config_reload_setting failed\r\n");
 			goto err;
 		}
-
-	}
 
 	lwip_init_start(WIFI_MODE_STA_ONLY);
 
@@ -630,27 +563,8 @@ int32_t get_scan_list(wifi_event_t event, uint8_t *payload, uint32_t length)
 int8_t start_scan_net(void)
 {
 	int8_t status = 0, i;
-	//uint8_t scannum = 0;
 
-	if (!wifi_ready()) {
-
-		pr_debug("start_scan_net wifi_init\r\n");
-
-		wifi_config_t wifi_config = {0};
-		wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_ready_handler);
-
-		wifi_config.opmode = WIFI_MODE_STA_ONLY;
-
-		strcpy((char *)wifi_config.sta_config.ssid, (const char *)" ");
-		wifi_config.sta_config.ssid_length = strlen((const char *)wifi_config.sta_config.ssid);
-
-		wifi_init(&wifi_config, NULL);
-
-		lwip_tcpip_init(NULL, wifi_config.opmode);
-
-		while (!wifi_ready());
-		pr_debug("start_scan_net wifi_init completion\r\n");
-	}
+	init_global_connsys();
 
 	getscan = 0;
 

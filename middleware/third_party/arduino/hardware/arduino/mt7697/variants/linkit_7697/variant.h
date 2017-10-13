@@ -45,13 +45,15 @@ extern "C"{
 extern void init(void);
 extern void post_init(void);
 
-// Workaround the Wi-Fi double initialization issue
-// As of LinkIt SDK v4.2, we have to
-// initializes Wi-Fi to have CONNSYS patched before
-// using BLE. Thus, LBLE and LWIFI needs to
+// Workaround the Wi-Fi double initialization issue:
+// As of LinkIt SDK v4.x, we have to
+// initializes Wi-Fi to have underlying CONNSYS module's
+// firmware code patched before using BLE. 
+//
+// Thus, LBLE and LWIFI needs to
 // communicate with each other to know if Wi-Fi 
 // is already initialized.
-extern void set_wifi_ready();
+extern void init_global_connsys();
 extern bool wifi_ready();
 
 #ifdef __cplusplus

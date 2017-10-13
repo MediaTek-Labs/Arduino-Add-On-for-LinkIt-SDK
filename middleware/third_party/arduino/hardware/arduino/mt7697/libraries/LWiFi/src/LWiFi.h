@@ -239,20 +239,66 @@ public:
 	 * Start an SoftAP with given SSID and Password. 
 	 * If passpharse is non-null, WPA-PSK encryption are used.
 	 * Pass NULL to passphrase to create an open network (unencrypted).
+     * 
+     * By default, the AP is created with a subnet "10.10.10.x".
+     * and the AP's IP address is "10.10.10.1". Use `softAPConfig` to change this.
+     * 
+     * return: true if SoftAP created successfully. false otherwise.
      */
 	bool softAP(const char* ssid, const char* passphrase = NULL, int channel = 6);
+    
+    /*
+     * Configures the DHCPD behavior of the Soft AP.
+     * This must be called before softAP(ssid, passphrase, channel) is called.
+     * 
+     * If the softAP is already running, call softAPdisconnect() and then softAP() again
+     * for the setting to take effect.
+     *
+     * return: true means configuration updated successfully
+     */
     bool softAPConfig(IPAddress local_ip, IPAddress gateway, IPAddress subnet);
+
+    /*
+     * Configures the DHCPD behavior of the Soft AP.
+     *
+     * return: true if SoftAP created successfully. false otherwise.
+     */
     bool softAPdisconnect(bool wifioff = false);
+
+    /*
+     * Returns the IP address of the created soft AP.
+     *
+     * return: IPAddress of the Soft AP.
+     */
 	IPAddress softAPIP();
+    
+    /*
+     * Returns the number of connected STA client
+     *
+     * return: number of STA client connected to this AP
+     */
 	uint8_t softAPgetStationNum();
+    
+    /*
+     * Get the MAC address of the AP.
+     * 
+     * param mac is a pointer to an `uint8_t` array with length `WL_MAC_ADDR_LENGTH`
+     *
+     * return: pointer to the mac address buffer if successful. NULL otherwise.
+     */
     uint8_t* softAPmacAddress(uint8_t* mac);
+
+    /*
+     * Get the printable representation of the MAC address of the AP.
+     *
+     * return: printable string of the MAC address
+     */
     String softAPmacAddress(void);
 
+// Internal Use
+public:
     friend class WiFiClient;
 	friend class WiFiServer;
-
-public:
-	uint8_t getSoftAPOpMode();
 };
 
 extern WiFiClass WiFi;

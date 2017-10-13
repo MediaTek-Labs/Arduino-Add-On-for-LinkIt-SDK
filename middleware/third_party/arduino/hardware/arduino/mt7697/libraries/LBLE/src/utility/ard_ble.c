@@ -27,37 +27,11 @@
 #include <lwip/dns.h>
 #include <ethernetif.h>
 
-// declared in Arduino core's "variant.h"
-extern void set_wifi_ready(void);
-extern bool wifi_ready(void);
-
-static int32_t _wifi_event_handler(wifi_event_t event, uint8_t* payload, uint32_t length)
-{
-    switch(event)
-    {
-    case WIFI_EVENT_IOT_INIT_COMPLETE:
-        set_wifi_ready();
-        pr_debug("event=0x%x, payload=0x%p, length=0x%x", (unsigned int)event, payload, (unsigned int)length);
-        break;
-    }
-
-    return 1;
-}
-
 static void _connsys_workaround()
 {
-    /* Wi-Fi must be initialized for BLE start-up */
-    if(!wifi_ready())
-    {
-        wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE, _wifi_event_handler);
-
-        wifi_config_t config = {0};
-        config.opmode = WIFI_MODE_STA_ONLY;
-        wifi_init(&config, NULL);
-
-        lwip_tcpip_config_t tcpip_config = {{0}, {0}, {0}, {0}, {0}, {0}};
-        lwip_tcpip_init(&tcpip_config, WIFI_MODE_STA_ONLY);
-    }
+    // Wi-Fi must be initialized for BLE start-up
+    // declared in Arduino core's "variant.h"
+    init_global_connsys();
 }
 
 /*

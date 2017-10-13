@@ -4,16 +4,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include "log_dump.h"
 #include "adapter_layer.h"
-
 #ifdef FREERTOS
 #include <FreeRTOS.h>
 #include <task.h>
+#include "wifi_api.h"
+#include "ethernetif.h"
 #endif
 
-static void debug_task_stack_usage(void)
-{
+static void debug_task_stack_usage(void) {
 #if 0
 	if(xTaskGetCurrentTaskHandle())
 	{
@@ -30,8 +30,7 @@ static void debug_task_stack_usage(void)
 #endif
 }
 
-static void arduino_task(void *args)
-{
+static void arduino_task(void *args) {
 	setup();
 	debug_task_stack_usage();
 
@@ -44,8 +43,7 @@ static void arduino_task(void *args)
 	return ;
 }
 
-void init(void)
-{
+void init(void) {
 	init_system();
 
 #ifdef FREERTOS
@@ -54,8 +52,7 @@ void init(void)
 #endif
 }
 
-void post_init(void)
-{
+void post_init(void) {
 #ifdef FREERTOS
 	vTaskStartScheduler();
 #else
@@ -63,15 +60,51 @@ void post_init(void)
 #endif
 }
 
-static int _wifi_ready = 0;
-void set_wifi_ready()
-{
+static volatile int _wifi_ready = 0;
+static void _set_wifi_ready() {
 	_wifi_ready = 1;
 }
 
-bool wifi_ready()
-{
+bool wifi_ready() {
 	return (_wifi_ready > 0);
+}
+
+static int32_t _wifi_ready_handler(wifi_event_t event,
+                                   uint8_t *payload,
+                                   uint32_t length) {
+
+    if (event == WIFI_EVENT_IOT_INIT_COMPLETE) {
+        pr_debug("WIFI_EVENT_IOT_INIT_COMPLETE received\r\n");
+        _set_wifi_ready();
+    }
+
+    return 0;
+}
+
+void init_global_connsys() {
+    if(wifi_ready()) {
+        return;
+    }
+
+    wifi_connection_register_event_handler(WIFI_EVENT_IOT_INIT_COMPLETE , _wifi_ready_handler);
+    wifi_config_t config = {0};
+    config.opmode = WIFI_MODE_STA_ONLY;
+    strcpy((char *)config.sta_config.ssid, (const char *)" ");
+    config.sta_config.ssid_length = strlen((const char *)config.sta_config.ssid);
+
+    wifi_config_ext_t ex_config = {0};
+    ex_config.sta_auto_connect_present = 1; // validate "sta_auto_connect" config
+    ex_config.sta_auto_connect = 0;         // don't auto-connect - we just want to initialize
+
+    pr_debug("[wifi_init]\n");
+    wifi_init(&config, &ex_config);
+    // we must initialize lwip_tcpip, otherwise we won't receive WIFI_EVENT_IOT_INIT_COMPLETE
+    lwip_tcpip_init(NULL, config.opmode);
+    while (!wifi_ready()) {
+        delay(10);
+    }
+    pr_debug("[wifi/connsys ready]\n");
+    return;
 }
 
 
