@@ -4,7 +4,10 @@
 
 /* Set these to your desired credentials. */
 const char *ssid = "LinkItAP";
-const char *password = "mypassword";
+const char *password = "yourpassword";
+
+const char *sta_ssid = "ap_to_connect_to";
+const char *sta_password = "ap_password";
 
 WiFiServer server(80);
 
@@ -29,7 +32,7 @@ void setup() {
     // pass false to disable AP mode but keeps Wi-Fi module alive
     WiFi.softAPdisconnect(true);
 
-    int status = WiFi.begin("MediaTek_Labs", "84149961");
+    int status = WiFi.begin(sta_ssid, sta_password);
 
     printCurrentNet();
 	printWifiData();

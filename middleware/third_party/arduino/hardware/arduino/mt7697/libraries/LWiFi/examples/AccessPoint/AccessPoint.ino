@@ -4,7 +4,7 @@
 
 /* Set these to your desired credentials. */
 const char *ssid = "LinkItAP";
-const char *password = "mypassword";
+const char *password = "yourpassword";
 
 WiFiServer server(80);
 
