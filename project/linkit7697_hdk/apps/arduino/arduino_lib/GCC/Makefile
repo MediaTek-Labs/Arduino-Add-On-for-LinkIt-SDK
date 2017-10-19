@@ -146,6 +146,9 @@ include $(SOURCE_DIR)/middleware/MTK/iperf/module.mk
 #include dhcpd
 include $(SOURCE_DIR)/middleware/MTK/dhcpd/module.mk
 
+# FOTA
+include $(SOURCE_DIR)/middleware/MTK/fota/module.mk
+
 # wifi src
 # SDK 4.2 include $(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/module.mk
 # SDK 4.3 use these two:

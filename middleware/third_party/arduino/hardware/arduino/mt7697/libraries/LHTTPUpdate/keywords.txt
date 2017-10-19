@@ -1,0 +1,38 @@
+#######################################
+# Syntax Coloring Map For LHTTPUpdate
+#######################################
+
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+LHTTPUpdate				KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+getLastError		KEYWORD2
+getLastErrorString	KEYWORD2
+update				KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+RC_LABEL		LITERAL1
+RC_PUSHBUTTON	LITERAL1
+RC_CIRCLEBUTTON	LITERAL1
+RC_SWITCHBUTTON	LITERAL1
+RC_SLIDER		LITERAL1
+RC_ORANGE			LITERAL1
+RC_YELLOW		LITERAL1
+RC_BLUE			LITERAL1
+RC_GREEN		LITERAL1
+RC_PINK			LITERAL1
+RC_GREY			LITERAL1
+RC_BTNDOWN		LITERAL1
+RC_BTNUP		LITERAL1
+RC_VALUECHANGE	LITERAL1

@@ -23,6 +23,7 @@ INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/nvdm/inc
 INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/bluetooth/inc
 INC_FLAGS += -I$(SOURCE_DIR)/prebuilt/middleware/MTK/bluetooth/inc
 INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/connsys/inc
+INC_FLAGS += -I$(SOURCE_DIR)/middleware/MTK/fota/inc
 INC_FLAGS += -I$(SOURCE_DIR)/middleware/third_party/mbedtls/include
 INC_FLAGS += -I$(SOURCE_DIR)/middleware/third_party/mbedtls/configs
 INC_FLAGS += -I$(SOURCE_DIR)/middleware/third_party/lwip/src/include
@@ -37,4 +38,5 @@ CXXFLAGS  += $(INC_FLAGS)
 CXXFLAGS  += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/util/inc
 CXXFLAGS  += -I$(SOURCE_DIR)/driver/board/mt76x7_hdk/wifi/inc
 CXXFLAGS  += -I$(SOURCE_DIR)/middleware/MTK/nvdm/inc
+CXXFLAGS  += -I$(SOURCE_DIR)/middleware/MTK/fota/inc
 
