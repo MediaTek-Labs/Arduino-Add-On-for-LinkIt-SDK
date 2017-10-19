@@ -98,8 +98,12 @@ void init_global_connsys() {
 
     pr_debug("[wifi_init]\n");
     wifi_init(&config, &ex_config);
+
     // we must initialize lwip_tcpip, otherwise we won't receive WIFI_EVENT_IOT_INIT_COMPLETE
-    lwip_tcpip_init(NULL, config.opmode);
+    lwip_tcpip_config_t tcpip_config = {0};
+    lwip_tcpip_init(&tcpip_config, config.opmode);
+    
+    // block until wifi is ready
     while (!wifi_ready()) {
         delay(10);
     }
