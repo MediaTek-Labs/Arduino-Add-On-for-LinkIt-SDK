@@ -69,6 +69,7 @@ include $(SOURCE_DIR)/middleware/MTK/bluetooth/module.mk
 
 # WiFi files
 include $(SOURCE_DIR)/middleware/MTK/wifi_service/combo/module.mk
+CXXFLAGS += -I$(SOURCE_DIR)/middleware/MTK/wifi_service/combo/inc
 
 CXXFLAGS += -fno-rtti
 
