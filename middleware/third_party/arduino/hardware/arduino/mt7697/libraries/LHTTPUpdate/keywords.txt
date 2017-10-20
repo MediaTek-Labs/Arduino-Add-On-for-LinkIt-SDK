@@ -1,0 +1,25 @@
+#######################################
+# Syntax Coloring Map For LHTTPUpdate
+#######################################
+
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+LHTTPUpdate				KEYWORD1
+FotaError				KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+getLastError		KEYWORD2
+getLastErrorString	KEYWORD2
+update				KEYWORD2
+rebootOnUpdate		KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################

@@ -41,6 +41,7 @@ sub build_system_src
 		"middleware/MTK/bluetooth/inc/",
 		"middleware/MTK/nvdm/inc/",
 		"middleware/MTK/connsys/inc/",
+        "middleware/MTK/fota/inc/",
 		"prebuilt/middleware/MTK/nvdm/inc/",
 		"prebuilt/middleware/MTK/bluetooth/inc/",
 		"middleware/MTK/dhcpd/inc",

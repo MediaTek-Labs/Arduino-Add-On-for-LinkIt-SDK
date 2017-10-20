@@ -67,6 +67,9 @@ include $(SOURCE_DIR)/driver/chip/mt7687/module.mk
 # Bluetooth files
 include $(SOURCE_DIR)/middleware/MTK/bluetooth/module.mk
 
+# FOTA
+include $(SOURCE_DIR)/middleware/MTK/fota/module.mk
+
 # WiFi files
 include $(SOURCE_DIR)/middleware/MTK/wifi_service/combo/module.mk
 CXXFLAGS += -I$(SOURCE_DIR)/middleware/MTK/wifi_service/combo/inc
