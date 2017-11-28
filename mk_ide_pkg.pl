@@ -120,7 +120,7 @@ sub build_system_fw
 	(my $outpath)=@_;
 
 	my $bootloader_bin="project/linkit7697_hdk/apps/bootloader/GCC/bootloader.bin";
-	my $wifi_fw_bin="driver/chip/mt7687/wifi_n9/WIFI_RAM_CODE_MT76X7_in_flash.bin";
+	my $wifi_fw_bin="prebuilt/driver/chip/mt7687/wifi_n9/WIFI_RAM_CODE_MT76X7_in_flash.bin";
 		
 	$outpath = "$outpath/mt7697/system/linkit_7697/firmwares";
 	system("mkdir -p $outpath");
