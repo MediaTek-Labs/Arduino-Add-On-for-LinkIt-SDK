@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 #include <stdlib.h>
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 #include "hal_pwm.h"
 #include "delay.h"
 

@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 #include "wiring_analog.h"
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 #include "delay.h"
 #include <hal_adc.h>
 #include <hal_pwm.h>

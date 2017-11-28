@@ -23,7 +23,7 @@
 
 #include "Servo.h"
 #include "adapter_layer.h"
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 #include <hal_platform.h>
 #include "hal_gpio.h"
 #include "hal_pwm.h"

@@ -1,5 +1,5 @@
 #include "constants.h"		// Just for some macros, such as INPUT
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 #include "wiring_digital.h"
 
 #include <hal_gpio.h>

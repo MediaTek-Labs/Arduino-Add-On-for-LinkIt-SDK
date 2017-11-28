@@ -24,7 +24,7 @@
 
 #include <hal_platform.h>
 #include <hal_uart.h>
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 
 #define HARDSER_PARITY_EVEN 	(0x02ul)
 #define HARDSER_PARITY_ODD	(0x01ul)

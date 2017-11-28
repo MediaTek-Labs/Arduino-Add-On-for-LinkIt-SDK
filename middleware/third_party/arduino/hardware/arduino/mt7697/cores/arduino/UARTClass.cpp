@@ -21,7 +21,7 @@
 #include <string.h>
 #include <hal_platform.h>
 #include <hal_uart.h>
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 #include "UARTClass.h"
 #include "log_dump.h"
 

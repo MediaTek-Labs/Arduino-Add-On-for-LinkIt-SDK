@@ -24,7 +24,7 @@ extern "C" {
 #include <Arduino.h>
 #include <constants.h>
 #include <pin_mux.h>
-#include <arduino_pins.h>
+#include <pins_arduino.h>
 #include <hal_platform.h>
 #include "hal_i2c_master.h"
 

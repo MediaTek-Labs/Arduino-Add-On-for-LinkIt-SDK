@@ -59,7 +59,7 @@ extern "C"{
 
 // ====== For Variant ==========================================================
 #include "variant.h"
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 
 // ====== For Sketch ===========================================================
 extern void setup( void ) ;

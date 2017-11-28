@@ -1,7 +1,7 @@
 #include "constants.h"		// Just for some macros, such as INPUT
 #include "cmsis.h"
 #include "pin_mux.h"
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 #include "wiring_interrupt.h"
 
 #include <hal_eint.h>

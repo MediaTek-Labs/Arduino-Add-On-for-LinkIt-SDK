@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <constants.h>
 #include <pin_mux.h>
-#include <arduino_pins.h>
+#include <pins_arduino.h>
 #include <hal_platform.h>
 #include "hal_spi_master.h"
 #include "hal_gpio.h"
