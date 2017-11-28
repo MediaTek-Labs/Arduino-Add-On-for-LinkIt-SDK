@@ -1,4 +1,4 @@
-#include "arduino_pins.h"
+#include "pins_arduino.h"
 
 #if 1
 /*
