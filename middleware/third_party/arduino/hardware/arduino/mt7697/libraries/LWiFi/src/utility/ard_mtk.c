@@ -529,7 +529,7 @@ int32_t get_scan_list(wifi_event_t event, uint8_t *payload, uint32_t length)
 		i = 0;
 		while (number--)
 		{
-			if (strlen((char*)ptr->bssid) != 0 && ssid_checkout((char*)ptr->ssid, i)) {
+			if (strlen((char*)ptr->ssid) != 0 && ssid_checkout((char*)ptr->ssid, i)) {
 #if 0
 				pr_debug("%d\r\n", i);
 				pr_debug("    rssi:%d\r\n", ptr->rssi);
