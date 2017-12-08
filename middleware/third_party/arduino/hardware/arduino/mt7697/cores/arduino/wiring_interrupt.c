@@ -15,7 +15,12 @@ static void default_hal_eint_callback(void *arduino_callback)
 		callback();
 }
 
-void attachInterrupt(uint32_t pin, voidFuncPtr callback, uint32_t mode)
+void attachInterrupt(uint32_t pin, voidFuncPtr callback, uint32_t mode) {
+	// by default we set the debounce time to 50 ms
+	return attachInterruptWithDebounce(pin, callback, mode, 50);
+}
+
+void attachInterruptWithDebounce(uint32_t pin, voidFuncPtr callback, uint32_t mode, uint32_t debounceTime)
 {
 	static hal_eint_trigger_mode_t mode_to_eint_trigger[] = {
 		[LOW]     = HAL_EINT_LEVEL_LOW,
@@ -41,8 +46,7 @@ void attachInterrupt(uint32_t pin, voidFuncPtr callback, uint32_t mode)
 		goto FAIL;
 
 	eint_config.trigger_mode  = mode_to_eint_trigger[mode];
-	eint_config.debounce_time = 50; // debounce time unit: ms
-
+	eint_config.debounce_time = debounceTime; // debounce time unit: ms
 
 	ret = hal_eint_init(pin_get_eint_num(pin_desc), &eint_config);
 

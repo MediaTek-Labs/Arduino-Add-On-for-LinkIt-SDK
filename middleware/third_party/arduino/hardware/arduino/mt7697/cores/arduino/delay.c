@@ -2,6 +2,7 @@
 #include "variant_delay.h"
 #include "cmsis.h"
 #include "delay.h"
+#include <hal_gpt.h>
 
 
 // Get current timestamp, unit: ms
@@ -41,12 +42,12 @@ uint32_t micros( void )
 
 void delayMicroseconds(unsigned int us)
 {
-	uint32_t timeout_micros = micros() + us;
-
-	while(!time_after(micros(), timeout_micros)) ;
+	hal_gpt_delay_us(us);
 }
 
-void yield(void) {}
+void yield(void) {
+
+}
 
 void delay( uint32_t ms )
 {
