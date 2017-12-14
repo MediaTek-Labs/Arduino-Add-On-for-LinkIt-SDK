@@ -44,6 +44,14 @@ struct RCEventInfo {
   uint16_t data;          // from Mobile, data of the event
 };
 
+// Internal structure for UI value/text update. This is a varialbe-length structure.
+struct RCUIUpdateInfo {
+  uint8_t seq;            // from Device, increment sequence serial number
+  uint8_t controlIndex;   // from Device, index into the control array of the event origin
+  uint32_t dataSize;      // from Device, data length in bytes. The type is implicitly defined by the type of the control.
+  uint8_t  data[1];       // from Device, data of the event. May be Int, Float, or String
+};
+
 // Internal structure for storing config data.
 // the semantic is up to each subclass to interpret.
 struct RCConfigData {
@@ -62,13 +70,18 @@ protected:
   }
 
 public:
+
+  /// Set the UI type of the control
   void setType(RCControlType type) { m_type = type; }
 
+  /// Set the position of the control on the canvas grid.
+  /// The upper left corner is (0, 0).
   void setPos(uint8_t x, uint8_t y) {
     m_x = x;
     m_y = y;
   }
 
+  /// Set the row height and column width on the canvas grid.
   void setSize(uint8_t r, uint8_t c) {
     m_row = r;
     m_col = c;
@@ -115,6 +128,10 @@ public:
   // Event sent from the Remote app
   RCEventInfo m_lastEvent;
 
+  // the self-referencing index in the parent m_control
+  // this is used to send UI update event to mobile app
+  uint8_t m_controlIndex; 
+
   // Our "processed" event sequence ID
   uint8_t m_eventSeq;
 };
@@ -122,6 +139,8 @@ public:
 class LRemoteLabel : public LRemoteUIControl {
 public:
   LRemoteLabel() : LRemoteUIControl() { setType(RC_LABEL); }
+
+  void updateText(const String &text);
 };
 
 class LRemoteButton : public LRemoteUIControl {
@@ -253,6 +272,11 @@ public:
   /// Initialize the underlying BLE device and start advertisement.
   /// This API implicitly calls LBLE.begin()
   void begin();
+
+  /// Update the config value of text label.
+  /// This affects the defautl value when the mobile app
+  /// re-connects.
+  void updateTextLabel();
 
   /// Disconnect and stop advertising the device
   /// Note that the control info added by addControl() are kept as-is.

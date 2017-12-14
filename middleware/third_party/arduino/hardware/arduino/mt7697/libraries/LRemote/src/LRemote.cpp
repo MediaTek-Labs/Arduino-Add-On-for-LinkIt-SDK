@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <LBLE.h>
 #include <LBLEPeriphral.h>
-
 #include "LRemote.h"
+#include <vector>
 
 LRemoteClass LRemote;
 
@@ -29,10 +29,15 @@ static LBLECharacteristicString
                                                      // ASCII character
 static LBLECharacteristicBuffer
     rcEvent("b5d2ff7b-6eff-4fb5-9b72-6b9cff5181e7"); // Array of UINT8[4],
-                                                          // (sequence, event,
-                                                          //  event data_byte1,
-                                                          //  event data_byte2,
-                                                          // #) of each control
+                                                     // (sequence, event,
+                                                     //  event data_byte1,
+                                                     //  event data_byte2,
+                                                     // #) of each control
+
+static LBLECharacteristicBuffer
+    rcUIUpdate("e4b1ddfe-eb37-4c78-aba8-c5fa944775cb"); // Of variable-length type RCUIUpdateInfo
+
+                                                     
 static LBLECharacteristicBuffer
     rcConfigDataArray("5d7a63ff-4155-4c7c-a348-1c0a323a6383");
 
@@ -85,8 +90,6 @@ void LRemoteClass::begin() {
   eventInfo.processedSeq = 0;
   eventInfo.data = 0;
 
-  String nameList;
-
   LBLEValueBuffer configDataArray;
   configDataArray.resize(count * sizeof(RCConfigData));
 
@@ -94,33 +97,51 @@ void LRemoteClass::begin() {
   // all the corresponding information such as
   // color, control type, label text, event and other configuration data.
   for (int i = 0; i < count; i++) {
+    // initialize control index
+    m_controls[i]->m_controlIndex = i;
+
+    // setup BLE attributes
     typeArray[i] = (uint8_t)m_controls[i]->m_type;
     colorArray[i] = (uint8_t)m_controls[i]->m_color;
     frameArray[i * 4 + 0] = m_controls[i]->m_x;
     frameArray[i * 4 + 1] = m_controls[i]->m_y;
     frameArray[i * 4 + 2] = m_controls[i]->m_row;
     frameArray[i * 4 + 3] = m_controls[i]->m_col;
-    nameList += m_controls[i]->m_text;
-    nameList += '\n';
 
-    Serial.println("config data fill");
     // fill the additional config data
     RCConfigData configData;
     m_controls[i]->fillConfigData(configData);
     *((RCConfigData *)&configDataArray[i * sizeof(RCConfigData)]) = configData;
   }
 
+  // text label are updated separately,
+  // and can be updated after begin() is called
+  updateTextLabel();
+
   rcControlTypes.setValueBuffer(&typeArray[0], typeArray.size());
   rcColors.setValueBuffer(&colorArray[0], colorArray.size());
   rcFrames.setValueBuffer(&frameArray[0], frameArray.size());
-  rcNames.setValue(nameList);
   rcEvent.setValueBuffer((uint8_t*)&eventInfo, sizeof(eventInfo));
   rcConfigDataArray.setValueBuffer(&configDataArray[0], configDataArray.size());
+
+  RCUIUpdateInfo dummyUpdateInfo;
+  memset(&dummyUpdateInfo, 0, sizeof(dummyUpdateInfo));
+  rcUIUpdate.setValueBuffer((uint8_t*)&dummyUpdateInfo, sizeof(dummyUpdateInfo));
 
   initPeripheralOnce();
 
   // start advertisment
   LBLEPeripheral.advertise(advertisement);
+}
+
+void LRemoteClass::updateTextLabel() {
+  const size_t count = m_controls.size();
+  String nameList;
+  for (int i = 0; i < count; i++) {
+    nameList += m_controls[i]->m_text;
+    nameList += '\n';
+  }
+  rcNames.setValue(nameList);
 }
 
 void LRemoteClass::initBLEOnce() {
@@ -146,6 +167,7 @@ void LRemoteClass::initBLEOnce() {
   rcService.addAttribute(rcFrames);
   rcService.addAttribute(rcNames);
   rcService.addAttribute(rcEvent);
+  rcService.addAttribute(rcUIUpdate);
   rcService.addAttribute(rcConfigDataArray);
   rcService.addAttribute(rcOrientation);
 
@@ -181,7 +203,7 @@ void LRemoteClass::process() {
     // make sure that the "sequence number" is incremented
     // (and thus different from the control's record)
     const size_t i = event.controlIndex;
-      LRemoteUIControl &control = *m_controls[i];
+    LRemoteUIControl &control = *m_controls[i];
     const uint8_t oldSeq = control.m_lastEvent.seq;
     control.m_lastEvent = event;
     control.m_lastEvent.seq = oldSeq + 1;
@@ -196,4 +218,25 @@ void LRemoteClass::end() {
   // Note: the underlying BT subssystem is still kept alive.
   LBLEPeripheral.disconnectAll();
   LBLEPeripheral.stopAdvertise();
+}
+
+///////////////////////////////////////////////////////
+// UI Control classes
+//////////////////////////////////////////////////////
+void LRemoteLabel::updateText(const String &text) {
+  setText(text);
+
+  std::vector<uint8_t> updateInfoBuffer(text.length() + 1 + sizeof(RCUIUpdateInfo));
+  RCUIUpdateInfo *pInfo = reinterpret_cast<RCUIUpdateInfo*>(&updateInfoBuffer[0]);
+  pInfo->controlIndex = m_controlIndex;
+  pInfo->dataSize = text.length() + 1;
+  memcpy(pInfo->data, text.c_str(), text.length() + 1);
+
+  rcUIUpdate.setValueBuffer(&updateInfoBuffer[0], updateInfoBuffer.size());
+
+  if (LBLEPeripheral.connected()) {
+    LBLEPeripheral.notifyAll(rcUIUpdate);
+  }
+
+  LRemote.updateTextLabel();
 }
