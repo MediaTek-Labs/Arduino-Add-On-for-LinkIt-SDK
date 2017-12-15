@@ -224,13 +224,21 @@ void LRemoteClass::end() {
 // UI Control classes
 //////////////////////////////////////////////////////
 void LRemoteLabel::updateText(const String &text) {
-  setText(text);
+  
+  // This comes from experimenting on Android 6.0.1
+  // iOS 11 does not have such limiation
+  const int ANDROID_GATT_NOTIFICATION_LIMIT = 15;
 
-  std::vector<uint8_t> updateInfoBuffer(text.length() + 1 + sizeof(RCUIUpdateInfo));
+  // input check, make sure it is shorter than 15 bytes
+  const String verifiedText = text.length() > ANDROID_GATT_NOTIFICATION_LIMIT ? text.substring(0, ANDROID_GATT_NOTIFICATION_LIMIT) : text;
+  setText(verifiedText);
+
+  // send notification
+  std::vector<uint8_t> updateInfoBuffer(verifiedText.length() + 1 + sizeof(RCUIUpdateInfo));
   RCUIUpdateInfo *pInfo = reinterpret_cast<RCUIUpdateInfo*>(&updateInfoBuffer[0]);
   pInfo->controlIndex = m_controlIndex;
-  pInfo->dataSize = text.length() + 1;
-  memcpy(pInfo->data, text.c_str(), text.length() + 1);
+  pInfo->dataSize = verifiedText.length() + 1;
+  memcpy(pInfo->data, verifiedText.c_str(), verifiedText.length() + 1);
 
   rcUIUpdate.setValueBuffer(&updateInfoBuffer[0], updateInfoBuffer.size());
 
@@ -238,5 +246,6 @@ void LRemoteLabel::updateText(const String &text) {
     LBLEPeripheral.notifyAll(rcUIUpdate);
   }
 
+  // update default value, which is read during connection / re-connection
   LRemote.updateTextLabel();
 }

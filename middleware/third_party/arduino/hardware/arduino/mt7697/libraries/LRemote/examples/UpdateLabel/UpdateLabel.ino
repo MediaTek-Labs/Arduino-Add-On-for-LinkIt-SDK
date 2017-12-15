@@ -81,16 +81,18 @@ void loop() {
   // and translate them to control events
   LRemote.process();
 
-  // Increase the label counter when button is pressed and released.
+  // Increase the label counter when button is released.
   if(buttonLeft.isValueChanged() && !buttonLeft.getValue()){
     counterLeft++;
+    // you can send at most 15 bytes of characters.
     labelLeft.updateText(String(counterLeft, 10));
     Serial.println("increase left counter");
   }
 
+  // Increase the label counter when button is released.
   if(buttonRight.isValueChanged() && !buttonRight.getValue()){
     counterRight++;
     labelRight.updateText(String(counterRight, 10));
     Serial.println("increase right counter");
-  }
+  }  
 }

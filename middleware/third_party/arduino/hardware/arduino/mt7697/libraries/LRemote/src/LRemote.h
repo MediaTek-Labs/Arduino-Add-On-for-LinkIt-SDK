@@ -4,7 +4,7 @@
 #include <LBLEPeriphral.h>
 #include <vector>
 
-#define PROTOCOL_VERSION (2)
+#define PROTOCOL_VERSION (3) 
 
 // Background / primary color of the UI control
 enum RCColorType {
@@ -46,10 +46,9 @@ struct RCEventInfo {
 
 // Internal structure for UI value/text update. This is a varialbe-length structure.
 struct RCUIUpdateInfo {
-  uint8_t seq;            // from Device, increment sequence serial number
   uint8_t controlIndex;   // from Device, index into the control array of the event origin
-  uint32_t dataSize;      // from Device, data length in bytes. The type is implicitly defined by the type of the control.
-  uint8_t  data[1];       // from Device, data of the event. May be Int, Float, or String
+  uint8_t dataSize;       // from Device, data length in bytes. The type is implicitly defined by the type of the control.
+  uint8_t data[1];        // from Device, data of the event. Currently only null-terminated string possible.
 };
 
 // Internal structure for storing config data.
@@ -76,19 +75,25 @@ public:
 
   /// Set the position of the control on the canvas grid.
   /// The upper left corner is (0, 0).
+  /// This value must be called before LRemote.begin().
   void setPos(uint8_t x, uint8_t y) {
     m_x = x;
     m_y = y;
   }
 
   /// Set the row height and column width on the canvas grid.
+  /// This value must be called before LRemote.begin().
   void setSize(uint8_t r, uint8_t c) {
     m_row = r;
     m_col = c;
   }
 
+  /// Set the 
+  /// This value must be called before LRemote.begin().
   void setColor(RCColorType color) { m_color = color; }
 
+  /// Set the label text of the UI control
+  /// This value must be called before LRemote.begin().
   void setText(const String &text) { m_text = text; }
 
 public:
@@ -140,6 +145,9 @@ class LRemoteLabel : public LRemoteUIControl {
 public:
   LRemoteLabel() : LRemoteUIControl() { setType(RC_LABEL); }
 
+  /// Change the label text on the mobile app UI.
+  /// The maximum length for the `text` String is 15 bytes (excluding termination null byte).
+  /// Strings longer than 15 bytes will be truncated.
   void updateText(const String &text);
 };
 
