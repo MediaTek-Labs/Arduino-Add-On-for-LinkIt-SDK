@@ -129,7 +129,7 @@ static void init_usr_led(void)
 	hal_gpio_set_output(HAL_GPIO_36, 0);
 }
 
-#if 0
+#ifndef MTK_HAL_NO_LOG_ENABLE
 LOG_CONTROL_BLOCK_DECLARE(wifi);
 LOG_CONTROL_BLOCK_DECLARE(common);
 LOG_CONTROL_BLOCK_DECLARE(BT);
@@ -163,7 +163,7 @@ void init_system(void)
     // This resets pin status so we put it in init_system().
     hal_pwm_init(PWM_SOURCE_CLOCK);
 
-#if 0
+#ifndef MTK_HAL_NO_LOG_ENABLE
     log_uart_init(HAL_UART_0);
 	log_config_print_switch(BTMM, DEBUG_LOG_OFF);
     log_init(NULL, NULL, syslog_control_blocks);
