@@ -467,7 +467,7 @@ void LBLEEventDispatcher::removeObserver(bt_msg_type_t msg, LBLEEventObserver* p
 
 void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
-	pr_debug("dispatch: msg:0x%x", msg);
+	// pr_debug("dispatch: msg:0x%x", msg);
 	auto i = m_table.find(msg);
 
 	std::vector<EventTable::iterator> removeList;
@@ -481,7 +481,7 @@ void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *
 		
 		if(i->second)
 		{
-			#if 1
+			#if 0			
 			{
 				pr_debug("dispatch found: msg:0x%x, i->second:%p", (int)msg, i->second);
 			}

@@ -235,6 +235,9 @@ public: // Following methods are not meant to be called by Arduino users
 	// send indication with `buf` as data and wait for ACK to the given connection
 	int _indicate(bt_handle_t connection, const LBLEValueBuffer& data);
 
+private:
+	int _notifyIndicate(uint8_t opcode, bt_handle_t connection, const LBLEValueBuffer& data);
+
 protected:
 	LBLEUuid m_uuid;
 	uint32_t m_perm;

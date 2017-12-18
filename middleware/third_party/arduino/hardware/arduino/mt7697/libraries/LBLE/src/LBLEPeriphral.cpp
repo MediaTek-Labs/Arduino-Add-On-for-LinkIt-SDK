@@ -477,28 +477,63 @@ bt_gatts_service_rec_t* LBLECharacteristicBase::allocRecord(uint32_t recordIndex
     }
 }
 
-// send notification to the given connection
-int LBLECharacteristicBase::_notify(bt_handle_t connection, const LBLEValueBuffer& data)
-{
-    pr_debug("attr data size = %d", data.size());
-    // allocating request buffer, header + data
-    std::vector<uint8_t> reqBuf;
-    const size_t requestHeaderSize = 3;
-    reqBuf.resize(requestHeaderSize + data.size(), 0);
-    pr_debug("attr reqBuf size = %d", reqBuf.size());
 
+int LBLECharacteristicBase::_notifyIndicate(uint8_t opcode, bt_handle_t connection, const LBLEValueBuffer& data)
+{
+    // non-thread safe small buffer for typical requests
+    // TODO: we may want a mutex here in the future, when LBLE can be called in multiple tasks/threads.
+    // For now, we assume it is only possible to call LBLE within the Arduino thread.
+    const size_t COMMON_BUFFER_SIZE = 32;   // most requrest should be smaller than 30 bytes.
+    static uint8_t requestBufStatic[COMMON_BUFFER_SIZE] = {0};
+    
+    // calculate required buffer size
+    const size_t requestHeaderSize = 3; // we can't use sizeof(bt_gattc_charc_value_notification_indication_t); because it contains the "attribute_value" field
+    const size_t requestBufferSize = requestHeaderSize + data.size();
+    void *reqBuf = NULL;
+
+    // if dynamically allocated, we assume that it grows monotonically,
+    // hence using a static object to keep the buffer allocated.
+    static std::vector<uint8_t> reqBufVector;
+
+    // allocating request buffer, header + data
+    if(requestBufferSize <= COMMON_BUFFER_SIZE) {
+        // use static allocated buffer
+        reqBuf = requestBufStatic;
+    } else {
+        // expand - but not shrinking - the request buffer size.
+        if(requestBufferSize > reqBufVector.size()) {
+            reqBufVector.resize(requestBufferSize, 0);
+        }
+        reqBuf = &reqBufVector[0];
+        pr_debug("_notify reqBuf size = %d required dynamic allocation", requestBufferSize);
+    }
+    assert(reqBuf != NULL);
+    
     // alias pointer to the request buffer
-    bt_gattc_charc_value_notification_indication_t* pReq = (bt_gattc_charc_value_notification_indication_t*)&reqBuf[0];
-    pReq->attribute_value_length = requestHeaderSize + data.size();
-    pReq->att_req.opcode = BT_ATT_OPCODE_HANDLE_VALUE_NOTIFICATION;
+    bt_gattc_charc_value_notification_indication_t* pReq = (bt_gattc_charc_value_notification_indication_t*)reqBuf;
+    pReq->attribute_value_length = requestBufferSize;
+    pReq->att_req.opcode = opcode;
     pReq->att_req.handle = m_attrHandle;
     memcpy(pReq->att_req.attribute_value, &data[0], data.size());
-
-    // send notification - we don't expect peer to send ACK.
+    // send notifiction - we don't expect peer to send ACK.
     const bt_status_t status = bt_gatts_send_charc_value_notification_indication(connection, pReq);
+    
     if(BT_STATUS_SUCCESS != status)
-    {
-        pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
+    {   
+        switch(status){
+            case  BT_STATUS_FAIL:
+            pr_debug("bt_gatts_send_charc_value_notification_indication fails STATUS_FAIL");
+            break;
+            case BT_STATUS_OUT_OF_MEMORY:
+            pr_debug("bt_gatts_send_charc_value_notification_indication fails OUT_OF_MEMORY");
+            break;
+            case BT_STATUS_CONNECTION_IN_USE:
+            pr_debug("bt_gatts_send_charc_value_notification_indication fails CONNECTION_INUSE");
+            break;
+            default:
+            pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
+            break;
+        }
         return -1;
     }
     
@@ -506,51 +541,15 @@ int LBLECharacteristicBase::_notify(bt_handle_t connection, const LBLEValueBuffe
 }
 
 // send notification to the given connection
+int LBLECharacteristicBase::_notify(bt_handle_t connection, const LBLEValueBuffer& data)
+{
+    return this->_notifyIndicate(BT_ATT_OPCODE_HANDLE_VALUE_NOTIFICATION, connection, data);
+}
+
+// send notification to the given connection
 int LBLECharacteristicBase::_indicate(bt_handle_t connection, const LBLEValueBuffer& data)
 {
-    // allocating request buffer, header + data
-    std::vector<uint8_t> reqBuf;
-    const size_t requestHeaderSize = 3;
-    reqBuf.resize(requestHeaderSize + data.size(), 0);
-    pr_debug("attr reqBuf size = %d", reqBuf.size());
-
-    // alias pointer to the request buffer
-    bt_gattc_charc_value_notification_indication_t* pReq = (bt_gattc_charc_value_notification_indication_t*)&reqBuf[0];
-    pReq->attribute_value_length = requestHeaderSize + data.size();
-    pReq->att_req.opcode = BT_ATT_OPCODE_HANDLE_VALUE_INDICATION;
-    pReq->att_req.handle = m_attrHandle;
-    memcpy(pReq->att_req.attribute_value, &data[0], data.size());
-
-    #if 1
-    const bt_status_t status = bt_gatts_send_charc_value_notification_indication(connection, pReq);
-    if(BT_STATUS_SUCCESS != status)
-    {
-        pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
-        return -1;
-    }
-    return 0; 
-    #else
-    // send notification
-    bool done = waitAndProcessEvent(
-                    // start read request
-                    [&]()
-                    { 
-                        const bt_status_t status = bt_gatts_send_charc_value_notification_indication(connection, pReq);
-                        if(BT_STATUS_SUCCESS != status)
-                        {
-                            pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
-                        }
-                    },
-                    // wait for event...
-                    BT_GATTC_CHARC_VALUE_CONFIRMATION,
-                    // and parse event result in bt task context
-                    [](bt_msg_type_t msg, bt_status_t, void* buf)
-                    {
-                        pr_debug("BT_GATTC_CHARC_VALUE_CONFIRMATION with connection = 0x%x", *(bt_handle_t*)buf);
-                    }
-                );
-    return (done == true) ? 0 : -1;
-    #endif
+    return this->_notifyIndicate(BT_ATT_OPCODE_HANDLE_VALUE_INDICATION, connection, data);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////

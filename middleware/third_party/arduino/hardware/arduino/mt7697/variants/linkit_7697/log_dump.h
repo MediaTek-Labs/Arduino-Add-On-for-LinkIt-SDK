@@ -11,8 +11,16 @@
 
 #define ENABLE_STDIO_TTY				HAL_UART_0
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <syslog.h>
+#ifdef __cplusplus
+}
+#endif
+
 #define pr_debug(format, arg...)				\
-	do{printf("[Arduino:%s:%d] " format, __func__, __LINE__, ##arg);}while(0);
+	do{LOG_I(common, "ARD:"format, ##arg);}while(0);
 
 #else
 #define pr_debug(format, arg...)
