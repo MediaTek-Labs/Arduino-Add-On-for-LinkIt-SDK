@@ -188,8 +188,12 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
         if(0x15 != beaconLength)
             break;
 
+        // note that iBeacon UUID are reversed w.r.t. our BT system
         bt_uuid_t tmpUuid;
-        memcpy(tmpUuid.uuid, iBeaconBuffer, 16);
+        for(int i = 0; i < 16; ++i)
+        {
+            tmpUuid.uuid[i] = iBeaconBuffer[15-i];
+        }
         uuid = tmpUuid;
         iBeaconBuffer += 16;
         
