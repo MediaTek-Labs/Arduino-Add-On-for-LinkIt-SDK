@@ -224,8 +224,8 @@ void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid,
     }
 
     // 2 byte major number & 2 byte minor, note that the endian is different.
-    (*(uint16_t*)(item.adData + 20)) = (major >> 8) | (major << 8);
-    (*(uint16_t*)(item.adData + 22)) = (minor >> 8) | (minor << 8);
+    (*(uint16_t*)(item.adData + 20)) = (major >> 8) | ((major & 0xFF) << 8);
+    (*(uint16_t*)(item.adData + 22)) = (minor >> 8) | ((minor & 0xFF) << 8);
 
     // 1 byte TxPower (signed)
     item.adData[24] = (uint8_t)txPower;		
