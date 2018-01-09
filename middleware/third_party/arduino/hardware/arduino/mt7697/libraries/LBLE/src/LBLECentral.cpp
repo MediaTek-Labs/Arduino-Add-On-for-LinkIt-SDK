@@ -1015,12 +1015,14 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
     auto found = m_characteristics.find(uuid);
     if(found == m_characteristics.end())
     {
+        pr_debug("cannot find characteristics");
         return 0;
     }
 
     // value buffer too big
     if(value.size() > MAXIMUM_WRITE_SIZE)
     {
+        pr_debug("write value too long");
         return 0;
     }
 
@@ -1031,6 +1033,8 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
     req.attribute_value_length = value.size();
     req.att_req = (bt_att_write_req_t*)&reqBuf[0];
     req.att_req->opcode = BT_ATT_OPCODE_WRITE_REQUEST;
+    // the "attribute_handle" field requires a "value handle" actually.
+    pr_debug("write_charc %s with value handle=%d", found->first.toString().c_str(), found->second);
     req.att_req->attribute_handle = found->second;
     memcpy(req.att_req->attribute_value, &value[0], value.size());
 
@@ -1038,18 +1042,23 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
                     // start read request
                     [&]()
                     { 
-                        bt_gattc_write_charc(m_connection, &req);
+                        bt_status_t writeResult = bt_gattc_write_charc(m_connection, &req);
+                        pr_debug("write result = 0x%x", writeResult);
                     },
                     // wait for event...
                     BT_GATTC_WRITE_CHARC,
                     // and parse event result in bt task context
                     [this](bt_msg_type_t msg, bt_status_t, void* buf)
                     {
-                        const bt_gattc_write_rsp_t *pWriteResp = (bt_gattc_write_rsp_t*)buf;
-                        if(BT_GATTC_WRITE_CHARC != msg || pWriteResp->connection_handle != m_connection)
-                        {
+                        if(BT_GATTC_WRITE_CHARC != msg) {
                             // not for our request
+                            pr_debug("got wrong messge");
                             return;
+                        }
+                        
+                        const bt_gattc_write_rsp_t *pWriteResp = (bt_gattc_write_rsp_t*)buf;
+                        if(pWriteResp->connection_handle != this->m_connection) {
+                            pr_debug("got wrong handle=%d (%d)", pWriteResp->connection_handle, this->m_connection);
                         }
                         
                         do{

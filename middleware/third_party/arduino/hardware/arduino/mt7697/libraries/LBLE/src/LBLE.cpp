@@ -205,16 +205,42 @@ unsigned char LBLEUuid::equals(const LBLEUuid &rhs) const
 
 bool LBLEUuid::operator<(const LBLEUuid &rhs) const
 {
+	const bool rhs16 = rhs.is16Bit();
+	const bool rhs32 = bt_uuid_is_uuid32(&rhs.uuid_data);
+
 	if(is16Bit())
 	{
+		if(rhs16) {
 		return (uuid_data.uuid16 < rhs.uuid_data.uuid16);
+	}
+
+		// 16-bit is always smaller than 32/128
+		return true;
 	}
 	else if(bt_uuid_is_uuid32(&uuid_data))
 	{
+		if(rhs32) {
 		return (uuid_data.uuid32 < rhs.uuid_data.uuid32);
+	}
+
+		// 32-bit is larger than 16-bit
+		if(rhs16) {
+			return false;
+		}
+
+		// 128-bit case
+		return true;
 	}
 	else
 	{
+		if(rhs16) {
+			return false;
+		}
+
+		if(rhs32) {
+			return false;
+		}
+		
 		// 128-bit: compare from MSB to LSB
 		for(int i = 0; i < 16; ++i)
 		{
