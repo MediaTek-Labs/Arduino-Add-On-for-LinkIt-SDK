@@ -158,7 +158,7 @@ LBLEUuid LBLEAdvertisements::getServiceUuid() const
     return LBLEUuid(uuid_data);
 }
 
-bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const
+bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_t& minor, int8_t& txPower) const
 {
     // for the iBeacon format, you may refer to
     // https://developer.mbed.org/blog/entry/BLE-Beacons-URIBeacon-AltBeacons-iBeacon/
@@ -188,15 +188,24 @@ bool LBLEAdvertisements::getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_
         if(0x15 != beaconLength)
             break;
 
+        // note that iBeacon UUID are reversed w.r.t. our BT system
         bt_uuid_t tmpUuid;
-        memcpy(tmpUuid.uuid, iBeaconBuffer, sizeof(tmpUuid.uuid));
+        for(int i = 0; i < 16; ++i)
+        {
+            tmpUuid.uuid[i] = iBeaconBuffer[15-i];
+        }
         uuid = tmpUuid;
         iBeaconBuffer += 16;
+        
 
-        major = *(unsigned short*)(iBeaconBuffer);
+        // note that the endian for major and minor are different.
+        major = *((uint16_t*)iBeaconBuffer);
+        major = (major >> 8) | ((major & 0xFF) << 8);
         iBeaconBuffer += 2;
 
-        minor = *(unsigned short*)(iBeaconBuffer);
+
+        minor = *((uint16_t*)iBeaconBuffer);
+        minor = (minor >> 8) | ((minor & 0xFF) << 8);      
         iBeaconBuffer += 2;
 
         txPower = *(int8_t*)iBeaconBuffer;
@@ -365,11 +374,11 @@ bool LBLECentralClass::isIBeacon(int index) const
 
     LBLEUuid uuid;
     uint16_t major, minor;
-    uint8_t txPower;
+    int8_t txPower;
     return parser.getIBeaconInfo(uuid, major, minor, txPower);
 }
 
-bool LBLECentralClass::getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const
+bool LBLECentralClass::getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, int8_t& txPower) const
 {
     LBLEAdvertisements parser(m_peripherals_found[index]);
     return parser.getIBeaconInfo(uuid, major, minor, txPower);

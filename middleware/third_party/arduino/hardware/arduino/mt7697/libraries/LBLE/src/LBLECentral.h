@@ -157,9 +157,9 @@ public:
 	/// \param uuid Output parameter of the iBeacon info - this UUID is defined by the iBeacon device.
 	/// \param major Output parameter, the major number in the iBeacon info.
 	/// \param minor Output parameter, the minor number in the iBeacon info.
-	/// \param minor Output parameter, the TX Power value in the iBeacon info.
+	/// \param txPower Output parameter, the signed TX Power value in the iBeacon info.
 	/// \returns true if the device has iBeacon info. false if the device is not an iBeacon device.
-	bool getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower)const;
+	bool getIBeaconInfo(int index, LBLEUuid& uuid, uint16_t& major, uint16_t& minor, int8_t& txPower)const;
 
 public:
 	// Event handlers and required data structure
@@ -203,7 +203,7 @@ public:
 	uint8_t getAdvertisementFlag()const;
 
 	// returns false if this advertisment is not of iBeacon format.
-	bool getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_t& minor, uint8_t& txPower) const;
+	bool getIBeaconInfo(LBLEUuid& uuid, uint16_t& major, uint16_t& minor, int8_t& txPower) const;
 
 	// Copy the "original" advertisement packet data
 	// bufLen should be the size of dstBuf.
