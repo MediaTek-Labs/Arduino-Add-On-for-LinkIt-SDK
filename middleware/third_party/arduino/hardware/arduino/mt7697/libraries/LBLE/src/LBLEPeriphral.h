@@ -203,6 +203,12 @@ public:
 	// that points to variable-length GATT attribute records.
 	// The user is reponsible to free() the returning buffer.
 	virtual bt_gatts_service_rec_t* allocRecord(uint32_t recordIndex, uint16_t currentHandle) = 0;
+
+	// Since we're defaulting all characteristics with notification,
+	// we need to add CCCD(Client Characteristic Configuration Descriptor)
+	// for every user-created characteristics.
+	virtual void onWriteIndicationNotificationFlag(uint16_t flag) = 0;
+	virtual uint16_t onReadIndicationNotificationFlag() = 0;
 };
 
 class LBLECharacteristicBase : public LBLEAttributeInterface
@@ -218,14 +224,25 @@ public:	// method for Arduino users
 
 public: // Following methods are not meant to be called by Arduino users
 
-	// Each characteristic maps to 2 GATT attribute records
-	virtual uint32_t getRecordCount() {return 2;};
+	// Each characteristic maps to at least 2 GATT attribute records:
+	//  1. UUID of the characteristic
+	//  2. Actual Value
+	//  3 or more. (Optional) descriptors of the characteristic
+	//
+	// Since we're defaulting all characteristics with notification,
+	// we need to add CCCD(Client Characteristic Configuration Descriptor)
+	// for every user-created characteristics.
+	virtual uint32_t getRecordCount() {return 3;};
 
 	// common implementation for characteristics attributes
 	virtual bt_gatts_service_rec_t* allocRecord(uint32_t recordIndex, uint16_t currentHandle);
 
 	// store the assigned attribute handle for notification/indication
 	virtual void assignHandle(uint16_t attrHandle);
+
+	virtual void onWriteIndicationNotificationFlag(uint16_t flag);
+
+	virtual uint16_t onReadIndicationNotificationFlag();
 
 	// Utility function for child class to call.
 	// send notification with `buf` as data to the given connection
@@ -243,6 +260,7 @@ protected:
 	uint32_t m_perm;
 	bool m_updated;
 	uint16_t m_attrHandle;
+	uint16_t m_cccdFlag;
 };
 
 // This class is used by LBLECharacteristicBuffer
