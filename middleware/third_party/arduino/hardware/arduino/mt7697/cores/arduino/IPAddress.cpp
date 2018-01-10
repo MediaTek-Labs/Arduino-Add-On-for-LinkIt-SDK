@@ -75,7 +75,6 @@ size_t IPAddress::printTo(Print& p) const
 
 String IPAddress::toString() const {
 	String p;
-	size_t n = 0;
 	for (int i =0; i < 3; i++)
 	{
 		p += String(_address.bytes[i], DEC);

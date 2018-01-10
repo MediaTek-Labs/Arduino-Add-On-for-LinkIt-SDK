@@ -30,7 +30,7 @@ LBLEAdvertisementData::~LBLEAdvertisementData()
 
 void LBLEAdvertisementData::addAdvertisementData(const LBLEAdvDataItem &item)
 {
-    m_advDataList.push_back(item);	
+    m_advDataList.push_back(item);
 }
 
 void LBLEAdvertisementData::addFlag(uint8_t flag)
@@ -49,7 +49,7 @@ void LBLEAdvertisementData::addName(const char* deviceName)
     // name default to complete name
     LBLEAdvDataItem item;
     item.adType = BT_GAP_LE_AD_TYPE_NAME_COMPLETE;
-    
+
     // note that in AD data the string does name
     // contain NULL-termination character.
     // for size check - we simply truncate the device name
@@ -93,18 +93,18 @@ void LBLEAdvertisementData::configAsConnectableDevice(const char* deviceName, co
         uuid.toRawBuffer(item.adData, item.adDataLen);
     }
     addAdvertisementData(item);
-    
+
     // Usually we need a name for iOS devices to list our peripheral device.
     addName(deviceName);
 }
 
 
 void LBLEAdvertisementData::configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
-                                                    const String& url,
-                                                    EDDYSTONE_URL_ENCODING suffix,
-                                                    const String& tail)
+        const String& url,
+        EDDYSTONE_URL_ENCODING suffix,
+        const String& tail)
 {
-    const uint32_t MAX_ENCODED_URL_SIZE = 17; 
+    const uint32_t MAX_ENCODED_URL_SIZE = 17;
     const int8_t txPower = -30;
 
     // remove all existing AD
@@ -151,7 +151,7 @@ void LBLEAdvertisementData::configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
         pData += addedURLLength;
         urlBudget -= addedURLLength;
     }
-    
+
     // optionally appending suffix & tail
     if(suffix != EDDY_URL_NONE)
     {
@@ -179,14 +179,14 @@ void LBLEAdvertisementData::configAsEddystoneURL(EDDYSTONE_URL_PREFIX prefix,
     }
 
     item.adDataLen = (pData - item.adData);
-    
+
     addAdvertisementData(item);
 }
 
-void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid, 		
-                  uint16_t major, 
-                  uint16_t minor, 
-                  int8_t txPower)
+void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid,
+        uint16_t major,
+        uint16_t minor,
+        int8_t txPower)
 {
     // remove all existing AD
     m_advDataList.clear();
@@ -206,7 +206,7 @@ void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid,
     item.clear();
     item.adType = BT_GAP_LE_AD_TYPE_MANUFACTURER_SPECIFIC;
     item.adDataLen = 0x19;	// always 25 bytes of manufacturer payload
-    
+
     item.adData[0] = 0x4c;	// Apple vendor id(0x004c)
     item.adData[1] = 0x00;	// Apple vendor id(0x004c)
 
@@ -228,7 +228,7 @@ void LBLEAdvertisementData::configAsIBeacon(const LBLEUuid& uuid,
     (*(uint16_t*)(item.adData + 22)) = (minor >> 8) | ((minor & 0xFF) << 8);
 
     // 1 byte TxPower (signed)
-    item.adData[24] = (uint8_t)txPower;		
+    item.adData[24] = (uint8_t)txPower;
 
     addAdvertisementData(item);
 }
@@ -303,7 +303,7 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
     {
         return 0;
     }
-    
+
     // handle number must be globally unique and incresing
     uint16_t currentHandle = startingHandle;
 
@@ -314,10 +314,10 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
     pRecord->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE;
     pRecord->rec_hdr.value_len = 16;
     pRecord->uuid128 = m_uuid.uuid_data;
-    
+
     currentHandle++;
     m_records.push_back((bt_gatts_service_rec_t*)pRecord);
-    
+
     // Generate characterstics attribute records
     for(size_t i = 0; i < m_attributes.size(); ++i)
     {
@@ -331,8 +331,9 @@ uint16_t LBLEService::begin(uint16_t startingHandle)
             }
         }
 
-        // assign the last handle number back to attribute instance
-        m_attributes[i]->assignHandle(currentHandle - 1);
+        // assign the value handle number back to attribute instance
+        const int valueHandleOffset = m_attributes[i]->getRecordCount() - 2 + 1;
+        m_attributes[i]->assignHandle(currentHandle - valueHandleOffset);
     }
 
     // handle numbers
@@ -366,7 +367,7 @@ void LBLEService::end()
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 // implement trampoline callback as requested in ard_bt_attr_callback.h
-uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset, void* user_data)
+uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *data, uint16_t size, uint16_t offset, void* user_data, int callback_type)
 {
     pr_debug("attribute_callback [%d, %d, 0x%p, %d, %d, 0x%p", rw, handle, data, size, offset, user_data);
 
@@ -378,20 +379,45 @@ uint32_t ard_bt_callback_trampoline(const uint8_t rw, uint16_t handle, void *dat
 
     LBLEAttributeInterface* pThis = (LBLEAttributeInterface*)user_data;
 
-    if(0 == size)
-    {
-        return pThis->onSize();
+    if(ARD_BT_CB_TYPE_VALUE_CALLBACK == callback_type) {
+        // Value callbacks - redirecting to read/write methods.
+        if(0 == size)
+        {
+            return pThis->onSize();
+        }
+
+        if (rw == BT_GATTS_CALLBACK_WRITE)
+        {
+            return pThis->onWrite(data, size, offset);
+        }
+        else if (rw == BT_GATTS_CALLBACK_READ)
+        {
+            return pThis->onRead(data, size, offset);
+        }
+    } else if (ARD_BT_CB_TYPE_CCCD_CALLBACK == callback_type) {
+        // CCCD callbacks - these are used to enable / disable
+        // notification and indication.
+        if (rw == BT_GATTS_CALLBACK_WRITE)
+        {
+            // CCCD descriptor is a 16-bit flag - see
+            // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+            if(data && size == sizeof(uint16_t)) {
+                pThis->onWriteIndicationNotificationFlag(*(uint16_t*)data);
+                return sizeof(uint16_t);
+            }
+            return 0;
+        }
+        else if (rw == BT_GATTS_CALLBACK_READ)
+        {
+            uint16_t cccdFlag = pThis->onReadIndicationNotificationFlag();
+            if(data && size == sizeof(cccdFlag)) {
+                *(uint16_t*)data = cccdFlag;
+            }
+            return sizeof(cccdFlag);
+        }
     }
 
-    if (rw == BT_GATTS_CALLBACK_WRITE)
-    {
-        return pThis->onWrite(data, size, offset);
-    }
-    else if (rw == BT_GATTS_CALLBACK_READ)
-    {
-        return pThis->onRead(data, size, offset);
-    }
-    
+
     return 0;
 }
 
@@ -399,7 +425,8 @@ LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid, uint32_t permissio
     m_uuid(uuid),
     m_perm(permission),
     m_updated(false),
-    m_attrHandle(BT_HANDLE_INVALID)
+    m_attrHandle(BT_HANDLE_INVALID),
+    m_cccdFlag(0)
 {
 
 }
@@ -408,7 +435,8 @@ LBLECharacteristicBase::LBLECharacteristicBase(LBLEUuid uuid):
     m_uuid(uuid),
     m_perm(LBLE_READ | LBLE_WRITE),
     m_updated(false),
-    m_attrHandle(BT_HANDLE_INVALID)
+    m_attrHandle(BT_HANDLE_INVALID),
+    m_cccdFlag(0)
 {
 
 }
@@ -427,51 +455,79 @@ bt_gatts_service_rec_t* LBLECharacteristicBase::allocRecord(uint32_t recordIndex
 {
     switch(recordIndex)
     {
-    case 0:
+    case 0: // UUID record
+    {
+        // the first record is a "Characteristic UUID" attribute
+        // it then points the the actual value entry by the "handle" field.
+        bt_gatts_characteristic_128_t* pRec = (bt_gatts_characteristic_128_t*)malloc(sizeof(bt_gatts_characteristic_128_t));
+        if(NULL == pRec)
         {
-            // the first record is a "Characteristic UUID" attribute
-            // it then points the the actual value entry by the "handle" field.
-            bt_gatts_characteristic_128_t* pRec = (bt_gatts_characteristic_128_t*)malloc(sizeof(bt_gatts_characteristic_128_t));
-            if(NULL == pRec)
-            {
-                return NULL;
-            }	
-
-            // For Arduino, we by default enables all permissions and properties,
-            // allowing read/write and would potentially send notification and indication.
-            pRec->rec_hdr.uuid_ptr = &BT_GATT_UUID_CHARC;
-            pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
-            pRec->rec_hdr.value_len = 19;
-            pRec->value.properties = BT_GATT_CHARC_PROP_READ | BT_GATT_CHARC_PROP_WRITE | BT_GATT_CHARC_PROP_NOTIFY | BT_GATT_CHARC_PROP_INDICATE;
-            pRec->value.handle = currentHandle + 1;
-            pRec->value.uuid128 = m_uuid.uuid_data;
-            
-            return (bt_gatts_service_rec_t*)pRec;
+            return NULL;
         }
-    case 1:
+
+        // For Arduino, we by default enables all permissions and properties,
+        // allowing read/write and would potentially send notification and indication.
+        pRec->rec_hdr.uuid_ptr = &BT_GATT_UUID_CHARC;
+        pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
+        pRec->rec_hdr.value_len = 19;
+        pRec->value.properties = BT_GATT_CHARC_PROP_READ | BT_GATT_CHARC_PROP_WRITE | BT_GATT_CHARC_PROP_NOTIFY | BT_GATT_CHARC_PROP_INDICATE;
+        pRec->value.handle = currentHandle + 1;
+        pRec->value.uuid128 = m_uuid.uuid_data;
+
+        return (bt_gatts_service_rec_t*)pRec;
+    }
+    case 1: // attribute value record
+    {
+        // allocating callback function - not needed if SDK allows passing user data directly.
+        bt_gatts_rec_callback_t callbackFunc = ard_bt_alloc_callback_slot((LBLEAttributeInterface*)this, ARD_BT_CB_TYPE_VALUE_CALLBACK);
+        if(NULL == callbackFunc)
         {
-            // allocating callback function - not needed if SDK allows passing user data directly.
-            bt_gatts_rec_callback_t callbackFunc = ard_bt_alloc_callback_slot((LBLEAttributeInterface*)this);
-            if(NULL == callbackFunc)
-            {
-                return NULL;
-            }	
-
-            // the first record is a "Characteristic UUID" attribute
-            // it then points the the actual value entry by the "handle" field.
-            bt_gatts_characteristic_t* pRec = (bt_gatts_characteristic_t*)malloc(sizeof(bt_gatts_characteristic_t));
-            if(NULL == pRec)
-            {
-                // TODO: if we can free callbackFunc, we should free it.
-                return NULL;
-            }	
-
-            pRec->rec_hdr.uuid_ptr = &m_uuid.uuid_data;
-            pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
-            pRec->rec_hdr.value_len = 0;
-            pRec->value.callback = callbackFunc;
-            return (bt_gatts_service_rec_t*)pRec;
+            return NULL;
         }
+
+        // the first record is a "Characteristic UUID" attribute
+        // it then points the the actual value entry by the "handle" field.
+        bt_gatts_characteristic_t* pRec = (bt_gatts_characteristic_t*)malloc(sizeof(bt_gatts_characteristic_t));
+        if(NULL == pRec)
+        {
+            // TODO: if we can free callbackFunc, we should free it.
+            return NULL;
+        }
+
+        pRec->rec_hdr.uuid_ptr = &m_uuid.uuid_data;
+        pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
+        pRec->rec_hdr.value_len = 0;
+        pRec->value.callback = callbackFunc;
+        return (bt_gatts_service_rec_t*)pRec;
+    }
+    case 2: // CCCD descriptor record
+    {
+        // allocating callback function - not needed if SDK allows passing user data directly.
+        bt_gatts_rec_callback_t callbackFunc = ard_bt_alloc_callback_slot((LBLEAttributeInterface*)this, ARD_BT_CB_TYPE_CCCD_CALLBACK);
+        if(NULL == callbackFunc)
+        {
+            return NULL;
+        }
+
+        // The "Characteristic User Description" descriptor represents a "switch" for turning on/off of the  notification of the characteristic.
+        // Some central devices require the presense of this descriptor before receiving the notification push.
+        // Reference: https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+        bt_gatts_client_characteristic_config_t* pRec = (bt_gatts_client_characteristic_config_t*)malloc(sizeof(bt_gatts_client_characteristic_config_t));
+        if(NULL == pRec)
+        {
+            return NULL;
+        }
+
+        // The CCCD is always read/writable by the client.
+        pRec->rec_hdr.uuid_ptr = &BT_GATT_UUID_CLIENT_CHARC_CONFIG;
+        pRec->rec_hdr.perm = BT_GATTS_REC_PERM_READABLE | BT_GATTS_REC_PERM_WRITABLE;
+        pRec->rec_hdr.value_len = 0;
+        pRec->callback = callbackFunc;
+        // TODO: the setting of CCCD is per-connection x per-characterist, and must be retained across connection for bounded devices
+        // However, we currently don't keep tracking of this.
+
+        return (bt_gatts_service_rec_t*)pRec;
+    }
     default:
         return NULL;
     }
@@ -485,7 +541,7 @@ int LBLECharacteristicBase::_notifyIndicate(uint8_t opcode, bt_handle_t connecti
     // For now, we assume it is only possible to call LBLE within the Arduino thread.
     const size_t COMMON_BUFFER_SIZE = 32;   // most requrest should be smaller than 30 bytes.
     static uint8_t requestBufStatic[COMMON_BUFFER_SIZE] = {0};
-    
+
     // calculate required buffer size
     const size_t requestHeaderSize = 3; // we can't use sizeof(bt_gattc_charc_value_notification_indication_t); because it contains the "attribute_value" field
     const size_t requestBufferSize = requestHeaderSize + data.size();
@@ -508,7 +564,7 @@ int LBLECharacteristicBase::_notifyIndicate(uint8_t opcode, bt_handle_t connecti
         pr_debug("_notify reqBuf size = %d required dynamic allocation", requestBufferSize);
     }
     assert(reqBuf != NULL);
-    
+
     // alias pointer to the request buffer
     bt_gattc_charc_value_notification_indication_t* pReq = (bt_gattc_charc_value_notification_indication_t*)reqBuf;
     pReq->attribute_value_length = requestBufferSize;
@@ -517,26 +573,26 @@ int LBLECharacteristicBase::_notifyIndicate(uint8_t opcode, bt_handle_t connecti
     memcpy(pReq->att_req.attribute_value, &data[0], data.size());
     // send notifiction - we don't expect peer to send ACK.
     const bt_status_t status = bt_gatts_send_charc_value_notification_indication(connection, pReq);
-    
+
     if(BT_STATUS_SUCCESS != status)
-    {   
-        switch(status){
-            case  BT_STATUS_FAIL:
+    {
+        switch(status) {
+        case  BT_STATUS_FAIL:
             pr_debug("bt_gatts_send_charc_value_notification_indication fails STATUS_FAIL");
             break;
-            case BT_STATUS_OUT_OF_MEMORY:
+        case BT_STATUS_OUT_OF_MEMORY:
             pr_debug("bt_gatts_send_charc_value_notification_indication fails OUT_OF_MEMORY");
             break;
-            case BT_STATUS_CONNECTION_IN_USE:
+        case BT_STATUS_CONNECTION_IN_USE:
             pr_debug("bt_gatts_send_charc_value_notification_indication fails CONNECTION_INUSE");
             break;
-            default:
+        default:
             pr_debug("bt_gatts_send_charc_value_notification_indication fails with 0x%x", status);
             break;
         }
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -552,13 +608,24 @@ int LBLECharacteristicBase::_indicate(bt_handle_t connection, const LBLEValueBuf
     return this->_notifyIndicate(BT_ATT_OPCODE_HANDLE_VALUE_INDICATION, connection, data);
 }
 
+void LBLECharacteristicBase::onWriteIndicationNotificationFlag(uint16_t flag) {
+    pr_debug("Write CCCD Flag=0x%x", flag);
+    m_cccdFlag = flag;
+    return;
+}
+
+uint16_t LBLECharacteristicBase::onReadIndicationNotificationFlag() {
+    pr_debug("Read CCCD Flag=0x%x", m_cccdFlag);
+    return m_cccdFlag;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 // LBLECharacteristic (Raw Buffer)
 /////////////////////////////////////////////////////////////////////////////////////////////
 LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permission):
     LBLECharacteristicBase(uuid, permission)
 {
-    m_data.resize(512);
+    m_data.reserve(MAX_ATTRIBUTE_DATA_LEN);
     m_writtenInfo.size = 0;
     m_writtenInfo.offset = 0;
 }
@@ -566,7 +633,7 @@ LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid, uint32_t permi
 LBLECharacteristicBuffer::LBLECharacteristicBuffer(LBLEUuid uuid):
     LBLECharacteristicBase(uuid, LBLE_READ | LBLE_WRITE)
 {
-    m_data.resize(512);
+    m_data.reserve(MAX_ATTRIBUTE_DATA_LEN);
     m_writtenInfo.size = 0;
     m_writtenInfo.offset = 0;
 }
@@ -617,7 +684,7 @@ uint32_t LBLECharacteristicBuffer::onRead(void *data, uint16_t size, uint16_t of
     }
 
     const uint32_t dataSize = onSize();
-    
+
     uint32_t copySize = (dataSize > offset) ? (dataSize - offset) : 0;
     copySize = (size > copySize) ? copySize : size;
 
@@ -644,7 +711,7 @@ uint32_t LBLECharacteristicBuffer::onWrite(void *data, uint16_t size, uint16_t o
     {
         m_writtenInfo.size = size;
         m_writtenInfo.offset = offset;
-        memcpy(&m_data[0] + offset, data, size);	
+        memcpy(&m_data[0] + offset, data, size);
         m_updated = true;
     }
     return size;
@@ -709,8 +776,8 @@ int LBLECharacteristicString::indicate(bt_handle_t connection)
 uint32_t LBLECharacteristicString::onRead(void *data, uint16_t size, uint16_t offset)
 {
     const uint32_t dataSize = onSize();
-    
-    if (size == 0){
+
+    if (size == 0) {
         return dataSize;
     }
 
@@ -814,8 +881,8 @@ uint32_t LBLECharacteristicInt::onSize() const
 uint32_t LBLECharacteristicInt::onRead(void *data, uint16_t size, uint16_t offset)
 {
     const uint32_t dataSize = onSize();
-    
-    if (size == 0){
+
+    if (size == 0) {
         return dataSize;
     }
 
@@ -866,7 +933,7 @@ LBLEPeripheralClass::LBLEPeripheralClass():
 
 LBLEPeripheralClass::~LBLEPeripheralClass()
 {
-    
+
 }
 
 int LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
@@ -883,8 +950,8 @@ int LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
 }
 
 int LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
-						                    uint32_t intervalMS,
-						                    uint8_t txPower)
+        uint32_t intervalMS,
+        int8_t txPower)
 {
     // make a copy of advertisement data for re-advertising after disconnect event.
     // previous advertisement data will be cleared since m_pAdvData is unique_ptr.
@@ -908,7 +975,7 @@ int LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
     // use normal advertisement API
     return advertiseAgain();
 #else
-    // TODO: currently the multi-advertisment API does not work due to 
+    // TODO: currently the multi-advertisment API does not work due to
     // instance limitation - looks like a bug.
 
     // use multi-advertisement API,
@@ -922,8 +989,8 @@ int LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
 
     // populate the advertisement data
     bt_hci_cmd_le_set_advertising_data_t hci_adv_data = {0};
-    hci_adv_data.advertising_data_length = m_pAdvData->getPayload(hci_adv_data.advertising_data, 
-                                                              sizeof(hci_adv_data.advertising_data));
+    hci_adv_data.advertising_data_length = m_pAdvData->getPayload(hci_adv_data.advertising_data,
+                                           sizeof(hci_adv_data.advertising_data));
 
     bt_hci_cmd_le_set_scan_response_data_t hci_scan_rsp_data = {0};
 
@@ -933,34 +1000,34 @@ int LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
     delay(500);
 
     bt_status_t status = bt_gap_le_start_multiple_advertising(
-                                                                1,		// Only allow 1 advertisement instance
-                                                                txPower,
-                                                                randomAddress,
-                                                                &adv_param,
-                                                                &hci_adv_data,
-                                                                &hci_scan_rsp_data
-                                                                );
-                            delay(500);
-                            if(status != BT_STATUS_SUCCESS)
-                            {
-                                Serial.print("failed calling start multiple advertising = ");
-                                Serial.println(status, HEX);
-                            }
+                             1,		// Only allow 1 advertisement instance
+                             txPower,
+                             randomAddress,
+                             &adv_param,
+                             &hci_adv_data,
+                             &hci_scan_rsp_data
+                         );
+    delay(500);
+    if(status != BT_STATUS_SUCCESS)
+    {
+        Serial.print("failed calling start multiple advertising = ");
+        Serial.println(status, HEX);
+    }
 
     bool done = waitAndProcessEvent(
-                        [&](){
-                            return;
-                        },
+    [&]() {
+        return;
+    },
 
-                        BT_GAP_LE_START_MULTIPLE_ADVERTISING_CNF,
+    BT_GAP_LE_START_MULTIPLE_ADVERTISING_CNF,
 
-                        [this](bt_msg_type_t msg, bt_status_t status, void* buf)
-                        {
-                            Serial.print("status=");
-                            Serial.println(status);
-                            return;
-                        }
-    );
+    [this](bt_msg_type_t msg, bt_status_t status, void* buf)
+    {
+        Serial.print("status=");
+        Serial.println(status);
+        return;
+    }
+                );
 
     if(!done)
     {
@@ -968,7 +1035,7 @@ int LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
     }
 #endif
 }
-    
+
 void LBLEPeripheralClass::stopAdvertise()
 {
     // disable advertisement
@@ -979,18 +1046,18 @@ void LBLEPeripheralClass::stopAdvertise()
     bool done = waitAndProcessEvent(
                     // Call connect API
                     [&enable]()
-                    {
-    bt_gap_le_set_advertising(&enable, NULL, NULL, NULL);
-                    },
-                    // wait for confirmation before we can disconnect again...
-                    BT_GAP_LE_SET_ADVERTISING_CNF,
-                    // to update the `m_connection` member in BT task
-                    [](bt_msg_type_t, bt_status_t, void* buf)
-                    {
-                        return;
-                    }
+    {
+        bt_gap_le_set_advertising(&enable, NULL, NULL, NULL);
+    },
+    // wait for confirmation before we can disconnect again...
+    BT_GAP_LE_SET_ADVERTISING_CNF,
+    // to update the `m_connection` member in BT task
+    [](bt_msg_type_t, bt_status_t, void* buf)
+    {
+        return;
+    }
                 );
-    
+
     if(!done)
     {
         pr_debug("fails to stop advertisement!");
@@ -1008,7 +1075,7 @@ int LBLEPeripheralClass::advertiseAgain()
     {
         return -2;
     }
-    
+
     // enable advertisement
     bt_hci_cmd_le_set_advertising_enable_t enable = {0};
     enable.advertising_enable = BT_HCI_ENABLE;
@@ -1018,8 +1085,8 @@ int LBLEPeripheralClass::advertiseAgain()
 
     // populate the advertisement data
     bt_hci_cmd_le_set_advertising_data_t hci_adv_data;
-    const uint32_t payLoadRequired = m_pAdvData->getPayload(hci_adv_data.advertising_data, 
-                                                              sizeof(hci_adv_data.advertising_data));
+    const uint32_t payLoadRequired = m_pAdvData->getPayload(hci_adv_data.advertising_data,
+                                     sizeof(hci_adv_data.advertising_data));
     pr_debug("payload requires %d bytes", payLoadRequired);
     if(sizeof(hci_adv_data.advertising_data) < payLoadRequired)
     {
@@ -1049,7 +1116,7 @@ void LBLEPeripheralClass::setName(const char* name)
 
 void LBLEPeripheralClass::addService(const LBLEService& service)
 {
-    m_services.push_back(service);	
+    m_services.push_back(service);
 }
 
 const bt_gatts_service_t** LBLEPeripheralClass::getServiceTable()
@@ -1068,24 +1135,24 @@ const bt_gatts_service_t** LBLEPeripheralClass::getServiceTable()
 ////////////////////////////////////////////////////////////////////////
 extern "C"
 {
-extern const bt_gatts_service_t bt_if_gap_service;			// 0x0001-
-extern const bt_gatts_service_t bt_if_gatt_service_ro;		// 0x0011-
-extern const bt_gatts_service_t bt_if_ble_smtcn_service;  	// 0x0014-
+    extern const bt_gatts_service_t bt_if_gap_service;			// 0x0001-
+    extern const bt_gatts_service_t bt_if_gatt_service_ro;		// 0x0011-
+    extern const bt_gatts_service_t bt_if_ble_smtcn_service;  	// 0x0014-
 
 // Collects all service
-const bt_gatts_service_t * g_gatt_server[] = {
-    &bt_if_gap_service,         //0x0001
-    &bt_if_gatt_service_ro,     //0x0011
-    &bt_if_ble_smtcn_service,   //0x0014-0x0017
-    NULL
-};
+    const bt_gatts_service_t * g_gatt_server[] = {
+        &bt_if_gap_service,         //0x0001
+        &bt_if_gatt_service_ro,     //0x0011
+        &bt_if_ble_smtcn_service,   //0x0014-0x0017
+        NULL
+    };
 
 // This callback is called by BLE GATT framework
 // when a remote device is connecting to this peripheral.
-const bt_gatts_service_t** bt_get_gatt_server()
-{
-    return LBLEPeripheral.getServiceTable();
-}
+    const bt_gatts_service_t** bt_get_gatt_server()
+    {
+        return LBLEPeripheral.getServiceTable();
+    }
 
 } // extern "C"
 
@@ -1103,7 +1170,7 @@ void LBLEPeripheralClass::begin()
     m_servicePtrTable.push_back(&bt_if_gap_service);
     m_servicePtrTable.push_back(&bt_if_gatt_service_ro);
 
-    // this "handle" must be globally unique, 
+    // this "handle" must be globally unique,
     // as requested by BLE framework.
     assert(USER_ATTRIBUTE_HANDLE_START > bt_if_gap_service.ending_handle);
     assert(USER_ATTRIBUTE_HANDLE_START > bt_if_gatt_service_ro.ending_handle);
@@ -1148,39 +1215,39 @@ void LBLEPeripheralClass::disconnectAll()
         if(conn != BT_HANDLE_INVALID)
         {
             // disconnect the connection handle
-            bool done = waitAndProcessEvent(
-                    // Call connect API
-                    [conn]()
+            waitAndProcessEvent(
+                            // Call connect API
+                            [conn]()
+            {
+                bt_hci_cmd_disconnect_t disconn_para = {0};
+                disconn_para.connection_handle = conn;
+                disconn_para.reason = 0x13; //  REMOTE USER TERMINATED CONNECTION
+                bt_gap_le_disconnect(&disconn_para);
+            },
+            // wait for confirmation before we can disconnect again...
+            BT_GAP_LE_DISCONNECT_CNF,
+            // to update the `m_connection` member in BT task
+            [this, conn](bt_msg_type_t, bt_status_t, void* buf)
+            {
+                // CNF is null payload, so we simply remove the handle.
+                // we search the entire m_connection container again,
+                // in case that iterator "c" becomes invalid
+                // becuse of other BT_GAP_LE_CONNECT_IND events
+                for(auto removeItr = m_connections.begin(); removeItr != m_connections.end(); ++removeItr)
+                {
+                    if(*removeItr == conn)
                     {
-                        bt_hci_cmd_disconnect_t disconn_para = {0};
-                        disconn_para.connection_handle = conn;
-                        disconn_para.reason = 0x13; //  REMOTE USER TERMINATED CONNECTION
-                        bt_gap_le_disconnect(&disconn_para);
-                    },
-                    // wait for confirmation before we can disconnect again...
-                    BT_GAP_LE_DISCONNECT_CNF,
-                    // to update the `m_connection` member in BT task
-                    [this, conn](bt_msg_type_t, bt_status_t, void* buf)
-                    {
-                        // CNF is null payload, so we simply remove the handle.
-                        // we search the entire m_connection container again,
-                        // in case that iterator "c" becomes invalid
-                        // becuse of other BT_GAP_LE_CONNECT_IND events
-                        for(auto removeItr = m_connections.begin(); removeItr != m_connections.end(); ++removeItr)
-                        {
-                            if(*removeItr == conn)
-                            {
-                                *removeItr = BT_HANDLE_INVALID;
-                            }
-                        }
+                        *removeItr = BT_HANDLE_INVALID;
                     }
-                );
+                }
+            }
+                        );
         }
     }
 }
 
 bool LBLEPeripheralClass::isOnce()
-{ 
+{
     // keep listening for connection events
     return false;
 }
@@ -1188,7 +1255,6 @@ bool LBLEPeripheralClass::isOnce()
 int LBLEPeripheralClass::notifyAll(LBLEAttributeInterface& characteristic)
 {
     // broadcasting to all connected devices
-    size_t count = 0;
     size_t notified = 0;
     for(auto c : m_connections)
     {
@@ -1207,7 +1273,6 @@ int LBLEPeripheralClass::notifyAll(LBLEAttributeInterface& characteristic)
 int LBLEPeripheralClass::indicateAll(LBLEAttributeInterface& characteristic)
 {
     // broadcasting to all connected devices
-    size_t count = 0;
     size_t indicated = 0;
     for(auto c : m_connections)
     {
@@ -1233,53 +1298,53 @@ void LBLEPeripheralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *b
     switch(msg)
     {
     case BT_GAP_LE_CONNECT_IND:
+    {
+        const bt_gap_le_connection_ind_t* pInfo = (bt_gap_le_connection_ind_t*)buff;
+        if(!pInfo)
         {
-            const bt_gap_le_connection_ind_t* pInfo = (bt_gap_le_connection_ind_t*)buff;    
-            if(!pInfo)
-            {
-                break;
-            }
+            break;
+        }
 
-            // check if there is a redundant connection event
-            for(auto c : m_connections)
+        // check if there is a redundant connection event
+        for(auto c : m_connections)
+        {
+            // already registered, early break.
+            if(c == pInfo->connection_handle)
             {
-                // already registered, early break.
-                if(c == pInfo->connection_handle)
-                {
-                    pr_debug("duplicated connection handle event: %d", c);
-                    return;
-                }
-            }
-
-            // Peripheral are "slaves"
-            if(BT_ROLE_SLAVE == pInfo->role)
-            {
-                // check if there are empy slots (slots with BT_HANDLE_INVALID)
-                // otherwise we append a new entry.
-                bool inserted = false;
-                for(auto itr = m_connections.begin(); itr != m_connections.end(); ++itr)
-                {
-                    // find matched connections and mark as invalid
-                    if(BT_HANDLE_INVALID == *itr)
-                    {
-                        *itr = pInfo->connection_handle;
-                        inserted = true;
-                    }
-                }
-
-                // no empty slot, add a new entry
-                if(!inserted)
-                {
-                    m_connections.push_back(pInfo->connection_handle);
-                }
+                pr_debug("duplicated connection handle event: %d", c);
+                return;
             }
         }
-        break;
-    case BT_GAP_LE_DISCONNECT_IND:
+
+        // Peripheral are "slaves"
+        if(BT_ROLE_SLAVE == pInfo->role)
         {
-            const bt_gap_le_disconnect_ind_t* pInfo = (bt_gap_le_disconnect_ind_t*)buff;
-            if(pInfo)
+            // check if there are empy slots (slots with BT_HANDLE_INVALID)
+            // otherwise we append a new entry.
+            bool inserted = false;
+            for(auto itr = m_connections.begin(); itr != m_connections.end(); ++itr)
             {
+                // find matched connections and mark as invalid
+                if(BT_HANDLE_INVALID == *itr)
+                {
+                    *itr = pInfo->connection_handle;
+                    inserted = true;
+                }
+            }
+
+            // no empty slot, add a new entry
+            if(!inserted)
+            {
+                m_connections.push_back(pInfo->connection_handle);
+            }
+        }
+    }
+    break;
+    case BT_GAP_LE_DISCONNECT_IND:
+    {
+        const bt_gap_le_disconnect_ind_t* pInfo = (bt_gap_le_disconnect_ind_t*)buff;
+        if(pInfo)
+        {
             const bt_handle_t disconnectedHandle = pInfo->connection_handle;
             for(auto itr = m_connections.begin(); itr != m_connections.end(); ++itr)
             {
@@ -1290,11 +1355,11 @@ void LBLEPeripheralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *b
                 }
             }
         }
-        }
+    }
         // the underlying framework stops advertisement as soon as a new connection is built.
         // so we re-advertise ourselves after disconnection.
-        advertiseAgain();
-        break;
+    advertiseAgain();
+    break;
     }
 
     return;

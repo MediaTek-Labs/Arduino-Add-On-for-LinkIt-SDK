@@ -53,7 +53,7 @@ void printDeviceInfo(int i) {
   if (LBLECentral.isIBeacon(i)) {
     LBLEUuid uuid;
     uint16_t major = 0, minor = 0;
-    uint8_t txPower = 0;
+    int8_t txPower = 0;
     LBLECentral.getIBeaconInfo(i, uuid, major, minor, txPower);
 
     Serial.print(" ");
