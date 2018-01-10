@@ -58,7 +58,7 @@ uint32_t analogRead(uint32_t ulPin) {
 
   // Note that Arduino UNO's implementation accepts both
   // pin # and ADC channel number. so we make a detection here:
-  if (ulPin < HAL_ADC_CHANNEL_MAX && ulPin >= 0) {
+  if (ulPin < HAL_ADC_CHANNEL_MAX) {
     // user gave use channel number, e.g.
     // ```analogRead(0);```
     adc_channel = (int)ulPin;

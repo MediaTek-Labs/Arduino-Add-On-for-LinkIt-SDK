@@ -1215,7 +1215,7 @@ void LBLEPeripheralClass::disconnectAll()
         if(conn != BT_HANDLE_INVALID)
         {
             // disconnect the connection handle
-            bool done = waitAndProcessEvent(
+            waitAndProcessEvent(
                             // Call connect API
                             [conn]()
             {
@@ -1255,7 +1255,6 @@ bool LBLEPeripheralClass::isOnce()
 int LBLEPeripheralClass::notifyAll(LBLEAttributeInterface& characteristic)
 {
     // broadcasting to all connected devices
-    size_t count = 0;
     size_t notified = 0;
     for(auto c : m_connections)
     {
@@ -1274,7 +1273,6 @@ int LBLEPeripheralClass::notifyAll(LBLEAttributeInterface& characteristic)
 int LBLEPeripheralClass::indicateAll(LBLEAttributeInterface& characteristic)
 {
     // broadcasting to all connected devices
-    size_t count = 0;
     size_t indicated = 0;
     for(auto c : m_connections)
     {

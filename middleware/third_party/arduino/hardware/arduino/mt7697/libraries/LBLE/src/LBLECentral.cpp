@@ -396,33 +396,11 @@ uint8_t  LBLECentralClass::getAdvertisementFlag(int index) const
     return parser.getAdvertisementFlag();
 }
 
-static const char* get_event_type(uint8_t type)
-{
-    switch (type)
-    {
-    case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_IND:
-        return "ADV_IND";
-    case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_DIRECT_IND:
-        return "ADV_DIRECT_IND";
-    case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_SCAN_IND:
-        return "ADV_SCAN_IND";
-    case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_NONCONN_IND:
-        return "ADV_NONCONN_IND";
-    case BT_GAP_LE_ADV_REPORT_EVT_TYPE_ADV_SCAN_RSP:
-        return "SCAN_RSP";
-    default:
-        return "NULL";
-    }
-}
-
 void LBLECentralClass::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
     if(BT_GAP_LE_ADVERTISING_REPORT_IND == msg)
     {
         const bt_gap_le_advertising_report_ind_t* pReport = (bt_gap_le_advertising_report_ind_t*)buff;
-
-        // pr_debug("BT_GAP_LE_ADVERTISING_REPORT_IND with 0x%x", (unsigned int)status);
-        // pr_debug("advertisement event = %s", get_event_type(pReport->event_type));
 
         switch(pReport->event_type)
         {

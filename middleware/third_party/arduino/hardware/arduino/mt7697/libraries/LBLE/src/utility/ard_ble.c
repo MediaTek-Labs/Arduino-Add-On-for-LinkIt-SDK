@@ -16,23 +16,14 @@
 
 //////////////////////////////////////////////////
 // Workaround for CONSYS patch issue
-
-/* wifi related header */
-#include <wifi_api.h>
-#include <lwip/ip4_addr.h>
-#include <lwip/inet.h>
-#include <lwip/netif.h>
-#include <lwip/tcpip.h>
-#include <lwip/dhcp.h>
-#include <lwip/dns.h>
-#include <ethernetif.h>
-
+#include <variant.h>
 static void _connsys_workaround()
 {
     // Wi-Fi must be initialized for BLE start-up
     // declared in Arduino core's "variant.h"
     init_global_connsys();
 }
+//////////////////////////////////////////////////
 
 /*
  *	These initialization routines are based on LinkIt SDK v4, iot_sdk_demo::bt_init.c
