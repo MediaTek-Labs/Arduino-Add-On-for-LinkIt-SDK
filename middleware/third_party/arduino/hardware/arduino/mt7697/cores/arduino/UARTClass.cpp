@@ -87,6 +87,12 @@ static hal_uart_baudrate_t uart_translate_baudrate(const uint32_t baudrate)
 			return HAL_UART_BAUDRATE_57600;
 		case 115200:
 			return HAL_UART_BAUDRATE_115200;
+		case 230400:
+			return HAL_UART_BAUDRATE_230400;
+		case 460800:
+			return HAL_UART_BAUDRATE_460800;
+		case 921600:
+			return HAL_UART_BAUDRATE_921600;
 		default:
 			return HAL_UART_BAUDRATE_MAX;
 	}
