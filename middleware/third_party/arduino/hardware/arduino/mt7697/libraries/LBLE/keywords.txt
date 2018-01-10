@@ -3,66 +3,88 @@
 #######################################
 
 #######################################
-# Library (KEYWORD1)
+# Classes (KEYWORD1)
 #######################################
 
-LBLE	KEYWORD1	LBLE
-LBLECentral KEYWORD1    LBLECentral
-LBLEPeripheral KEYWORD1    LBLEPeripheral
-
-#######################################
-# Datatypes (KEYWORD1)
-#######################################
-
-LBLECentral	KEYWORD1	LBLECentral
-LBLEPeripheral	KEYWORD1	LBLEPeripheral
-LBLEUuid        KEYWORD1
+LBLE	KEYWORD1
+LBLECentral	KEYWORD1
+LBLEPeripheral 	KEYWORD1
+LBLEUuid	KEYWORD1
+LBLEAdvertisementData	KEYWORD1
+LBLEService	KEYWORD1
+LBLEAddress	KEYWORD1
+LBLEUuidLBLEClient	KEYWORD1
+LBLECharacteristicInt	KEYWORD1
+LBLECharacteristicString	KEYWORD1
+LBLECharacteristicBuffer	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
-
-firmwareVersion		KEYWORD2
-status			KEYWORD2
-connect			KEYWORD2
-write			KEYWORD2
-available		KEYWORD2
-config			KEYWORD2
-setDNS			KEYWORD2
-read			KEYWORD2
-flush			KEYWORD2
-stop			KEYWORD2
-connected		KEYWORD2
-begin			KEYWORD2
-disconnect		KEYWORD2
-macAddress		KEYWORD2
-localIP			KEYWORD2
-subnetMask		KEYWORD2
-gatewayIP		KEYWORD2
-SSID			KEYWORD2
-BSSID			KEYWORD2
-RSSI			KEYWORD2
-encryptionType		KEYWORD2
-getResult		KEYWORD2
-getSocket		KEYWORD2
-WiFiClient		KEYWORD2	WiFiClient
-WiFiServer		KEYWORD2	WiFiServer
-WiFiUDP			KEYWORD2	WiFiUDPConstructor
-beginPacket		KEYWORD2
-endPacket		KEYWORD2
-parsePacket		KEYWORD2
-remoteIP		KEYWORD2
-remotePort		KEYWORD2
-
-scan            KEYWORD2    
-getAddress      KEYWORD2    
-getName         KEYWORD2    
-getTxPower      KEYWORD2    
-getRSSI         KEYWORD2    
-getServiceUuid  KEYWORD2    
-getManufacturer KEYWORD2    
-
+begin	KEYWORD2
+ready	KEYWORD2
+getDeviceAddress	KEYWORD2
+scan	KEYWORD2
+stopScan	KEYWORD2
+getPeripheralCount	KEYWORD2
+getAddress	KEYWORD2
+getBLEAddress	KEYWORD2
+getManufacturer	KEYWORD2
+getName	KEYWORD2
+getRSSI	KEYWORD2
+getTxPower	KEYWORD2
+getServiceUuid	KEYWORD2
+getIBeaconInfo	KEYWORD2
+addService	KEYWORD2
+advertise	KEYWORD2
+advertiseAsBeacon	KEYWORD2
+stopAdvertise	KEYWORD2
+notifyAll	KEYWORD2
+configAsConnectableDevice	KEYWORD2
+configAsEddystoneURL	KEYWORD2
+configAsIBeacon	KEYWORD2
+addAttribute	KEYWORD2
+isWritten	KEYWORD2
+getValue	KEYWORD2
+setValue	KEYWORD2
+toString	KEYWORD2
+isEmpty	KEYWORD2
+is16Bit	KEYWORD2
+getUuid16	KEYWORD2
+connect	KEYWORD2
+connected	KEYWORD2
+disconnect	KEYWORD2
+hasService	KEYWORD2
+getServiceCount	KEYWORD2
+getServiceName	KEYWORD2
+getServiceUuid	KEYWORD2
+readCharacteristicString	KEYWORD2
+readCharacteristicInt	KEYWORD2
+writeCharacteristicFloat	KEYWORD2
+writeCharacteristicString	KEYWORD2
+writeCharacteristicInt	KEYWORD2
+writeCharacteristicFloat	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
 #######################################
+
+EDDY_HTTP_WWW	LITERAL1
+EDDY_HTTPS_WWW	LITERAL1
+EDDY_HTTP	LITERAL1
+EDDY_HTTPS	LITERAL1
+EDDY_URL_NONE	LITERAL1
+EDDY_DOT_COM_SLASH	LITERAL1
+EDDY_DOT_ORG_SLASH	LITERAL1
+EDDY_DOT_EDU_SLASH	LITERAL1
+EDDY_DOT_NET_SLASH	LITERAL1
+EDDY_DOT_INFO_SLASH	LITERAL1
+EDDY_DOT_BIZ_SLASH	LITERAL1
+EDDY_DOT_GOV_SLASH	LITERAL1
+EDDY_DOT_COM	LITERAL1
+EDDY_DOT_ORG	LITERAL1
+EDDY_DOT_EDU	LITERAL1
+EDDY_DOT_NET	LITERAL1
+EDDY_DOT_INFO	LITERAL1
+EDDY_DOT_BIZ	LITERAL1
+EDDY_DOT_GOV	LITERAL1
