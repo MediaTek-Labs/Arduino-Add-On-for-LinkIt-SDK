@@ -473,7 +473,7 @@ public:
     ///        Note: current version does not support adjusting txPower.
     int advertiseAsBeacon(const LBLEAdvertisementData& advertisementData,
                           uint32_t intervalMS = 700,
-                          uint8_t txPower = -30);
+                          int8_t txPower = -30);
 
     /// start advertisement based on previous input of advertise
     /// \returns 0 when succeeded, -1 when payload too long, -2 for other errors.

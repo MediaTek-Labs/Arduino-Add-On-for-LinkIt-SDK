@@ -951,7 +951,7 @@ int LBLEPeripheralClass::advertise(const LBLEAdvertisementData& advData)
 
 int LBLEPeripheralClass::advertiseAsBeacon(const LBLEAdvertisementData& advData,
         uint32_t intervalMS,
-        uint8_t txPower)
+        int8_t txPower)
 {
     // make a copy of advertisement data for re-advertising after disconnect event.
     // previous advertisement data will be cleared since m_pAdvData is unique_ptr.
