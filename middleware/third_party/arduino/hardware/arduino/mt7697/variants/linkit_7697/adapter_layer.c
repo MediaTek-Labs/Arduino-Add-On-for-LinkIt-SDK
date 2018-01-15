@@ -6,6 +6,7 @@
 #include <hal_pwm.h>
 #include <hal_flash.h>
 #include <hal_platform.h>
+#include <hal_sleep_manager.h>
 #include <syslog.h>
 #include <FreeRTOS.h>
 #include <task.h>
@@ -168,5 +169,7 @@ void init_system(void)
 	log_config_print_switch(BTMM, DEBUG_LOG_OFF);
     log_init(NULL, NULL, syslog_control_blocks);
 #endif
+
+	hal_sleep_manager_init();
 }
 
