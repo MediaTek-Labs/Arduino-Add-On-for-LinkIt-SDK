@@ -124,7 +124,7 @@ unsigned char AST_TimeOut_flag = 1;
 #define AST_CLOCK 32768 //32.768 kHz
 #define xMaximumPossibleASTTicks (0xFFFFFFFF / (AST_CLOCK/configTICK_RATE_HZ))
 
-#define TICKLESS_DEBUG                          0
+#define TICKLESS_DEBUG                          1
 #define RTC_CALIBRATION_ENABLE                  0
 #define GIVE_OWN_BIT                            1
 #define TICKLESS_TIME_ACCURACY_DEBUG            0
