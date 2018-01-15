@@ -182,7 +182,7 @@ static TimerHandle_t timer2 = NULL;
 
 static void tickless_debug_timer_callback(TimerHandle_t expiredTimer)
 {
-    LOG_E("common", "tick:%u ls:%u wfi:%u idle:%u, lock:%u\n",
+    LOG_E(common, "tick:%u ls:%u wfi:%u idle:%u, lock:%u\n",
         (unsigned int)xTaskGetTickCount(),
         ticklessLSCount,
         ticklessWFICount,
