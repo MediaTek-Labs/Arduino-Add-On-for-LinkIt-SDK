@@ -178,10 +178,11 @@ extern uint32_t ulAST_CurrentCount;
 static TimerHandle_t timer1 = NULL;
 static TimerHandle_t timer2 = NULL;
 
+#include <syslog.h>
 
 static void tickless_debug_timer_callback(TimerHandle_t expiredTimer)
 {
-    printf("tick:%u ls:%u wfi:%u idle:%u, lock:%u\n",
+    LOG_E("common", "tick:%u ls:%u wfi:%u idle:%u, lock:%u\n",
         (unsigned int)xTaskGetTickCount(),
         ticklessLSCount,
         ticklessWFICount,
