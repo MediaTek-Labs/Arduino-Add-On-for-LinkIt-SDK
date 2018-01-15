@@ -72,8 +72,8 @@ extern "C" {
 /*****************************************************************************
 * customization module feature option
 *****************************************************************************/
-#define MTK_HAL_PLAIN_LOG_ENABLE
-#define MTK_HAL_NO_LOG_ENABLE
+//#define MTK_HAL_PLAIN_LOG_ENABLE
+//#define MTK_HAL_NO_LOG_ENABLE
 
 #ifdef __cplusplus
 }
