@@ -97,8 +97,10 @@ void init_global_connsys() {
     memset(&ex_config, 0, sizeof(ex_config));
     ex_config.sta_auto_connect_present = 1; // validate "sta_auto_connect" config
     ex_config.sta_auto_connect = 0;         // don't auto-connect - we just want to initialize
+    ex_config.sta_power_save_mode_present = 1;
+    ex_config.sta_power_save_mode = WIFI_POWER_SAVING_MODE_LEGACY;  // try to save power
 
-    pr_debug("[wifi_init]");
+    pr_debug("[wifi_init] with legacy power saving mode");
     wifi_init(&config, &ex_config);
 
     // we must initialize lwip_tcpip, otherwise we won't receive WIFI_EVENT_IOT_INIT_COMPLETE
