@@ -5,7 +5,9 @@
 #include <hal_gpio.h>
 #include <hal_pwm.h>
 #include <hal_flash.h>
+#include <flash_map.h>
 #include <hal_platform.h>
+#include <hal_cache.h>
 #include <hal_sleep_manager.h>
 #include <syslog.h>
 #include <FreeRTOS.h>
@@ -17,6 +19,8 @@
 #include "adapter_layer.h"
 #include "variant.h"
 #include "log_dump.h"
+
+extern void tickless_init(void);
 
 /*
  * For The Serial
@@ -148,9 +152,41 @@ log_control_block_t *syslog_control_blocks[] = {
 };
 #endif
 
+static int32_t cache_enable(hal_cache_size_t cache_size)
+{
+    hal_cache_region_t region, region_number;
+    hal_cache_region_config_t region_cfg_tbl[] = {
+        /* cache_region_address, cache_region_size(both MUST be 4k bytes aligned) */
+        {
+            /* Set FreeRTOS code on XIP flash to cacheable. Please refer to memory layout dev guide for more detail. */
+            FLASH_BASE + CM4_CODE_BASE, CM4_CODE_LENGTH
+        }
+        /* add cache regions below if you have any */
+    };
+    region_number = (hal_cache_region_t)(sizeof(region_cfg_tbl) / sizeof(region_cfg_tbl[0]));
+    if (region_number > HAL_CACHE_REGION_MAX) {
+        return -1;
+    }
+    hal_cache_init();
+    /* Set the cache size to 32KB. It will ocuppy the TCM memory size */
+    hal_cache_set_size(cache_size);
+    for (region = HAL_CACHE_REGION_0; region < region_number; region++) {
+        hal_cache_region_config(region, &region_cfg_tbl[region]);
+        hal_cache_region_enable(region);
+    }
+    for (; region < HAL_CACHE_REGION_MAX; region++) {
+        hal_cache_region_disable(region);
+    }
+    hal_cache_enable();
+    return 0;
+}
+
+
 void init_system(void)
 {
 	init_sys_clk();
+
+	cache_enable(HAL_CACHE_SIZE_32KB);
 
 	// ensure the USR LED is default OFF
 	init_usr_led();
@@ -170,6 +206,11 @@ void init_system(void)
     log_init(NULL, NULL, syslog_control_blocks);
 #endif
 
-	hal_sleep_manager_init();
+#if configUSE_TICKLESS_IDLE == 2
+    if (hal_sleep_manager_init() == HAL_SLEEP_MANAGER_OK) {
+        tickless_init();
+    }
+#endif
+
 }
 
