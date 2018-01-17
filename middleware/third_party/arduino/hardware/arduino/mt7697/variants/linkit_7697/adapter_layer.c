@@ -210,6 +210,7 @@ void init_system(void)
     if (hal_sleep_manager_init() == HAL_SLEEP_MANAGER_OK) {
         tickless_init();
     }
+	sleepdrv_get_sleep_mode(HAL_SLEEP_MODE_SLEEP);
 #endif
 
 }

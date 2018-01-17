@@ -10,4 +10,4 @@ MTK_BLE_ONLY_ENABLE                 = y
 MTK_HTTPCLIENT_SSL_ENABLE			= y
 MTK_MBEDTLS_CONFIG_FILE             = config-mtk-websocket.h
 MTK_FOTA_ENABLE						= y
-
+MTK_HAL_LOWPOWER_ENABLE             = y
