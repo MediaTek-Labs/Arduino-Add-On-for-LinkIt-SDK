@@ -112,7 +112,9 @@ void init_global_connsys() {
     while (!wifi_ready()) {
         delay(10);
     }
-    pr_debug("[wifi/connsys ready]");
+    pr_debug("[wifi/connsys ready] turn off radio first");
+
+    wifi_config_set_radio(0);
     return;
 }
 
