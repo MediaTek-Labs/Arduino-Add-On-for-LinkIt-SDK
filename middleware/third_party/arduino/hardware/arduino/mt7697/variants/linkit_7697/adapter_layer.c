@@ -209,8 +209,9 @@ void init_system(void)
 #if configUSE_TICKLESS_IDLE == 2
     if (hal_sleep_manager_init() == HAL_SLEEP_MANAGER_OK) {
         tickless_init();
+        sleepdrv_get_sleep_mode(HAL_SLEEP_MODE_SLEEP);
     }
-	sleepdrv_get_sleep_mode(HAL_SLEEP_MODE_SLEEP);
+
 #endif
 
 }
