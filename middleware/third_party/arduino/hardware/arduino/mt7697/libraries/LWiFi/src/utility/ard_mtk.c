@@ -542,7 +542,6 @@ int32_t get_scan_list(wifi_event_t event, uint8_t *payload, uint32_t length)
 						ptr->bssid[3],
 						ptr->bssid[4],
 						ptr->bssid[5]);
-				pr_debug("    wps=%d\r\n", ptr->wps_element);
 				pr_debug("    auth_mode=%d\r\n", ptr->auth_mode);
 				pr_debug("    encrypt_type=%d\r\n", ptr->encrypt_type);
 #endif

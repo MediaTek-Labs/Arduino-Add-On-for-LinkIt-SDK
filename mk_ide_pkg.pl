@@ -100,7 +100,7 @@ sub build_system_libs
 		"prebuilt/driver/chip/mt7687/lib/libhal_core_CM4_GCC.a",
 		"prebuilt/driver/chip/mt7687/lib/libhal_protected_CM4_GCC.a",
 		"prebuilt/middleware/MTK/wifi_service/combo/lib/wifi_supp/libwifi.a",
-		"prebuilt/middleware/MTK/minisupp/lib/libminisupp_wps.a",
+		"prebuilt/middleware/MTK/minisupp/lib/libminisupp.a",
 		"prebuilt/middleware/MTK/minicli/lib/libminicli.a",
 		"prebuilt/middleware/MTK/nvdm/lib/libnvdm_CM4_GCC.a",
 		"prebuilt/middleware/MTK/bluetooth/lib/libble.a",

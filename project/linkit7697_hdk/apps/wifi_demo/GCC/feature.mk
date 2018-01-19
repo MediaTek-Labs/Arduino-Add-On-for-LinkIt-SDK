@@ -9,7 +9,7 @@ MTK_MINISUPP_ENABLE                 = y
 MTK_WIFI_TGN_VERIFY_ENABLE          = n
 MTK_MINICLI_ENABLE                  = y
 MTK_SMTCN_ENABLE                    = y
-MTK_WIFI_WPS_ENABLE                 = y
+MTK_WIFI_WPS_ENABLE                 = n
 MTK_WIFI_DIRECT_ENABLE              = n
 MTK_WIFI_REPEATER_ENABLE            = y
 # debug level: none, error, warning, and info
