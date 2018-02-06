@@ -347,7 +347,7 @@ size_t LBLEUuid::printTo(Print& p) const
 LBLEAddress::LBLEAddress():
     m_addr()
 {
-    memset(&m_addr, sizeof(m_addr), 0);
+    memset(&m_addr, 0, sizeof(m_addr));
 }
 
 LBLEAddress::LBLEAddress(const bt_addr_t& btAddr)

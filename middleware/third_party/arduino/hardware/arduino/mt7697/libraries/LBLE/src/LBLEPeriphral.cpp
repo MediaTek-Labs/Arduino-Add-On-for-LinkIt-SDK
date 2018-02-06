@@ -917,7 +917,7 @@ LBLEPeripheralClass LBLEPeripheral;
 LBLEPeripheralClass::LBLEPeripheralClass():
     m_connections()
 {
-    memset(&m_advParam, sizeof(m_advParam), 0);
+    memset(&m_advParam, 0, sizeof(m_advParam));
     // default parameters
     m_advParam.advertising_interval_min = 0xCD;
     m_advParam.advertising_interval_max = 0xCD;
