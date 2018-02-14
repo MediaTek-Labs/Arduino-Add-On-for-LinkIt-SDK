@@ -252,11 +252,110 @@ private:
             const bt_gap_le_advertising_report_ind_t& payload);
 };
 
+/// This (internal) helper class encapsulates the read/write
+/// operations to a remote peripheral's characteristic, based on the ATT handle.
+/// This class does not store the connection handle, 
+/// instead it relies on the user to pass connection when performing
+/// read / write operations. 
+/// It is the user's responsibility to pass the correct connection handle.
+class LBLECharacteristicInfo {
+public:
+
+    /// Constructing an invalid object.
+    /// All the subsequent read/write operation fails silently.
+    LBLECharacteristicInfo():
+        m_handle(BT_HANDLE_INVALID),
+        m_uuid()
+    {
+
+    }
+
+    /// Constructing from ATT handle and UUID of the characteristic
+    ///
+    /// \param attHandle The ATT handle of the characteristic in the remote peripheral's GATT database
+    /// \param uuid The UUID of the characteristic
+    LBLECharacteristicInfo(uint16_t attHandle, const LBLEUuid& uuid):
+        m_handle(attHandle),
+        m_uuid(uuid)
+    {
+    }
+
+    /// Read raw value buffer fomr a characteristic on remote device.
+    ///
+    /// \param connection The connection handle to the remote device
+    /// \returns LBLEValueBuffer object that represents the raw value buffer.
+    LBLEValueBuffer read(bt_handle_t connection) const;
+
+    /// Read integer value from a characteristic on remote device.
+    ///
+    /// \param connection The connection handle to the remote device
+    /// \returns integer value of the characteristic. 0 is returned if fails to read the characteristic.
+    int readInt(bt_handle_t connection);
+
+    /// Read string value from a characteristic on remote device.
+    ///
+    /// \param connection The connection handle to the remote device
+    /// \returns string value of the characteristic. Empty string is returned if fails to read the characteristic.
+    String readString(bt_handle_t connection);
+
+    /// Read a single char byte value from a characteristic on remote device.
+    ///
+    /// \param connection The connection handle to the remote device
+    /// \returns char value of the characteristic. 0 is returned if fails to read the characteristic.
+    char readChar(bt_handle_t connection);
+
+    /// Read float value from a characteristic on remote device.
+    ///
+    /// \param connection The connection handle to the remote device
+    /// \returns float value of the characteristic. 0 is returned if fails to read the characteristic.
+    float readFloat(bt_handle_t connection);
+
+    /// Write the value of a characteristic on the remote device.
+    ///
+    /// \param connection the connection handle to the remote peripheral
+    /// \param value The raw buffer value to write.
+    int write(bt_handle_t connection, const LBLEValueBuffer& value);
+
+    /// Hepler API that write a characteristic on the remote device as integer.
+    ///
+    /// \param connection the connection handle to the remote peripheral
+    /// \param value The int value to write.
+    int writeInt(bt_handle_t connection, int value);
+
+    /// Hepler API that write a characteristic on the remote device as a string.
+    ///
+    /// \param connection the connection handle to the remote peripheral
+    /// \param value The int value to write.
+    int writeString(bt_handle_t connection, const String& value);
+
+    /// Hepler API that write a characteristic on the remote device as char.
+    ///
+    /// \param connection the connection handle to the remote peripheral
+    /// \param value The char value to write.
+    int writeChar(bt_handle_t connection, char value);
+
+    /// Hepler API that write a characteristic on the remote device as float.
+    ///
+    /// \param connection the connection handle to the remote peripheral
+    /// \param value The float value to write.
+    int writeFloat(bt_handle_t connection, float value);
+
+    uint16_t m_handle;      // The ATT handle in the remote peripheral's GATT database.
+    LBLEUuid m_uuid;        // Supplemental information about the class UUID of this characteristic.
+};
+
+/// This (internal) helper class encapsulates service information.
+/// about a service in the remote peripheral device.
+/// It also keeps track of the characteristics of the device.
+///
+/// Note the order and index of the m_characteristics are used to 
+/// identify a characteristic.
 struct LBLEServiceInfo
 {
-    LBLEUuid uuid;
-    uint16_t startHandle;
-    uint16_t endHandle;
+    LBLEUuid uuid; // Service UUID
+    uint16_t startHandle; // Start of the ATT handle range in the remote GATT database
+    uint16_t endHandle; // End of the ATT handle range in the remote GATT database
+    std::vector<LBLECharacteristicInfo> m_characteristics; // Characteristics that belong to this service
 };
 
 /// This class allows users to create connections to remote peripheral devices.
@@ -314,104 +413,245 @@ public:
     /// Disconnect from the remote device
     void disconnect();
 
+    /// Check if a given service UUID is available on the connected remote device.
+    ///
+    /// \param serviceUuid The UUID of the service to check
+    /// \returns true if the remote device supports the service. false otherwise.
+    bool hasService(const LBLEUuid& serviceUuid);
+
     /// Get the number of services available on the connected remote device
     int getServiceCount();
 
-    /// Get service uuid by index. Index should range from 0 to (getServiceCount() - 1).
+    /// Get service uuid by index. serviceIndex should range from 0 to (getServiceCount() - 1).
     ///
-    /// \param index ranges from 0 to (getServiceCount() - 1).
+    /// \param serviceIndex Ranges from 0 to (getServiceCount() - 1).
     /// \returns UUID of the service
-    LBLEUuid getServiceUuid(int index);
+    LBLEUuid getServiceUuid(int serviceIndex);
 
     /// Helper function that returns name of the service if it is know.
     ///
-    /// \param index ranges from 0 to (getServiceCount() - 1).
+    /// \param serviceIndex Ranges from 0 to (getServiceCount() - 1).
     /// \returns Service name.
-    String getServiceName(int index);
+    String getServiceName(int serviceIndex);
 
-    /// Check if a given service is available on the connected remote device.
+    /// Get the number of Characteristics available on the connected remote device
     ///
-    /// \param uuid The UUID of the service to check
-    /// \returns true if the remote device supports the service. false otherwise.
-    bool hasService(const LBLEUuid& uuid);
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \returns number of characteristics in the given service.
+    int getCharacteristicCount(int serviceIndex);
 
-    /// Read raw value buffer fomr a characteristic on remote device.
+    /// Get Characteristic uuid by service and characteristic indices.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \returns UUID of the Characteristic
+    LBLEUuid getCharacteristicUuid(int serviceIndex, int characteristicIndex);
+
+    /////////////////////////////////////////////////////////////////////
+    //                  UUID-based read and write
+    /////////////////////////////////////////////////////////////////////
+
+    /// DEPRECATED. There are typo in method name. This method is kept to prevent breaking old examples.
     ///
     /// \param uuid The UUID of the characteristic to read from.
     /// \returns LBLEValueBuffer object that represents the raw value buffer.
     LBLEValueBuffer readCharacterstic(const LBLEUuid& uuid);
 
-    /// Read integer value from a characteristic on remote device.
+    /// Read raw value buffer fomr a characteristic on remote device, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
+    ///
+    /// \param uuid The UUID of the characteristic to read from.
+    /// \returns LBLEValueBuffer object that represents the raw value buffer.
+    LBLEValueBuffer readCharacteristic(const LBLEUuid& uuid);
+
+    /// Read integer value from a characteristic on remote device, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to read from.
     /// \returns integer value of the characteristic. 0 is returned if fails to read the characteristic.
     int readCharacteristicInt(const LBLEUuid& uuid);
 
-    /// Read string value from a characteristic on remote device.
+    /// Read string value from a characteristic on remote device, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to read from.
     /// \returns string value of the characteristic. Empty string is returned if fails to read the characteristic.
     String readCharacteristicString(const LBLEUuid& uuid);
 
-    /// Read a single char byte value from a characteristic on remote device.
+    /// Read a single char byte value from a characteristic on remote device, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to read from.
     /// \returns char value of the characteristic. 0 is returned if fails to read the characteristic.
     char readCharacteristicChar(const LBLEUuid& uuid);
 
-    /// Read float value from a characteristic on remote device.
+    /// Read float value from a characteristic on remote device, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to read from.
     /// \returns float value of the characteristic. 0 is returned if fails to read the characteristic.
     float readCharacteristicFloat(const LBLEUuid& uuid);
 
-    /// Write the value of a characteristic on the remote device.
+    /// Write the value of a characteristic on the remote device, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to write to.
     /// \param value The raw buffer value to write.
     int writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer& value);
 
-    /// Hepler API that write a characteristic on the remote device as integer.
+    /// Hepler API that write a characteristic on the remote device as integer, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to write to.
     /// \param value The int value to write.
     int writeCharacteristicInt(const LBLEUuid& uuid, int value);
 
-    /// Hepler API that write a characteristic on the remote device as a string.
+    /// Hepler API that write a characteristic on the remote device as a string, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to write to.
     /// \param value The int value to write.
     int writeCharacteristicString(const LBLEUuid& uuid, const String& value);
 
-    /// Hepler API that write a characteristic on the remote device as char.
+    /// Hepler API that write a characteristic on the remote device as char, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to write to.
     /// \param value The char value to write.
     int writeCharacteristicChar(const LBLEUuid& uuid, char value);
 
-    /// Hepler API that write a characteristic on the remote device as float.
+    /// Hepler API that write a characteristic on the remote device as float, given its UUID.
+    /// Note that it is possible to have multiple characteristics with the same UUID.
+    /// In this case, only the 1st characteristic with respect to the 
+    /// service and characteristic indices is used.
     ///
     /// \param uuid The UUID of the characteristic to write to.
     /// \param value The float value to write.
     int writeCharacteristicFloat(const LBLEUuid& uuid, float value);
 
+    /////////////////////////////////////////////////////////////////////
+    //                  index-based read and write
+    /////////////////////////////////////////////////////////////////////
+
+    /// Read the raw buffer value of a characteristic, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \returns A LBLEValueBuffer object representing the raw value of the characteristic
+    LBLEValueBuffer readCharacteristic(int serviceIndex, int characteristicIndex);
+    
+    /// Read integer value of a characteristic, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \returns A LBLEValueBuffer object representing the raw value of the characteristic
+    int readCharacteristicInt(int serviceIndex, int characteristicIndex);
+
+    /// Read string value from a characteristic on remote device, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \returns string value of the characteristic. Empty string is returned if fails to read the characteristic.
+    String readCharacteristicString(int serviceIndex, int characteristicIndex);
+
+    /// Read a single char byte value from a characteristic on remote device, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \returns char value of the characteristic. 0 is returned if fails to read the characteristic.
+    char readCharacteristicChar(int serviceIndex, int characteristicIndex);
+
+    /// Read float value from a characteristic on remote device, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \returns float value of the characteristic. 0 is returned if fails to read the characteristic.
+    float readCharacteristicFloat(int serviceIndex, int characteristicIndex);
+
+    /// Write the value of a characteristic on the remote device, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \param value The raw buffer value to write.
+    int writeCharacteristic(int serviceIndex, int characteristicIndex, const LBLEValueBuffer& value);
+
+    /// Hepler API that write a characteristic on the remote device as integer, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \param value The int value to write.
+    int writeCharacteristicInt(int serviceIndex, int characteristicIndex, int value);
+
+    /// Hepler API that write a characteristic on the remote device as a string, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \param value The int value to write.
+    int writeCharacteristicString(int serviceIndex, int characteristicIndex, const String& value);
+
+    /// Hepler API that write a characteristic on the remote device as char, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \param value The char value to write.
+    int writeCharacteristicChar(int serviceIndex, int characteristicIndex, char value);
+
+    /// Hepler API that write a characteristic on the remote device as float, given its service index 
+    /// and characteristic index.
+    ///
+    /// \param serviceIndex ranges from 0 to (getServiceCount() - 1).
+    /// \param characteristicIndex ranges from 0 to (getCharacteristicCount(serviceIndex) - 1).
+    /// \param value The float value to write.
+    int writeCharacteristicFloat(int serviceIndex, int characteristicIndex, float value);
+
 public:
+    // internal event handler for BT module to callback to
     virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void *buff);
 
 protected:
-    bt_handle_t m_connection;
-    std::vector<LBLEServiceInfo> m_services;
-    std::map<LBLEUuid, uint16_t> m_characteristics;
+    bt_handle_t m_connection; // connection handle
+    std::vector<LBLEServiceInfo> m_services; // services discovered by discoverServices()
+    std::map<LBLEUuid, uint16_t> m_uuid2Handle; // a look-up table for UUID-based read and write operations
 
-    // enumerate all service info from remote device
+    // Enumerate all service info from remote device
     int discoverServices();
 
     // Read all characteristic on remote device.
     // This could take a while.
     int discoverCharacteristics();
 
-    // Enumerate all characteristics, given a service ID.
-    int discoverCharacteristicsOfService(const LBLEServiceInfo& s);
+    // Enumerate all characteristics, given a service index.
+    int discoverCharacteristicsOfService(int serviceIndex);
+
+    // Retrieve a characteristic by its service and characteristic indices.
+    LBLECharacteristicInfo getCharacteristic(int serviceIndex, int characteristicIndex);
 };
 
 extern LBLECentralClass LBLECentral;

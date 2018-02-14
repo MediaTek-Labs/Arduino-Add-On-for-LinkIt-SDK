@@ -480,26 +480,31 @@ void LBLEEventDispatcher::removeObserver(bt_msg_type_t msg, LBLEEventObserver* p
     // registered to the same key.
     // So we loop over the matching elements
     // and check the handler pointer.
-    auto i = m_table.find(msg);
-    while(i != m_table.end())
+    auto keyRange = m_table.equal_range(msg);
+    auto i = keyRange.first;
+    while(i != keyRange.second)
     {
-        if(i->second == pObserver)
+        // advance iterator first before we remove some element.
+        auto toRemove = i++;
+
+        // if match, remove the element
+        if(toRemove->second == pObserver)
         {
-            m_table.erase(i);
+            m_table.erase(toRemove);
             return;
         }
-        ++i;
     }
 }
 
 void LBLEEventDispatcher::dispatch(bt_msg_type_t msg, bt_status_t status, void *buff)
 {
     // pr_debug("dispatch: msg:0x%x", msg);
-    auto i = m_table.find(msg);
+    auto keyRange = m_table.equal_range(msg);
+    auto i = keyRange.first;
 
     std::vector<EventTable::iterator> removeList;
     // execute observer's callback and pop the element found
-    while(i != m_table.end())
+    while(i != keyRange.second)
     {
         if(i->first != msg)
         {
@@ -565,4 +570,73 @@ LBLEValueBuffer::LBLEValueBuffer(const String& strValue)
 {
     resize(strValue.length() + 1);
     strValue.getBytes(&(*this)[0], size());
+}
+
+// interprets buffer content as null-terminated character string.
+// Empty string is returned when there are errors.
+String LBLEValueBuffer::asString() const
+{
+    if(!this->size())
+    {
+        return String();
+    }
+    
+    // Make sure we have terminating NULL before passing to String().
+    if(this->back() == '\0')
+    {
+        return String((const char*)&this->front());
+    }
+    else
+    {
+        // since String() does not allow us to initialize
+        // with buffer + length, we use a temporary buffer object instead.
+        std::vector<char> tempBuffer;
+        tempBuffer.resize(this->size() + 1, 0);
+        if(tempBuffer.size() >= this->size())
+        {
+            memcpy(&tempBuffer.front(), &this->front(), this->size());
+            return String((const char*)&tempBuffer.front());
+        }
+    } 
+
+    return String();
+}
+
+int LBLEValueBuffer::asInt() const
+{
+    int ret = 0;
+    if(this->size() < sizeof(ret))
+    {
+        return 0;
+    }
+
+    ret = *((const int*)&this->at(0));
+
+    return ret;
+}
+
+char LBLEValueBuffer::asChar() const
+{
+    char ret = '\0';
+    if(this->size() < sizeof(ret))
+    {
+        return 0;
+    }
+
+    ret = *((const char*)&this->front());
+
+    return ret;
+}
+
+float LBLEValueBuffer::asFloat() const
+{
+    float ret = 0.f;
+    if(this->size() < sizeof(ret))
+    {
+        return 0;
+    }
+
+    ret = *((const float*)&this->front());
+
+    return ret;
 }

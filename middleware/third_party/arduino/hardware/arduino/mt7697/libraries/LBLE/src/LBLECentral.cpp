@@ -588,7 +588,7 @@ void LBLEClient::disconnect()
             // sucess or not, we proceed to resource clean up
             m_connection = BT_HANDLE_INVALID;
             m_services.clear();
-            m_characteristics.clear();
+            m_uuid2Handle.clear();
         }
         return;
     }
@@ -613,7 +613,7 @@ void LBLEClient::onEvent(bt_msg_type_t msg, bt_status_t status, void *buff)
             // clear up scanned services and characteristics
             m_connection = BT_HANDLE_INVALID;
             m_services.clear();
-            m_characteristics.clear();
+            m_uuid2Handle.clear();
         }
     }
 }
@@ -629,6 +629,35 @@ bool LBLEClient::hasService(const LBLEUuid& uuid)
         return (bool)(o.uuid == uuid);
     });
     return (m_services.end() != found);
+}
+
+/// Get the number of Characteristics available on the connected remote device
+///
+/// \param index ranges from 0 to (getServiceCount() - 1).
+/// \returns number of characteristics in the service.
+int LBLEClient::getCharacteristicCount(int serviceIndex) {
+    if (serviceIndex < 0 || serviceIndex >= getServiceCount()) {
+        return 0;
+    }
+
+    return m_services[serviceIndex].m_characteristics.size();
+}
+
+LBLECharacteristicInfo LBLEClient::getCharacteristic(int serviceIndex, int characteristicIndex)
+{
+    if (serviceIndex < 0 || serviceIndex >= getServiceCount()) {
+        return LBLECharacteristicInfo();
+    }
+
+    if (characteristicIndex < 0 || characteristicIndex >= getCharacteristicCount(serviceIndex)) {
+        return LBLECharacteristicInfo();
+    }
+
+    return m_services[serviceIndex].m_characteristics[characteristicIndex];
+}
+
+LBLEUuid LBLEClient::getCharacteristicUuid(int serviceIndex, int characteristicIndex) {
+    return getCharacteristic(serviceIndex, characteristicIndex).m_uuid;
 }
 
 LBLEUuid LBLEClient::getServiceUuid(int index)
@@ -689,7 +718,7 @@ int LBLEClient::discoverServices()
             break;
         }
 
-        done = waitAndProcessEvent(
+        done = waitAndProcessEventMultiple(
                    // start service discovery
                    [this, &searchRequest]()
         {
@@ -698,7 +727,7 @@ int LBLEClient::discoverServices()
         // wait for the event...
         BT_GATTC_DISCOVER_PRIMARY_SERVICE,
         // and process it in BT task context with this lambda
-        [this, &searchRequest, &shouldContinue](bt_msg_type_t, bt_status_t status, void* buf)
+        [this, &searchRequest, &shouldContinue](bt_msg_type_t, bt_status_t status, void* buf) -> bool
         {
             // Parse the response to service UUIDs. It can be 16-bit or 128-bit UUID.
             // We can tell the difference from the response length `att_rsp->length`.
@@ -738,6 +767,10 @@ int LBLEClient::discoverServices()
 
             // update starting handle for next round of search
             searchRequest.starting_handle = endIndex;
+
+            // if we should continue, return FALSE so that
+            // the handler will keep waiting for the next event.
+            return !shouldContinue;
         }
                );
     } while(shouldContinue && done);
@@ -757,17 +790,18 @@ int LBLEClient::discoverCharacteristics()
         return 0;
     }
 
+    int totalCharacteristicCount = 0;
     // for each service, find the value handle of each characteristic.
     for(size_t i = 0; i < m_services.size(); ++i)
     {
         pr_debug("Enumerate charc between handle (%d-%d)", m_services[i].startHandle, m_services[i].endHandle)
-        discoverCharacteristicsOfService(m_services[i]);
+        totalCharacteristicCount += discoverCharacteristicsOfService(i);
     }
 
-    return m_characteristics.size();
+    return totalCharacteristicCount;
 }
 
-int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
+int LBLEClient::discoverCharacteristicsOfService(int serviceIndex)
 {
     // discover all characteristics and store mapping between (UUID -> value handle)
     // note that this search could require multiple request-response,
@@ -777,6 +811,9 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
     {
         return 0;
     }
+
+    LBLEServiceInfo& service = m_services[serviceIndex];
+    const LBLEServiceInfo& s = service;
 
     // Prepare the search request - we will reuse this structure
     // across multiple requests, by updating the **starting_handle**
@@ -803,7 +840,7 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
             break;
         }
 
-        done = waitAndProcessEvent(
+        done = waitAndProcessEventMultiple(
                    // start characteristic discovery
                    [this, &searchRequest]()
         {
@@ -812,7 +849,7 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
         // wait for the event...
         BT_GATTC_DISCOVER_CHARC,
         // and process it in BT task context with this lambda
-        [this, &searchRequest, &shouldContinue](bt_msg_type_t, bt_status_t status, void* buf)
+        [this, &searchRequest, &shouldContinue, &service](bt_msg_type_t, bt_status_t status, void* buf) -> bool
         {
             pr_debug("discoverCharacteristicsOfService=0x%x", (unsigned int)status);
 
@@ -832,16 +869,22 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
                 memcpy(&properties, attrDataList + i * rsp->att_rsp->length + 2, 1);
                 memcpy(&valueHandle, attrDataList + i * rsp->att_rsp->length + 3, 2);
 
-
+                LBLEUuid uuidInsert;
                 if (rsp->att_rsp->length < 20) {
                     // 16-bit UUID case
                     memcpy(&uuid16, attrDataList + i * rsp->att_rsp->length + 5, 2);
-                    m_characteristics.insert(std::make_pair(LBLEUuid(uuid16), valueHandle));
+                    uuidInsert = LBLEUuid(uuid16);
                 } else {
                     // 128-bit UUID case
                     memcpy(&uuid128.uuid, attrDataList + i * entryLength + 5, 16);
-                    m_characteristics.insert(std::make_pair(LBLEUuid(uuid128), valueHandle));
+                    uuidInsert = LBLEUuid(uuid128);
                 }
+
+                // insert into LBLEClient's (UUID -> Handle) mapping table if it is not already in the map
+                m_uuid2Handle.insert(std::make_pair(uuidInsert, valueHandle));
+
+                // insert into LBLEServiceInfo's characteristic list
+                service.m_characteristics.push_back(LBLECharacteristicInfo(valueHandle, uuidInsert));
             }
 
             // check if we need to perform more search
@@ -849,6 +892,10 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
 
             // update starting handle for next round of search
             searchRequest.starting_handle = valueHandle;
+
+            // if we should continue, return FALSE so that
+            // the handler will keep waiting for the next event.
+            return !shouldContinue;
         }
                );
     } while(shouldContinue && done);
@@ -856,80 +903,13 @@ int LBLEClient::discoverCharacteristicsOfService(const LBLEServiceInfo& s)
     return done;
 }
 
-int LBLEClient::readCharacteristicInt(const LBLEUuid& uuid)
+////////////////////////////////////////////////////////////////////////////////
+//          LBLECharacteristicInfo-based read and write
+////////////////////////////////////////////////////////////////////////////////
+LBLEValueBuffer LBLECharacteristicInfo::read(const bt_handle_t connection) const
 {
-    LBLEValueBuffer b = readCharacterstic(uuid);
-    int ret = 0;
-    if(b.size() < sizeof(ret))
-    {
-        return 0;
-    }
-
-    ret = *((int*)&b[0]);
-
-    return ret;
-}
-
-String LBLEClient::readCharacteristicString(const LBLEUuid& uuid)
-{
-    LBLEValueBuffer b = readCharacterstic(uuid);
-
-    if(b.size())
-    {
-        // safe guard against missing terminating NULL
-        if(b[b.size() - 1] != 0)
-        {
-            b.resize(b.size() + 1);
-            b[b.size() - 1] = 0;
-        }
-
-        return String((const char*)&b[0]);
-    }
-
-    return String();
-}
-
-char LBLEClient::readCharacteristicChar(const LBLEUuid& uuid)
-{
-    LBLEValueBuffer b = readCharacterstic(uuid);
-    char ret = 0;
-    if(b.size() < sizeof(ret))
-    {
-        return 0;
-    }
-
-    ret = *((char*)&b[0]);
-
-    return ret;
-}
-
-float LBLEClient::readCharacteristicFloat(const LBLEUuid& uuid)
-{
-    LBLEValueBuffer b = readCharacterstic(uuid);
-    float ret = 0;
-    if(b.size() < sizeof(ret))
-    {
-        return 0;
-    }
-
-    ret = *((float*)&b[0]);
-
-    return ret;
-}
-
-LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
-{
-    if(!connected())
-    {
-        return LBLEValueBuffer();
-    }
-
-    // connected, call bt_gattc_read_using_charc_uuid and wait for response event
-    bt_gattc_read_using_charc_uuid_req_t req;
-    req.opcode = BT_ATT_OPCODE_READ_BY_TYPE_REQUEST;
-    req.starting_handle = 0x0001;
-    req.ending_handle = 0xffff;
-    req.type = serviceUuid.uuid_data;
+    // connected, call bt_gattc_read_charc and wait for response event
+    BT_GATTC_NEW_READ_CHARC_REQ(req, m_handle)
 
     // results are stored here by the event callback below.
     LBLEValueBuffer resultBuffer;
@@ -938,17 +918,17 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
         // start read request
         [&]()
     {
-        bt_gattc_read_using_charc_uuid(m_connection, &req);
+        bt_gattc_read_charc(connection, &req);
     },
     // wait for event...
-    BT_GATTC_READ_USING_CHARC_UUID,
+    BT_GATTC_READ_CHARC,
     // and parse event result in bt task context
-    [this, &resultBuffer](bt_msg_type_t msg, bt_status_t, void* buf)
+    [this, &resultBuffer, connection](bt_msg_type_t msg, bt_status_t, void* buf)
     {
-        const bt_gattc_read_by_type_rsp_t *pReadResponse = (bt_gattc_read_by_type_rsp_t*)buf;
-        if(BT_GATTC_READ_USING_CHARC_UUID != msg || pReadResponse->connection_handle != m_connection)
+        const bt_gattc_read_rsp_t *pReadResponse = (bt_gattc_read_rsp_t*)buf;
+        if(BT_GATTC_READ_CHARC != msg || pReadResponse->connection_handle != connection)
         {
-            // not for our request
+            pr_debug("not for our request, ignored");
             return;
         }
 
@@ -956,23 +936,22 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
             // check error case
             if(BT_ATT_OPCODE_ERROR_RESPONSE == pReadResponse->att_rsp->opcode)
             {
-                const bt_gattc_error_rsp_t* pErr = (bt_gattc_error_rsp_t*)buf;
                 pr_debug("error reading attribute");
-                pr_debug("error_opcode=%d", pErr->att_rsp->error_opcode);
-                pr_debug("error_code=%d", pErr->att_rsp->error_code);
+                pr_debug("error_opcode=%d", reinterpret_cast<bt_gattc_error_rsp_t*>(buf)->att_rsp->error_opcode);
+                pr_debug("error_code=%d", reinterpret_cast<bt_gattc_error_rsp_t*>(buf)->att_rsp->error_code);
                 break;
             }
 
-            if(BT_ATT_OPCODE_READ_BY_TYPE_RESPONSE != pReadResponse->att_rsp->opcode)
+            if(BT_ATT_OPCODE_READ_RESPONSE != pReadResponse->att_rsp->opcode)
             {
                 pr_debug("Op code don't match! Opcode=%d", pReadResponse->att_rsp->opcode);
                 break;
             }
 
             // Copy the data buffer content
-            const uint8_t listLength = pReadResponse->att_rsp->length - 2;
-            resultBuffer.resize(listLength, 0);
-            memcpy(&resultBuffer[0], ((uint8_t*)pReadResponse->att_rsp->attribute_data_list) + 2, listLength);
+            const uint8_t attrLength = pReadResponse->length - sizeof(pReadResponse->att_rsp->opcode);
+            resultBuffer.resize(attrLength, 0);
+            memcpy(&resultBuffer[0], ((uint8_t*)pReadResponse->att_rsp->attribute_value), attrLength);
         } while(false);
     }
     );
@@ -980,24 +959,26 @@ LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
     return resultBuffer;
 }
 
-int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer& value)
-{
-    if(!connected())
-    {
-        return 0;
-    }
+int LBLECharacteristicInfo::readInt(bt_handle_t connection) {
+    return read(connection).asInt();
+}
 
+String LBLECharacteristicInfo::readString(bt_handle_t connection) {
+    return read(connection).asString();
+}
+
+char LBLECharacteristicInfo::readChar(bt_handle_t connection) {
+    return read(connection).asChar();
+}
+
+float LBLECharacteristicInfo::readFloat(bt_handle_t connection) {
+    return read(connection).asFloat();
+}
+
+int LBLECharacteristicInfo::write(const bt_handle_t connection, const LBLEValueBuffer& value)
+{
     // make sure this is smaller than MTU - header size
     const uint32_t MAXIMUM_WRITE_SIZE = 20;
-
-    // we need to check if the UUID have a known value handle.
-    // Note that discoverCharacteristic() builds the mapping table.
-    auto found = m_characteristics.find(uuid);
-    if(found == m_characteristics.end())
-    {
-        pr_debug("cannot find characteristics");
-        return 0;
-    }
 
     // value buffer too big
     if(value.size() > MAXIMUM_WRITE_SIZE)
@@ -1014,21 +995,21 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
     req.att_req = (bt_att_write_req_t*)&reqBuf[0];
     req.att_req->opcode = BT_ATT_OPCODE_WRITE_REQUEST;
     // the "attribute_handle" field requires a "value handle" actually.
-    pr_debug("write_charc %s with value handle=%d", found->first.toString().c_str(), found->second);
-    req.att_req->attribute_handle = found->second;
+    pr_debug("write_charc %s with value handle=%d", m_uuid.toString().c_str(), m_handle);
+    req.att_req->attribute_handle = m_handle;
     memcpy(req.att_req->attribute_value, &value[0], value.size());
 
     bool done = waitAndProcessEvent(
                     // start read request
                     [&]()
     {
-        bt_status_t writeResult = bt_gattc_write_charc(m_connection, &req);
-        pr_debug("write result = 0x%x", writeResult);
+        const bt_status_t r = bt_gattc_write_charc(connection, &req);
+        pr_debug("write result = 0x%x", r);
     },
     // wait for event...
     BT_GATTC_WRITE_CHARC,
     // and parse event result in bt task context
-    [this](bt_msg_type_t msg, bt_status_t, void* buf)
+    [this, connection](bt_msg_type_t msg, bt_status_t, void* buf)
     {
         if(BT_GATTC_WRITE_CHARC != msg) {
             // not for our request
@@ -1037,18 +1018,17 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
         }
 
         const bt_gattc_write_rsp_t *pWriteResp = (bt_gattc_write_rsp_t*)buf;
-        if(pWriteResp->connection_handle != this->m_connection) {
-            pr_debug("got wrong handle=%d (%d)", pWriteResp->connection_handle, this->m_connection);
+        if(pWriteResp->connection_handle != connection) {
+            pr_debug("got wrong handle=%d (%d)", pWriteResp->connection_handle, connection);
         }
 
         do {
             // check error case
             if(BT_ATT_OPCODE_ERROR_RESPONSE == pWriteResp->att_rsp->opcode)
             {
-                const bt_gattc_error_rsp_t* pErr = (bt_gattc_error_rsp_t*)buf;
                 pr_debug("error reading attribute");
-                pr_debug("error_opcode=%d", pErr->att_rsp->error_opcode);
-                pr_debug("error_code=%d", pErr->att_rsp->error_code);
+                pr_debug("error_opcode=%d", reinterpret_cast<bt_gattc_error_rsp_t*>(buf)->att_rsp->error_opcode);
+                pr_debug("error_code=%d", reinterpret_cast<bt_gattc_error_rsp_t*>(buf)->att_rsp->error_code);
                 break;
             }
 
@@ -1064,32 +1044,174 @@ int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer&
     return done;
 }
 
+int LBLECharacteristicInfo::writeInt(bt_handle_t connection, int value) {
+    const LBLEValueBuffer b(value);
+    return write(connection, b);
+}
+
+int LBLECharacteristicInfo::writeString(bt_handle_t connection, const String& value) {
+    const LBLEValueBuffer b(value);
+    return write(connection, b);
+}
+
+int LBLECharacteristicInfo::writeChar(bt_handle_t connection, char value) {
+    const LBLEValueBuffer b(value);
+    return write(connection, b);
+}
+
+int LBLECharacteristicInfo::writeFloat(bt_handle_t connection, float value) {
+    const LBLEValueBuffer b(value);
+    return write(connection, b);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//          Index-based read
+////////////////////////////////////////////////////////////////////////////////
+
+LBLEValueBuffer LBLEClient::readCharacteristic(int serviceIndex, int characteristicIndex)
+{
+    return getCharacteristic(serviceIndex, characteristicIndex).read(m_connection);
+}
+
+int LBLEClient::readCharacteristicInt(int serviceIndex, int characteristicIndex)
+{
+    return readCharacteristic(serviceIndex, characteristicIndex).asInt();
+}
+
+String LBLEClient::readCharacteristicString(int serviceIndex, int characteristicIndex)
+{
+    return LBLEClient::readCharacteristic(serviceIndex, characteristicIndex).asString();
+}
+
+char LBLEClient::readCharacteristicChar(int serviceIndex, int characteristicIndex)
+{
+    return LBLEClient::readCharacteristic(serviceIndex, characteristicIndex).asChar();
+}
+
+float LBLEClient::readCharacteristicFloat(int serviceIndex, int characteristicIndex)
+{
+    return readCharacteristic(serviceIndex, characteristicIndex).asFloat();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//          Index-based write
+////////////////////////////////////////////////////////////////////////////////
+
+int LBLEClient::writeCharacteristic(int serviceIndex, int characteristicIndex, const LBLEValueBuffer& value)
+{
+    return getCharacteristic(serviceIndex, characteristicIndex).write(m_connection, value);
+}
+
+int LBLEClient::writeCharacteristicInt(int serviceIndex, int characteristicIndex, int value)
+{
+    return writeCharacteristic(serviceIndex, characteristicIndex, LBLEValueBuffer(value));
+}
+
+int LBLEClient::writeCharacteristicString(int serviceIndex, int characteristicIndex, const String& value)
+{
+    return writeCharacteristic(serviceIndex, characteristicIndex, LBLEValueBuffer(value));
+}
+
+int LBLEClient::writeCharacteristicChar(int serviceIndex, int characteristicIndex, char value)
+{
+    return writeCharacteristic(serviceIndex, characteristicIndex, LBLEValueBuffer(value));
+}
+
+int LBLEClient::writeCharacteristicFloat(int serviceIndex, int characteristicIndex, float value)
+{
+    return writeCharacteristic(serviceIndex, characteristicIndex, LBLEValueBuffer(value));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//          UUID-based read
+////////////////////////////////////////////////////////////////////////////////
+
+LBLEValueBuffer LBLEClient::readCharacteristic(const LBLEUuid& uuid)
+{
+    if(!connected())
+    {
+        return LBLEValueBuffer();
+    }
+
+    // connected, call bt_gattc_read_using_charc_uuid and wait for response event
+    // we need to check if the UUID have a known value handle.
+    // Note that discoverCharacteristic() builds the mapping table.
+    auto found = m_uuid2Handle.find(uuid);
+    if(found == m_uuid2Handle.end())
+    {
+        pr_debug("cannot find characteristics");
+        return 0;
+    }
+
+    LBLECharacteristicInfo c(found->second, found->first);
+    return c.read(m_connection);
+}
+
+int LBLEClient::readCharacteristicInt(const LBLEUuid& uuid)
+{
+    return readCharacterstic(uuid).asInt();
+}
+
+String LBLEClient::readCharacteristicString(const LBLEUuid& uuid)
+{
+    return readCharacterstic(uuid).asString();
+}
+
+char LBLEClient::readCharacteristicChar(const LBLEUuid& uuid)
+{
+    return readCharacterstic(uuid).asChar();
+}
+
+float LBLEClient::readCharacteristicFloat(const LBLEUuid& uuid)
+{
+    return readCharacterstic(uuid).asFloat();
+}
+
+LBLEValueBuffer LBLEClient::readCharacterstic(const LBLEUuid& serviceUuid)
+{
+    return readCharacteristic(serviceUuid);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//          UUID-based write
+////////////////////////////////////////////////////////////////////////////////
+
+int LBLEClient::writeCharacteristic(const LBLEUuid& uuid, const LBLEValueBuffer& value)
+{
+    if(!connected())
+    {
+        return 0;
+    }
+
+    // we need to check if the UUID have a known value handle.
+    // Note that discoverCharacteristic() builds the mapping table.
+    auto found = m_uuid2Handle.find(uuid);
+    if(found == m_uuid2Handle.end())
+    {
+        pr_debug("cannot find characteristics");
+        return 0;
+    }
+
+    LBLECharacteristicInfo c(found->second, found->first);
+    return c.write(m_connection, value);
+}
+
 int LBLEClient::writeCharacteristicInt(const LBLEUuid& uuid, int value) {
-    LBLEValueBuffer b(value);
-    return writeCharacteristic(uuid, b);
-}
-int LBLEClient::writeCharacteristicString(const LBLEUuid& uuid, const String& value) {
-    LBLEValueBuffer b(value);
-    return writeCharacteristic(uuid, b);
-}
-int LBLEClient::writeCharacteristicChar(const LBLEUuid& uuid, char value) {
-    LBLEValueBuffer b(value);
-    return writeCharacteristic(uuid, b);
-}
-int LBLEClient::writeCharacteristicFloat(const LBLEUuid& uuid, float value) {
-    LBLEValueBuffer b(value);
+    const LBLEValueBuffer b(value);
     return writeCharacteristic(uuid, b);
 }
 
-void _characteristic_event_handler(bt_msg_type_t msg, bt_status_t, void *buff)
-{
-    if(BT_GATTC_CHARC_VALUE_NOTIFICATION == msg)
-    {
-        pr_debug("==============NOTIFICATION COMING===============");
-        bt_gatt_handle_value_notification_t* pNoti = (bt_gatt_handle_value_notification_t*)buff;
-        pr_debug("gatt length=(%d), opcode=(%d), handle=(%d)",
-                 pNoti->length,
-                 pNoti->att_rsp->opcode,
-                 pNoti->att_rsp->handle);
-    }
+int LBLEClient::writeCharacteristicString(const LBLEUuid& uuid, const String& value) {
+    const LBLEValueBuffer b(value);
+    return writeCharacteristic(uuid, b);
+}
+
+int LBLEClient::writeCharacteristicChar(const LBLEUuid& uuid, char value) {
+    const LBLEValueBuffer b(value);
+    return writeCharacteristic(uuid, b);
+}
+
+int LBLEClient::writeCharacteristicFloat(const LBLEUuid& uuid, float value) {
+    const LBLEValueBuffer b(value);
+    return writeCharacteristic(uuid, b);
 }
