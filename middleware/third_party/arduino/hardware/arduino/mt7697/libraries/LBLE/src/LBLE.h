@@ -186,6 +186,7 @@ public:
 /// values when reading or writing GATT attributes.
 class LBLEValueBuffer : public std::vector<uint8_t>
 {
+// constructors and initialization
 public:
     /// Default constructor creates an empty buffer.
     LBLEValueBuffer();
@@ -204,6 +205,25 @@ public:
     LBLEValueBuffer(const String& strValue);
 
     template<typename T>void shallowInit(T value);
+
+// type conversion helpers
+public:
+    /// interprets buffer content as int32_t
+    /// 0 is returned when there are errors.
+    int asInt() const;
+
+    /// interprets buffer content as null-terminated character string.
+    /// Empty string is returned when there are errors.
+    String asString() const;
+
+    /// interprets buffer content as char
+    /// 0 is returned when there are errors.
+    char asChar() const;
+
+    /// interprets buffer content as float
+    /// 0.f is returned when there are errors.
+    float asFloat() const;
+
 };
 
 template<typename T>void LBLEValueBuffer::shallowInit(T value)
@@ -372,6 +392,80 @@ private:
 template<typename A, typename F> bool waitAndProcessEvent(const A& action, bt_msg_type_t msg, const F& handler)
 {
     EventBlocker<F> h(msg, handler);
+    LBLE.registerForEvent(msg, &h);
+
+    action();
+
+    uint32_t start = millis();
+    while(!h.done() && (millis() - start) < 10 * 1000)
+    {
+        delay(50);
+    }
+
+    LBLE.unregisterForEvent(msg, &h);
+
+    return h.done();
+}
+
+
+// Modified version of EventBlockerMultiple. 
+// This EventBlockerMultiple relies on the return value of `handler`
+// to determine `done()`.
+template<typename F> class EventBlockerMultiple : public LBLEEventObserver
+{
+public:
+    EventBlockerMultiple(bt_msg_type_t e, const F& handler):
+        m_handler(handler),
+        m_event(e),
+        m_eventArrived(false),
+        m_allEventProcessed(false)
+    {
+
+    }
+
+    bool done() const
+    {
+        return m_eventArrived && m_allEventProcessed;
+    }
+
+    virtual bool isOnce()
+    {
+        // the client must remove EventBlocker
+        // manually from the listeners.
+        return false;
+    };
+
+    virtual void onEvent(bt_msg_type_t msg, bt_status_t status, void* buff)
+    {
+        if(m_event == msg)
+        {
+            m_eventArrived = true;
+
+            // Note that some action, may result in multiple events.
+            // For example, bt_gattc_discover_charc may invoke 
+            // multiple BT_GATTC_DISCOVER_CHARC events.
+            //
+            // We need to rely on the message handlers
+            // to tell us if all events have been processed or not.
+            //
+            // all event processed = `m_handler` returns `true`.
+            // event not processed or waiting for more event = `m_handler` returns `false`.
+            m_allEventProcessed = m_handler(msg, status, buff);
+        }
+    }
+
+private:
+    const F& m_handler;
+    const bt_msg_type_t m_event;
+    bool m_eventArrived;
+    bool m_allEventProcessed;
+};
+
+// Modified version of waitAndProcessEvent.
+// it uses EventBlockerMultiple instead of EventBlocker.
+template<typename A, typename F> bool waitAndProcessEventMultiple(const A& action, bt_msg_type_t msg, const F& handler)
+{
+    EventBlockerMultiple<F> h(msg, handler);
     LBLE.registerForEvent(msg, &h);
 
     action();
