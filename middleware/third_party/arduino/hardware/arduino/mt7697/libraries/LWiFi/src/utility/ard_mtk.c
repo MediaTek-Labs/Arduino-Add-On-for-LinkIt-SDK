@@ -332,8 +332,8 @@ int8_t set_passphrase(const char* ssid, uint8_t ssid_len, const char *passphrase
 	init_global_connsys();
 
 		uint8_t port = WIFI_PORT_STA;
-		wifi_auth_mode_t auth = WIFI_AUTH_MODE_WPA2_PSK;
-		wifi_encrypt_type_t encrypt = WIFI_ENCRYPT_TYPE_AES_ENABLED;
+		wifi_auth_mode_t auth = WIFI_AUTH_MODE_WPA_PSK_WPA2_PSK;
+		wifi_encrypt_type_t encrypt = WIFI_ENCRYPT_TYPE_TKIP_AES_MIX;
 
 		if (wifi_config_set_ssid(port, (uint8_t*)ssid, ssid_len) < 0) {
 			pr_debug("wifi_config_set_ssid failed\r\n");
