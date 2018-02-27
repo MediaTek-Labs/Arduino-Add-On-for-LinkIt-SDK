@@ -81,8 +81,12 @@ static int32_t _wifi_ready_handler(wifi_event_t event,
     return 0;
 }
 
-void init_global_connsys() {
+static void init_global_connsys_impl(int enableWiFi) {
     if(wifi_ready()) {
+        if(enableWiFi) {
+            pr_debug("[wifi_init] turn on wi-fi");
+            wifi_config_set_radio(1);
+        }
         return;
     }
 
@@ -112,12 +116,27 @@ void init_global_connsys() {
     while (!wifi_ready()) {
         delay(10);
     }
-    pr_debug("[wifi/connsys ready] turn off radio first");
 
+    #if 0   // if we turn off wifi, and turn on again, subsequent wifi scan fails (as of v4.6.0)
+    if(!enableWiFi) {
+        pr_debug("[wifi_init] turn off wi-fi");
     wifi_config_set_radio(0);
+    }
+    #endif
+
     return;
 }
 
+void init_global_connsys_for_ble() {
+    // pass 1 to turn on Wi-Fi when it is already initialized
+    init_global_connsys_impl(0);
+}
+
+
+void init_global_connsys() {
+    // pass 1 to turn on Wi-Fi when it is already initialized
+    init_global_connsys_impl(1);
+}
 
 #ifdef __cplusplus
 }

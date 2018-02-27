@@ -54,6 +54,7 @@ extern void post_init(void);
 // communicate with each other to know if Wi-Fi 
 // is already initialized.
 extern void init_global_connsys();
+extern void init_global_connsys_for_ble();
 extern bool wifi_ready();
 
 #ifdef __cplusplus

@@ -21,7 +21,7 @@ static void _connsys_workaround()
 {
     // Wi-Fi must be initialized for BLE start-up
     // declared in Arduino core's "variant.h"
-    init_global_connsys();
+    init_global_connsys_for_ble();
 }
 //////////////////////////////////////////////////
 

@@ -115,6 +115,11 @@ int WiFiClass::begin(const char* ssid, const char *passphrase)
     return status;
 }
 
+void WiFiClass::end() {
+    int result = wifi_config_set_radio(0);
+    pr_debug("wifi_config_set_radio(0) returns %d\n", result);
+}
+
 void WiFiClass::config(IPAddress local_ip)
 {
     WiFiDrv::config(1, (uint32_t)local_ip, 0, 0);

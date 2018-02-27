@@ -295,6 +295,17 @@ public:
      */
     String softAPmacAddress(void);
 
+    /////////////////////////////////////////////////////////////////////////////
+    //  Turn off Wi-Fi function
+    /////////////////////////////////////////////////////////////////////////////
+
+    /*
+     * Turn off WiFi function
+     * You must either call begin()/scan()/softAP() again to 
+     * restart WiFi function
+     */
+    void end();
+
 // Internal Use
 public:
     friend class WiFiClient;
