@@ -3,8 +3,9 @@
 #include <LBLE.h>
 #include <LBLEPeriphral.h>
 #include <vector>
+#include "Printable.h"
 
-#define PROTOCOL_VERSION (3) 
+#define PROTOCOL_VERSION (4) 
 
 // Background / primary color of the UI control
 enum RCColorType {
@@ -33,6 +34,7 @@ enum RCControlType {
   RC_CIRCLEBUTTON = 3,
   RC_SWITCHBUTTON = 4,
   RC_SLIDER = 5,
+  RC_ANALOG = 6,
 };
 
 // Internal data structure for BLE events
@@ -223,6 +225,52 @@ protected:
   int16_t m_minValue;
   int16_t m_maxValue;
   int16_t m_initValue;
+};
+
+// This class encapsulate the return value of a Joystick
+struct LRemoteDirection : public Printable{
+  int8_t x; // 0: neutral, -128: left-most, 127: right-most
+  int8_t y; // 0: newtral, -128: bottom-most, 127: top-most
+
+  LRemoteDirection(uint16_t data) {
+    uint16_t xTemp = data >> 8;
+    uint16_t yTemp = data & 0xFF;
+    x = (int8_t)(xTemp - 127);
+    y = (int8_t)(yTemp - 127);
+  }
+
+  virtual size_t printTo(Print& p) const {
+    return p.print(toString());
+  }
+
+	virtual String toString() const {
+    String t = "(x:";
+    t += x;
+    t += " y:";
+    t += y;
+    t += ")";
+    return t;
+  }
+};
+
+class LRemoteJoyStick : public LRemoteUIControl {
+public:
+  LRemoteJoyStick()
+      : LRemoteUIControl(){
+    setType(RC_ANALOG);
+  }
+
+  bool isValueChanged() { return hasEvent(); }
+
+  // returns value according to remote slider value
+  LRemoteDirection getValue() {
+    consumeEvent();
+    LRemoteDirection c(m_lastEvent.data);
+    return c;
+  }
+
+protected:
+
 };
 
 class LRemoteClass {
