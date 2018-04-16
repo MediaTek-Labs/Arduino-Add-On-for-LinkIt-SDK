@@ -229,14 +229,12 @@ protected:
 
 // This class encapsulate the return value of a Joystick
 struct LRemoteDirection : public Printable{
-  int8_t x; // 0: neutral, -128: left-most, 127: right-most
-  int8_t y; // 0: newtral, -128: bottom-most, 127: top-most
+  int8_t x; // 0: neutral, -100: left-most, 100: right-most
+  int8_t y; // 0: newtral, -100: bottom-most, 100: top-most
 
   LRemoteDirection(uint16_t data) {
-    uint16_t xTemp = data >> 8;
-    uint16_t yTemp = data & 0xFF;
-    x = (int8_t)(xTemp - 127);
-    y = (int8_t)(yTemp - 127);
+    x = static_cast<int8_t>(data >> 8);
+    y = static_cast<int8_t>(data & 0xFF);
   }
 
   virtual size_t printTo(Print& p) const {

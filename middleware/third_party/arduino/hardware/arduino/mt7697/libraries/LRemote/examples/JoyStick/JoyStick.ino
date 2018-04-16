@@ -21,8 +21,9 @@ void setup() {
   digitalWrite(LED_BUILTIN, 0);
 
   // Setup the Remote Control's UI canvas
-  // We use a landscape since it is easir to contorl joysticks
   LRemote.setName("LinkIt 7697");
+  
+  // We use a landscape since it is easir to contorl joysticks
   LRemote.setOrientation(RC_LANDSCAPE);
   LRemote.setGrid(4, 2);
 
@@ -63,7 +64,15 @@ void setup() {
 void checkAndUpdateLabel(LRemoteLabel& label, LRemoteJoyStick& stick) {
   if(stick.isValueChanged()){
     LRemoteDirection d = stick.getValue();
+    // d.x and d.y are the value from the Joystick component:
+    // d.x : -100 ~ 100, where 0 is center, -100 is leftmost, and 100 is rightmost.
+    // d.y : -100 ~ 100, where 0 is center, -100 is bottommost, and 100 is topmost.
+
+    // you can print d directly.
     Serial.println(d);
+
+    // in this example, we simply pass the value of d.x/d.y
+    // back to the LinkIt Remote app.
     label.updateText(d.toString());
   } 
 }
@@ -87,6 +96,7 @@ void loop() {
   // and translate them to control events
   LRemote.process();
 
+  // refer to this function to know how to parse the values from joystick.
   checkAndUpdateLabel(labelLeft, stickLeft);
   checkAndUpdateLabel(labelRight, stickRight);
   
