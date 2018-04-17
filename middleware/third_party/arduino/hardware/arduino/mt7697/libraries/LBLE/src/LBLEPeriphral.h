@@ -323,7 +323,7 @@ public:	// for BLE framework
     virtual int notify(bt_handle_t connection);
     virtual int indicate(bt_handle_t connection);
 
-private:
+protected:
     LBLEValueBuffer m_data;
     LBLECharacteristicWrittenInfo m_writtenInfo;
 };

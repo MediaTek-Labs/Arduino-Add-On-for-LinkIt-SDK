@@ -3,8 +3,58 @@
 #include <LBLEPeriphral.h>
 #include "LRemote.h"
 #include <vector>
+#include "SalasQueue.h"
 
 LRemoteClass LRemote;
+
+// custom BLE characteristic
+class LBLECharacteristicEvent : public LBLECharacteristicBuffer {
+public:
+  static const size_t EVENT_QUEUE_SIZE = 8;
+
+  LBLECharacteristicEvent(LBLEUuid uuid, uint32_t permission) : 
+    LBLECharacteristicBuffer(uuid, permission),
+    m_eventQueue(EVENT_QUEUE_SIZE)
+    {}
+
+  LBLECharacteristicEvent(LBLEUuid uuid) : 
+    LBLECharacteristicBuffer(uuid),
+    m_eventQueue(EVENT_QUEUE_SIZE)
+    {}
+
+  virtual uint32_t onWrite(void *data, uint16_t size, uint16_t offset) {
+    // process the event
+    const auto ret = LBLECharacteristicBuffer::onWrite(data, size, offset);
+
+    // check if we're reaching a "complete" RCEventInfo
+    // if so, pusht the event into event queue
+    const size_t totalWritten = size + offset;
+    if(totalWritten >= m_data.size()) {
+      LOG_I(common, "ARD:LRemote:RCEventInfo done, push into Q");
+      m_eventQueue.push(*(RCEventInfo*)&m_data[0]);
+    }
+
+    return ret;
+  }
+
+  // get "unprocessed" events
+  size_t eventCount() {
+    return m_eventQueue.count();
+  }
+
+  RCEventInfo popEvent() {
+    return m_eventQueue.pop();
+  }
+
+public:
+  Queue<RCEventInfo> m_eventQueue;
+
+protected:
+  // User should use popEvent() instead of getValue.
+  void getValue(uint8_t* buffer, uint16_t size, uint16_t offset) {
+    return LBLECharacteristicBuffer::getValue(buffer, size, offset);
+  }
+};
 
 // UUID definition
 static LBLEUuid rcServiceUUID("3f60ab39-1710-4456-930c-7e9c9539917e");
@@ -27,7 +77,7 @@ static LBLECharacteristicString
     rcNames("3f60ab39-1717-4456-930c-7e9c9539917e"); // String of control names,
                                                      // separated by the \n
                                                      // ASCII character
-static LBLECharacteristicBuffer
+static LBLECharacteristicEvent
     rcEvent("b5d2ff7b-6eff-4fb5-9b72-6b9cff5181e7"); // Array of UINT8[4],
                                                      // (sequence, event,
                                                      //  event data_byte1,
@@ -191,13 +241,8 @@ bool LRemoteClass::connected() { return LBLEPeripheral.connected(); }
 
 void LRemoteClass::process() {
   // check if new event coming in
-  if (rcEvent.isWritten()) {
-    const LBLECharacteristicWrittenInfo &written = rcEvent.getLastWrittenInfo();
-
-    RCEventInfo event = {0};
-
-    // retrieve the control's event info
-    rcEvent.getValue((uint8_t *)&event, sizeof(event), 0);
+  while (rcEvent.eventCount()) {
+    const RCEventInfo event = rcEvent.popEvent();
 
     // scan and update event info
     // make sure that the "sequence number" is incremented
@@ -208,8 +253,7 @@ void LRemoteClass::process() {
     control.m_lastEvent = event;
     control.m_lastEvent.seq = oldSeq + 1;
 
-    event.processedSeq = event.seq;
-    rcEvent.setValueBuffer((uint8_t *)&event, sizeof(event));
+    LOG_I(common, "ARD:LRemote:process() ctrl:%d seq:%d", i, oldSeq);
   }
 }
 
