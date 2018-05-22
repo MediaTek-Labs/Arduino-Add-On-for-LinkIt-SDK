@@ -3,7 +3,7 @@ before_install:
 - sudo apt-get install libc6-i386
 - wget http://download.labs.mediatek.com/LinkIt_SDK_V4.6.1_travis.tar.gz
 - echo -en 'travis_fold:start:get_driver_package'
-- curl -s https://api.github.com/repos/MediaTek-Labs/linkit-7697-peripheral-drivers-for-arduino/releases/latest | grep "tarball_url" | cut -d ':' -f 2,3 |  tr -d '[ ",]' | wget -O driver_pack.tgz -i -
+- ./get_driver_package.sh
 - echo -en 'travis_fold:end:get_driver_package'
 
 install:
