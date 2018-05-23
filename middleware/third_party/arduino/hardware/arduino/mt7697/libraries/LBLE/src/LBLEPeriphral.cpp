@@ -1066,7 +1066,7 @@ void LBLEPeripheralClass::stopAdvertise()
     // remove the advertisement data
     // so that advertiseAgain() won't succeed
     // until advertise() API is called again.
-    m_pAdvData.release();
+    m_pAdvData.reset();
 }
 
 int LBLEPeripheralClass::advertiseAgain()
