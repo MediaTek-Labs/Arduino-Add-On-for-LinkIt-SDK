@@ -471,7 +471,7 @@ bool LBLEClient::connect(const LBLEAddress& address)
     conn_para.initiator_filter_policy = BT_HCI_CONN_FILTER_ASSIGNED_ADDRESS;
     conn_para.own_address_type = BT_ADDR_RANDOM;
     conn_para.conn_interval_min = 0x0006;
-    conn_para.conn_interval_max = 0x0080;
+    conn_para.conn_interval_max = 0x0190;
     conn_para.conn_latency = 0x0000;
     conn_para.supervision_timeout = 0x07d0;
     conn_para.minimum_ce_length = 0x0000;

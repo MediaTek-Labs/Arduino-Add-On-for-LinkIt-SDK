@@ -230,4 +230,9 @@ static const bt_gatts_primary_service_16_t bt_if_gap_primary_service = {
     .uuid16 = BT_GATT_UUID16_GAP_SERVICE
 };
 
+bool bt_gap_le_is_connection_update_request_accepted(bt_handle_t handle, bt_gap_le_connection_update_param_t* connection_parameter)
+{
+    LOG_I(common, "[Arduino] bt_gap_le_is_connection_update_request_accepted");
+    return true;
+}
 
