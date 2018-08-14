@@ -5,7 +5,7 @@
 #define __LRTC_H__
 
 #include <Arduino.h>
-
+#include <time.h>
 /***
 ***/
 
@@ -20,6 +20,10 @@ public:
     int32_t hour();
     int32_t minute();
     int32_t second();
+
+    // This methods return the time retrieved get() in unix epoch format.
+    // 0 is returned if the 
+    time_t epoch();
 
     void begin();
     void get();

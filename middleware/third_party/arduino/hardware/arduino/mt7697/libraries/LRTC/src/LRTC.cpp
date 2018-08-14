@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "LRTC.h"
 #include <hal_rtc.h>
+#include <time.h>
 
 LRTCClass LRTC;
 
@@ -96,4 +97,33 @@ int32_t LRTCClass::minute()
 int32_t LRTCClass::second()
 {
     return m_second;
+}
+
+time_t LRTCClass::epoch()
+{
+    tm t;
+    time_t epoch = 0;
+    t.tm_sec = m_second;
+    t.tm_min = m_minute;
+    t.tm_hour = m_hour % 24;
+    t.tm_mday = m_day;
+    // C99 tm_month ranges from 0-11
+    t.tm_mon = m_month - 1;
+    // tm_year is years from 1900
+    t.tm_year = m_year - 1900;
+
+    // no day-light saving time
+    t.tm_isdst = 0;
+
+    // These are ignored by mktime
+    t.tm_wday = 0;
+    t.tm_yday = 0;
+    
+    epoch = mktime(&t);
+
+    if(-1 == epoch) {
+        return 0;
+    } else {
+        return (uint64_t)epoch;
+    }
 }
