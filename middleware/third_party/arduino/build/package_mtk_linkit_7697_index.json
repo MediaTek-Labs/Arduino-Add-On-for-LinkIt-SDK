@@ -9,31 +9,31 @@
         "online": "https://docs.labs.mediatek.com/resource/mt7687-mt7697/"
       },
       "platforms": [
-         {
-          "name": "LinkIt 7697",
-          "architecture": "linkit_rtos",
-          "version": "0.6.0",
-          "category": "Contributed",
-          "url": "http://localhost:8080/mediatek_linkit_7697-0.6.0.tar.bz2",
-          "archiveFileName": "mediatek_linkit_7697-0.6.0.tar.bz2",
-          "boards": [
-            {
-              "name": "LinkIt 7697"
-            }
-          ],
-          "toolsDependencies": [
-            {
-              "packager": "arduino",
-              "name": "arm-none-eabi-gcc",
-              "version": "4.8.3-2014q1"
-            },
-    		    {
-      			  "packager": "LinkIt",
-      		      "name": "flash_tool",
-      			  "version": "0.6.0"
-    			  }
-	      ]
-        }
+		{
+                    "name": "LinkIt 7697",
+                    "architecture": "linkit_rtos",
+                    "version": "0.10.21",
+                    "category": "Contributed",
+                    "url": "https://github.com/MediaTek-Labs/Arduino-Add-On-for-LinkIt-SDK/releases/download/v0.10.21/mediatek_linkit_7697-v0.10.21.tar.bz2",
+                    "archiveFileName": "mediatek_linkit_7697-v0.10.21.tar.bz2",
+                    "boards": [
+                        {
+                            "name": "LinkIt 7697"
+                        }
+                    ],
+                    "toolsDependencies": [
+                        {
+                            "packager": "arduino",
+                            "name": "arm-none-eabi-gcc",
+                            "version": "4.8.3-2014q1"
+                        },
+                        {
+                            "packager": "LinkIt",
+                            "name": "flash_tool",
+                            "version": "1.4.4"
+                        }
+                    ]
+                }
       ],
       "tools": [
         {
